@@ -12,7 +12,8 @@ VR 1:1 멀티플레이 공포 서바이벌 게임. 퀴즈로 총을 얻고, 리�
 | [01_rules_essential.md](01_rules_essential.md) | 필수 규칙서 (4주 안에 반드시 완성할 범위) | 전원 |
 | [02_rules_extended.md](02_rules_extended.md) | 확장 규칙서 (폴리싱 기간·출시 버전 후보) | 전원 |
 | [03_tech_review.md](03_tech_review.md) | 기술 검토, 아키텍처, 위험 요소 | 메인 개발, 멀티플레이 |
-| [04_roles_and_schedule.md](04_roles_and_schedule.md) | 역할별 업무, 6주 일정, 협업 규칙 | 전원 |
+| [04_roles_and_schedule.md](04_roles_and_schedule.md) | 역할별 책임, 마일스톤, 협업 규칙, QA 체크리스트 | 전원 |
+| [05_weekly_plan.md](05_weekly_plan.md) | **주차별 플랜**: 인원별 할 일 체크리스트, 주고받을 것, 금요일 데모 기준 | 전원 |
 
 ## 용어
 
