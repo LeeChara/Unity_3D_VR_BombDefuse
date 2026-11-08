@@ -40,7 +40,30 @@
 
 - 템플릿에 포함된 XRI **Interaction Simulator**로 키보드와 마우스로 조작할 수 있다.
 - 켜고 끄기: `Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit` → **Use XR Interaction Simulator in scenes**. 켜 두면 Play할 때 시뮬레이터가 자동으로 생기고, 헤드셋을 연결해도 입력을 시뮬레이터가 가져간다. 헤드셋으로 테스트할 때는 끈다.
-- 2인 테스트: `Window > Multiplayer > Multiplayer Play Mode`에서 가상 플레이어를 켜면 에디터 하나에서 호스트와 클라이언트를 같이 띄울 수 있다
+- 2인 테스트: 아래 "2인 테스트" 참고
+
+## 2인 테스트
+
+### 에디터 하나로 (Multiplayer Play Mode)
+
+1. `RoomScene`을 연다
+2. 툴바의 Play Mode Scenario 목록에서 **Two Player Scenario**를 고른다 (메인 에디터 + 가상 플레이어 1명)
+3. Play를 누른다. 가상 플레이어 창이 처음 뜰 때는 시간이 걸린다
+4. 메인 에디터 Game 창 왼쪽 위의 **Host**를 누르고, 가상 플레이어 창에서 **Join**을 누른다
+5. 통과 기준: 상태 문구가 호스트는 `Players 2/2`, 가상 플레이어는 `Connected`가 된다. 두 사람이 테이블을 사이에 두고 각자 의자 뒤에 서 있고, 상대의 머리(눈가리개가 달린 회색 상자)가 보인다
+- 헤드셋 없이는 손 위치가 움직이지 않는다. 손까지 보려면 Interaction Simulator를 켠다
+- 왼쪽 위 버튼은 에디터와 개발 빌드에서만 뜬다 (`LanSession`의 `Show Debug Gui`로 끌 수 있다)
+
+### 헤드셋 두 대로 (LAN)
+
+1. 두 기기를 **같은 공유기(같은 서브넷)**에 연결한다
+2. 한쪽이 방 오른쪽 앞의 패널에서 **HOST**를 레이로 가리키고 트리거, 다른 쪽이 **JOIN**
+3. JOIN은 호스트의 알림(UDP 47777)을 3초 동안 듣고 자동으로 붙는다. 처음 호스트를 열 때 Windows 방화벽이 물으면 **허용**한다 (게임 포트 7777, 알림 포트 47777)
+- 알림을 못 들으면 `127.0.0.1`로 붙으려다 실패한다. 이때는 방화벽과 같은 네트워크인지부터 확인한다. 공유기가 브로드캐스트를 막는 경우도 있다
+
+### 씬 구성을 다시 만들 때
+
+- `BombDefuse > Set Up Room Network` 메뉴가 NetworkManager, 플레이어 프리팹, 좌석 목록, 접속 패널, Build Settings 등록을 한 번에 한다. 이미 있는 것은 건너뛴다
 
 ## 남은 정리 (급하지 않음)
 

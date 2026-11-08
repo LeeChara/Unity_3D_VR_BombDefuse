@@ -86,12 +86,32 @@ Lobby → Seating → Intro
 Assets/_Project/
   Scripts/
     Core/        GameStateMachine, RoundLogic, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
-    Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
-    Gameplay/    QuizButton, Gun, Seat, SeatedPlayer, Hitbox           ← MonoBehaviour
+    Net/         LanSession, LanDiscovery, NetworkPlayer, NetworkGameController, RPC 정의   ← NGO 의존
+    Gameplay/    QuizButton, Gun, Seat, SeatedPlayer, SeatRegistry, Hitbox            ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        QuizQuestion, VoiceLineData, TuningConfig (ScriptableObject)
+    Editor/      RoomNetworkSetup (씬 구성 메뉴)
   Art/  Audio/  Prefabs/  Scenes/
 ```
+
+### 네트워크 구성 (1주차)
+
+템플릿의 네트워크 코드(`XRINetworkGameManager`, `SessionManager`, `XRINetworkPlayer`)는 **쓰지 않는다**.
+- 템플릿은 세션을 **Distributed Authority**로 만든다. 각 클라이언트가 자기 오브젝트를 결정하는 방식이라 위의 호스트 권한 모델과 맞지 않는다.
+- `XRINetworkPlayer`는 템플릿의 게임 매니저, Vivox 매니저, 이름표 UI를 전부 전제로 해서 따로 떼어 쓸 수 없다.
+
+대신 `Net/`에 작은 LAN 전용 구성을 두었다. RoomScene에는 `BombDefuse > Set Up Room Network` 메뉴로 한 번에 넣는다(여러 번 실행해도 된다).
+
+| 구성 | 하는 일 |
+|---|---|
+| `NetworkManager` | **Client-Server** 토폴로지, 접속 승인 켬, Player Prefab = `Prefabs/NetworkPlayer` |
+| `LanSession` | 호스트 열기·접속·나가기. 호스트는 UDP 47777로 게임 포트(7777)를 1초마다 알린다. 접속하는 쪽은 3초 동안 알림을 듣고, 못 들으면 `127.0.0.1`로 붙는다. 정원 2명이 차면 다음 접속은 "Room is full"로 거절 |
+| `NetworkPlayer` | 머리·양손 상자. 주인이 자기 XR 리그 위치를 복사하고, 자식 `NetworkTransform`(주인 권한)이 보낸다. 자기 화면에서는 숨긴다 |
+| 좌석 배정 | 호스트가 접속 순서대로 빈 좌석 번호(`SeatRegistry`, 0 = 좌석 1)를 `NetworkVariable`로 준다. 주인은 그 의자 뒤로 옮겨지고 그 의자에만 앉을 수 있다 |
+| `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE 버튼과 상태 문구. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
+
+- 보이스챗(Vivox)은 2주차에 붙인다. 템플릿의 `VoiceChatManager`를 그대로 쓸 수 있는지는 그때 정한다.
+- 총·단말기 같은 씬 오브젝트는 아직 각자 화면에서 따로 움직인다. 2주차에 호스트 판정과 소유권 이전으로 바꾼다.
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
