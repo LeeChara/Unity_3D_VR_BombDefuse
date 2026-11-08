@@ -24,17 +24,22 @@
 | Multiplayer Play Mode | 2.0.2 |
 | Unity Cloud | 조직 `radiorarian`에 연결됨. 로비·릴레이·Vivox가 이 연결을 쓴다 |
 | 샘플 씬 | `Assets/Scenes/SampleScene.unity` (멀티플레이 예제), `Assets/Scenes/BasicScene.unity` |
+| 메인 씬 | `Assets/_Project/Scenes/RoomScene.unity` |
+| Unity Pipeline | 0.10.0-exp.1 (템플릿 이후 추가). 열린 에디터를 명령줄·MCP로 조작하는 에디터 전용 패키지. 빌드에는 들어가지 않는다 |
+| 한글 폰트 | Noto Sans KR Regular/Bold (OFL). TextMesh Pro 기본 폰트로 설정 |
 
 ## 헤드셋으로 확인하기 (PC VR)
 
 1. Quest를 Link 케이블 또는 Air Link로 PC에 연결
 2. Meta Quest Link 앱 설정에서 **OpenXR 런타임을 Meta Quest Link로 지정**
-3. `SampleScene`을 열고 Play
-4. 통과 기준: 고개를 돌리면 시점이 따라오고, 컨트롤러로 물체를 잡을 수 있다
+3. 헤드셋에서 Link를 켜서 **Link 홈 화면에 들어간 상태**로 Play를 누른다. Play를 누를 때 헤드셋이 연결돼 있지 않으면 `XR_ERROR_FORM_FACTOR_UNAVAILABLE` 오류가 나고 그 Play 동안은 헤드셋으로 화면이 나오지 않는다
+4. Interaction Simulator가 켜져 있으면 끈다 (아래)
+5. 통과 기준: 고개를 돌리면 시점이 따라오고, 컨트롤러로 물체를 잡을 수 있다
 
 ## 헤드셋 없이 확인하기
 
-- 템플릿에 포함된 XRI **Interaction Simulator** 샘플로 키보드와 마우스로 조작할 수 있다 (자동으로 켜지는지는 첫 실행 때 확인해서 여기에 적는다)
+- 템플릿에 포함된 XRI **Interaction Simulator**로 키보드와 마우스로 조작할 수 있다.
+- 켜고 끄기: `Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit` → **Use XR Interaction Simulator in scenes**. 켜 두면 Play할 때 시뮬레이터가 자동으로 생기고, 헤드셋을 연결해도 입력을 시뮬레이터가 가져간다. 헤드셋으로 테스트할 때는 끈다.
 - 2인 테스트: `Window > Multiplayer > Multiplayer Play Mode`에서 가상 플레이어를 켜면 에디터 하나에서 호스트와 클라이언트를 같이 띄울 수 있다
 
 ## 남은 정리 (급하지 않음)
