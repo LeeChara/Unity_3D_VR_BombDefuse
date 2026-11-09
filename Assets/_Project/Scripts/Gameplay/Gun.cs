@@ -126,6 +126,8 @@ public class Gun : MonoBehaviour
     void Awake()
     {
         m_Grab = GetComponent<XRGrabInteractable>();
+        // 지급 위치에서는 키네마틱이라 놓을 때 던지기를 하면 경고가 난다. 총은 던질 일이 없다
+        m_Grab.throwOnDetach = false;
         m_Rigidbody = GetComponent<Rigidbody>();
 
         if (m_Config == null)
