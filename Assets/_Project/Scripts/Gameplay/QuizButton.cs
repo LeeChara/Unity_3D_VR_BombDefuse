@@ -17,6 +17,9 @@ public class QuizButton : TriggerInteraction
 
     public string Choice => m_Choice;
 
+    /// <summary>선택지 순서 (A = 0 ~ D = 3). 잘못 설정되어 있으면 -1.</summary>
+    public int ChoiceIndex => string.IsNullOrEmpty(m_Choice) ? -1 : "ABCD".IndexOf(char.ToUpperInvariant(m_Choice[0]));
+
     public event Action<QuizButton> Pressed;
 
     protected override void Awake()

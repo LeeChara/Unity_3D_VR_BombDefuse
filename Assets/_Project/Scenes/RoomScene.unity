@@ -505,6 +505,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Terminal_P2
       objectReference: {fileID: 0}
+    - target: {fileID: 6993930898041705975, guid: ff5c2fddf3b9a5f4a94ece1884ca48da,
+        type: 3}
+      propertyPath: m_Seat
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7560920342279096749, guid: ff5c2fddf3b9a5f4a94ece1884ca48da,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -560,6 +565,18 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ff5c2fddf3b9a5f4a94ece1884ca48da, type: 3}
+--- !u!114 &279498450 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6993930898041705975, guid: ff5c2fddf3b9a5f4a94ece1884ca48da,
+    type: 3}
+  m_PrefabInstance: {fileID: 279498449}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d24e16330b09c8b4f95685d42540566a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuizTerminal
 --- !u!1 &284400392
 GameObject:
   m_ObjectHideFlags: 0
@@ -1638,6 +1655,57 @@ MonoBehaviour:
   m_StandUpDistance: 0.6
   m_SitPrompt: Press Trigger to sit
   m_StandUpPrompt: Press Trigger to stand up
+--- !u!1 &1380770864
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1380770866}
+  - component: {fileID: 1380770865}
+  m_Layer: 0
+  m_Name: QuizTestRunner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1380770865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1380770864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96f17ba362dfdab48bb1f949a1368d62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuizTestRunner
+  m_QuestionsCsv: {fileID: 4900000, guid: d0be2e0f7ea1c674ca19cf7bc43058a4, type: 3}
+  m_Config: {fileID: 11400000, guid: bc6b2f0a508dc8340890023d33510a27, type: 2}
+  m_Board: {fileID: 1570897675}
+  m_Terminals:
+  - {fileID: 835194047485494143}
+  - {fileID: 279498450}
+  m_NextQuestionDelay: 2
+--- !u!4 &1380770866
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1380770864}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1386220870 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5167925059111895691, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
@@ -1741,8 +1809,6 @@ MonoBehaviour:
   m_Screens:
   - {fileID: 1789238713}
   - {fileID: 727195472}
-  m_QuestionsCsv: {fileID: 4900000, guid: d0be2e0f7ea1c674ca19cf7bc43058a4, type: 3}
-  m_ShowRandomOnStart: 1
 --- !u!4 &1570897676
 Transform:
   m_ObjectHideFlags: 0
@@ -2457,6 +2523,18 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ff5c2fddf3b9a5f4a94ece1884ca48da, type: 3}
+--- !u!114 &835194047485494143 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6993930898041705975, guid: ff5c2fddf3b9a5f4a94ece1884ca48da,
+    type: 3}
+  m_PrefabInstance: {fileID: 835194047485494142}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d24e16330b09c8b4f95685d42540566a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuizTerminal
 --- !u!1001 &932355192433149533
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2785,3 +2863,4 @@ SceneRoots:
   - {fileID: 727195471}
   - {fileID: 279498449}
   - {fileID: 1570897676}
+  - {fileID: 1380770866}

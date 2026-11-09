@@ -21,7 +21,6 @@ MonoBehaviour:
   - 12
   - 10
   - 7
-  m_SimultaneousWindow: 0.15
   m_PressureLineInterval: 5
   m_ShooterTurnTimeLimit: 20
   m_HammerDelay: 0.6
