@@ -17,7 +17,7 @@ public class RevolverModel : MonoBehaviour
     [Header("Swing Out")]
     [SerializeField, Tooltip("크레인 축이 지나는 점 (실린더 뼈의 부모 기준)")] Vector3 m_CranePivot;
     [SerializeField, Tooltip("크레인 축 방향 (실린더 뼈의 부모 기준, 총구 쪽). 이 축으로 양의 각도만큼 돌면 실린더가 왼쪽으로 나온다")] Vector3 m_CraneAxis = Vector3.forward;
-    [SerializeField] float m_OpenAngle = 90f;
+    [SerializeField, Tooltip("열렸을 때 젖혀지는 각도. 90이면 완전히 옆으로 나온다")] float m_OpenAngle = 45f;
     [SerializeField, Tooltip("열고 닫는 데 걸리는 시간(초)")] float m_OpenDuration = 0.12f;
 
     [Header("Spin")]
@@ -73,6 +73,14 @@ public class RevolverModel : MonoBehaviour
     public void Push(float degreesPerSecond)
     {
         m_SpinVelocity = Mathf.Clamp(m_SpinVelocity + degreesPerSecond, -m_MaxSpinSpeed, m_MaxSpinSpeed);
+    }
+
+    /// <summary>손에 잡혀 돌아가는 동안: 이만큼(도) 바로 돌리고, 관성은 없앤다.</summary>
+    public void Rotate(float degrees)
+    {
+        m_SpinVelocity = 0f;
+        m_AdvanceRemaining = 0f;
+        m_SpinAngle = Mathf.Repeat(m_SpinAngle + degrees, 360f);
     }
 
     /// <summary>방아쇠를 당겼다. 이 시간 동안 공이치기가 젖혀지고 실린더가 한 칸 돈다.</summary>

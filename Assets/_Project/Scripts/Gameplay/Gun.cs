@@ -13,7 +13,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// 실탄·공포탄 모두 총구 방향으로 레이캐스트해서 어느 <see cref="Hitbox"/>를 겨눴는지 알린다. 실탄이면 그 부위에 피해를 준다.
 /// 총알은 진행자가 넣어 두고(약실은 <see cref="Revolver"/>), 사수는 넣거나 돌릴 수 없다. 어떻게 쏠지만 고른다.
 /// 실린더: 총을 쥔 채 손목을 왼쪽으로 빠르게 꺾으면(스냅) 실린더가 옆으로 열리고(쏠 수 없음), 오른쪽으로 꺾거나 총을 내려놓으면 닫힌다.
-/// 열린 동안 빈 반대 손으로 실린더를 쓸어 돌릴 수 있다. 열기·돌리기는 모습만 바뀌는 연출이고 약실(어느 칸에 총알이 있는지)은 바뀌지 않는다.
+/// 열린 동안 반대 손으로 실린더를 잡고(그립) 손을 돌리면 실린더가 따라 돈다. 열기·돌리기는 모습만 바뀌는 연출이고 약실(어느 칸에 총알이 있는지)은 바뀌지 않는다.
 /// 모습은 <see cref="RevolverModel"/>이 맡는다.
 /// 게임 진행 컨트롤러가 <see cref="Present"/>로 지급 위치에 꺼내고 <see cref="Withdraw"/>로 치운다. 꺼내 둔 동안 떨어뜨리면 잠시 뒤 지급 위치로 돌아온다.
 /// 멀티: 약실은 호스트의 총만 믿는다. 클라이언트의 총은 <see cref="ResolvesShotsRemotely"/>를 켜서 쏠 때 <see cref="ShotRequested"/>로 호스트에 맡기고,
@@ -51,11 +51,13 @@ public class Gun : MonoBehaviour
 
     [Header("Cylinder")]
     [SerializeField, Tooltip("움직이는 부품 (실린더, 공이치기, 탄피)")] RevolverModel m_Model;
+    [SerializeField, Tooltip("테이블에 놓여 있을 때만 켜는 넉넉한 집기용 콜라이더. 멀리서 레이로 겨누기 쉽게 한다. 잡으면 끈다")] Collider m_PickupCollider;
     [SerializeField, Tooltip("총열 축으로 이 속도(도/초)보다 빠르게 손목을 꺾으면 스냅으로 본다. 왼쪽으로 꺾으면 열고 오른쪽으로 꺾으면 닫는다")]
     float m_FlickRollSpeed = 540f;
     [SerializeField, Tooltip("총을 잡거나 실린더를 열고 닫은 직후 이 시간(초) 동안은 스냅을 받지 않는다 (잡는 순간의 튐과 스냅 뒤 되돌아오는 움직임을 무시)")]
     float m_GestureGrace = 0.3f;
-    [SerializeField, Tooltip("빈 반대 손이 열린 실린더에서 이 거리(m) 안에 있으면 손 움직임으로 실린더를 돌린다")] float m_SpinReach = 0.07f;
+    [SerializeField, Tooltip("열린 실린더를 잡는 손잡이 (실린더 뼈의 자식). 잡은 손이 실린더 축을 도는 만큼 실린더가 돈다")] XRSimpleInteractable m_CylinderHandle;
+    [SerializeField] string m_SpinPrompt = "Press Grip to hold the cylinder";
 
     [Header("Prompt")]
     [SerializeField] string m_PickUpPrompt = "Press Grip to pick up";
@@ -91,7 +93,9 @@ public class Gun : MonoBehaviour
     float m_GestureEnableTime;
     int m_FlickFrames;
     int m_FlickSign;
-    readonly Dictionary<XRBaseInputInteractor, Vector3> m_LastHandPositions = new Dictionary<XRBaseInputInteractor, Vector3>();
+    IXRSelectInteractor m_CylinderHolder;
+    float m_CylinderHandAngle;
+    float m_CylinderHandVelocity;
     // 원격 판정일 때 보여 줄 총알 수 (호스트가 알려 준 수)
     int m_RemoteBulletCount;
     int m_FollowedShellCount = -1;
@@ -142,6 +146,14 @@ public class Gun : MonoBehaviour
         m_Grab.selectEntered.AddListener(OnSelectEntered);
         m_Grab.selectExited.AddListener(OnSelectExited);
         m_Grab.activated.AddListener(OnActivated);
+        if (m_CylinderHandle != null)
+        {
+            m_CylinderHandle.hoverEntered.AddListener(OnHandleHoverChanged);
+            m_CylinderHandle.hoverExited.AddListener(OnHandleHoverChanged);
+            m_CylinderHandle.selectEntered.AddListener(OnHandleSelectEntered);
+            m_CylinderHandle.selectExited.AddListener(OnHandleSelectExited);
+            m_CylinderHandle.enabled = false;
+        }
     }
 
     void OnDisable()
@@ -151,6 +163,15 @@ public class Gun : MonoBehaviour
         m_Grab.selectEntered.RemoveListener(OnSelectEntered);
         m_Grab.selectExited.RemoveListener(OnSelectExited);
         m_Grab.activated.RemoveListener(OnActivated);
+        if (m_CylinderHandle != null)
+        {
+            m_CylinderHandle.hoverEntered.RemoveListener(OnHandleHoverChanged);
+            m_CylinderHandle.hoverExited.RemoveListener(OnHandleHoverChanged);
+            m_CylinderHandle.selectEntered.RemoveListener(OnHandleSelectEntered);
+            m_CylinderHandle.selectExited.RemoveListener(OnHandleSelectExited);
+            InteractionPrompt.Hide(m_CylinderHandle);
+        }
+        m_CylinderHolder = null;
         m_HoveringInteractors.Clear();
         InteractionPrompt.Hide(this);
         m_IsCocking = false;   // 꺼지면 공이치기·복귀 코루틴도 멈춘다
@@ -186,6 +207,7 @@ public class Gun : MonoBehaviour
     {
         m_Holder = args.interactorObject;
         InteractionPrompt.Hide(this);
+        SetPickupCollider(false);
         if (m_ReturnRoutine != null)
         {
             StopCoroutine(m_ReturnRoutine);
@@ -214,6 +236,7 @@ public class Gun : MonoBehaviour
 
         m_Holder = null;
         m_OtherHands.Clear();
+        SetHandleEnabled(false);
 
         // 내려놓으면 실린더를 닫는다
         if (IsCylinderOpen)
@@ -245,8 +268,8 @@ public class Gun : MonoBehaviour
         if (IsEquipped)
         {
             CheckFlick();
-            if (IsCylinderOpen)
-                SpinByHand();
+            if (m_CylinderHolder != null)
+                SpinByHandle();
             m_LastRotation = transform.rotation;
         }
 
@@ -256,7 +279,7 @@ public class Gun : MonoBehaviour
 
     void UpdatePrompt()
     {
-        if (IsEquipped || m_HoveringInteractors.Count == 0)
+        if (IsEquipped)
             return;
 
         // 다른 것을 쥐고 있지 않은 손이 가리키면 안내 문구를 띄운다
@@ -267,10 +290,20 @@ public class Gun : MonoBehaviour
                 canPickUp = true;
         }
 
-        if (canPickUp)
+        // 이 기기 사람이 집어야 할 총이 테이블에 놓여 있으면, 가리키지 않아도 안내한다 (다른 안내가 떠 있으면 양보)
+        var waitingForPickup = IsPresented && m_Grab.enabled && !m_IsFollowingRemote && m_HomePoint != null
+            && !InteractionPrompt.IsOwnedByOther(this);
+
+        if (canPickUp || waitingForPickup)
             InteractionPrompt.Show(this, m_PickUpPrompt);
         else
             InteractionPrompt.Hide(this);
+    }
+
+    void SetPickupCollider(bool enabled)
+    {
+        if (m_PickupCollider != null)
+            m_PickupCollider.enabled = enabled;
     }
 
     /// <summary>쥐고 있는 손에서 떨어뜨린다.</summary>
@@ -304,6 +337,7 @@ public class Gun : MonoBehaviour
                 m_ReturnRoutine = null;
             }
             StopRigidbody();
+            SetPickupCollider(false);
             m_IsFollowingRemote = true;
         }
 
@@ -358,6 +392,8 @@ public class Gun : MonoBehaviour
             return;
         StopRigidbody();
         transform.SetPositionAndRotation(m_HomePoint.position, m_HomePoint.rotation);
+        // 테이블에 놓인 동안만 넉넉한 콜라이더로 집기 쉽게 한다
+        SetPickupCollider(true);
     }
 
     void StopRigidbody()
@@ -391,7 +427,7 @@ public class Gun : MonoBehaviour
             return;
 
         SetCylinderOpen(true);
-        m_LastHandPositions.Clear();
+        SetHandleEnabled(true);
         Debug.Log("[Gun] 실린더가 열렸다 (쏠 수 없음)", this);
         CylinderOpened?.Invoke();
     }
@@ -430,35 +466,81 @@ public class Gun : MonoBehaviour
     }
 
     // 빈 반대 손이 열린 실린더 가까이에서 움직이면, 실린더 둘레 방향 속도만큼 실린더를 민다 (모습만 바뀐다)
-    void SpinByHand()
+    // ── 실린더 잡고 돌리기 ──
+
+    // 손잡이는 실린더가 열려 있고 총을 쥐고 있을 때만 잡을 수 있다
+    void SetHandleEnabled(bool enabled)
+    {
+        if (m_CylinderHandle == null)
+            return;
+
+        if (!enabled && m_CylinderHolder != null)
+            m_CylinderHandle.interactionManager.SelectExit(m_CylinderHolder, m_CylinderHandle);
+        m_CylinderHandle.enabled = enabled && IsEquipped;
+        if (!m_CylinderHandle.enabled)
+            InteractionPrompt.Hide(m_CylinderHandle);
+    }
+
+    void OnHandleHoverChanged(BaseInteractionEventArgs args)
+    {
+        if (m_CylinderHandle.isHovered && !m_CylinderHandle.isSelected)
+            InteractionPrompt.Show(m_CylinderHandle, m_SpinPrompt);
+        else
+            InteractionPrompt.Hide(m_CylinderHandle);
+    }
+
+    void OnHandleSelectEntered(SelectEnterEventArgs args)
+    {
+        // 총을 쥔 손으로는 잡을 수 없다
+        if (ReferenceEquals(args.interactorObject, m_Holder))
+        {
+            m_CylinderHandle.interactionManager.SelectExit(args.interactorObject, m_CylinderHandle);
+            return;
+        }
+
+        m_CylinderHolder = args.interactorObject;
+        m_CylinderHandAngle = HandAngle(m_CylinderHolder);
+        m_CylinderHandVelocity = 0f;
+        InteractionPrompt.Hide(m_CylinderHandle);
+    }
+
+    void OnHandleSelectExited(SelectExitEventArgs args)
+    {
+        if (!ReferenceEquals(args.interactorObject, m_CylinderHolder))
+            return;
+
+        m_CylinderHolder = null;
+        // 놓는 순간의 속도로 계속 돌다가 마찰로 멈춘다
+        if (m_Model != null)
+            m_Model.Push(m_CylinderHandVelocity);
+    }
+
+    // 잡은 손이 실린더 축 둘레로 돈 각도만큼 실린더를 돌린다. 방향이 손 움직임과 같다
+    void SpinByHandle()
     {
         if (m_Model == null)
             return;
 
-        var dt = Time.deltaTime;
-        var center = m_Model.CylinderCenter;
+        var angle = HandAngle(m_CylinderHolder);
+        var delta = Mathf.DeltaAngle(m_CylinderHandAngle, angle);
+        m_CylinderHandAngle = angle;
+        m_Model.Rotate(delta);
+        if (Time.deltaTime > 0f)
+            m_CylinderHandVelocity = Mathf.Lerp(m_CylinderHandVelocity, delta / Time.deltaTime, 0.5f);
+    }
+
+    // 실린더 축을 기준으로 손이 어느 방향에 있는지 (도)
+    float HandAngle(IXRSelectInteractor hand)
+    {
         var axis = m_Model.CylinderAxis;
-        foreach (var hand in m_OtherHands)
-        {
-            if (hand == null)
-                continue;
+        var radial = Vector3.ProjectOnPlane(hand.transform.position - m_Model.CylinderCenter, axis);
+        if (radial.sqrMagnitude < 0.000001f)
+            return m_CylinderHandAngle;
 
-            var position = hand.transform.position;
-            var hadLast = m_LastHandPositions.TryGetValue(hand, out var last);
-            m_LastHandPositions[hand] = position;
-            if (!hadLast || dt <= 0f || hand.hasSelection)
-                continue;
-
-            var radial = Vector3.ProjectOnPlane(position - center, axis);
-            if (radial.magnitude > m_SpinReach || radial.sqrMagnitude < 0.000001f)
-                continue;
-
-            var tangent = Vector3.Cross(axis, radial.normalized);
-            var speed = Vector3.Dot((position - last) / dt, tangent);
-            // 손이 실린더 표면을 미는 것으로 보고 각속도로 바꾼다. 너무 가까우면 반지름을 최소 2cm로 본다
-            var degreesPerSecond = speed / Mathf.Max(radial.magnitude, 0.02f) * Mathf.Rad2Deg;
-            m_Model.Push(degreesPerSecond * dt * 4f);
-        }
+        var reference = Vector3.ProjectOnPlane(transform.forward, axis);
+        if (reference.sqrMagnitude < 0.000001f)
+            reference = Vector3.ProjectOnPlane(transform.up, axis);
+        return Vector3.SignedAngle(reference.normalized, radial.normalized, axis);
     }
 
     void CloseCylinder(string reason)
@@ -467,6 +549,7 @@ public class Gun : MonoBehaviour
             return;
 
         SetCylinderOpen(false);
+        SetHandleEnabled(false);
         Debug.Log($"[Gun] 실린더를 닫았다 ({reason})", this);
         CylinderClosed?.Invoke();
     }

@@ -47,6 +47,8 @@ public static class RevolverModelSetup
             if (root.transform.Find("Model") == null)
                 BuildModel(root, modelPrefab, revolverMaterial, shellMaterial, log);
             RemoveLoadZone(root, log);
+            EnsurePickupCollider(root, log);
+            EnsureCylinderHandle(root, log);
             SetGrabColliders(root, log);
             PrefabUtility.SaveAsPrefabAsset(root, k_PistolPath);
             log.Add($"Saved {k_PistolPath}");
@@ -129,6 +131,7 @@ public static class RevolverModelSetup
         var gunSerialized = new SerializedObject(gun);
         gunSerialized.FindProperty("m_Model").objectReferenceValue = revolverModel;
         gunSerialized.ApplyModifiedPropertiesWithoutUndo();
+        EnsurePickupCollider(root, log);
 
         log.Add("Added Reichsrevolver model, colliders, RevolverModel; moved Muzzle");
     }
@@ -144,11 +147,59 @@ public static class RevolverModelSetup
         log.Add("Removed LoadZone");
     }
 
-    // 잡기는 XRGrabInteractable의 Colliders 목록으로 판정한다. 임시 모양의 콜라이더를 지웠으므로 새 콜라이더로 바꾼다
+    // 모델 콜라이더는 3cm 두께라 멀리서 레이로 겨누기 어렵다. 총 전체를 감싸는 집기용 콜라이더를 두고 Gun이 테이블에 놓였을 때만 켠다
+    static void EnsurePickupCollider(GameObject root, List<string> log)
+    {
+        var gun = root.GetComponent<Gun>();
+        var serialized = new SerializedObject(gun);
+        var property = serialized.FindProperty("m_PickupCollider");
+        if (property.objectReferenceValue != null)
+            return;
+
+        var model = root.transform.Find("Model");
+        if (model == null)
+            return;
+
+        var pickup = model.Find("Collider_Pickup");
+        if (pickup == null)
+            pickup = AddBox(model, "Collider_Pickup", Vector3.zero, new Vector3(0.16f, 0.22f, 0.36f)).transform;
+        property.objectReferenceValue = pickup.GetComponent<Collider>();
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        log.Add("Added Collider_Pickup (grab helper)");
+    }
+
+    // 열린 실린더를 반대 손으로 잡고 돌리는 손잡이. 실린더 뼈의 자식이라 실린더와 함께 젖혀져 나온다
+    static void EnsureCylinderHandle(GameObject root, List<string> log)
+    {
+        var gun = root.GetComponent<Gun>();
+        var serialized = new SerializedObject(gun);
+        var property = serialized.FindProperty("m_CylinderHandle");
+        if (property.objectReferenceValue != null)
+            return;
+
+        var cylinder = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "Cylinder");
+        if (cylinder == null)
+            return;
+
+        var handle = cylinder.Find("CylinderHandle");
+        if (handle == null)
+        {
+            // 실린더 메시 중심은 뼈 원점에서 축 방향으로 약 2cm 앞이다 (메시에서 잰 값)
+            handle = AddBox(cylinder, "CylinderHandle", new Vector3(0f, 0.019f, 0f), new Vector3(0.08f, 0.08f, 0.08f)).transform;
+            handle.gameObject.AddComponent<XRSimpleInteractable>();
+        }
+
+        property.objectReferenceValue = handle.GetComponent<XRSimpleInteractable>();
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        log.Add("Added CylinderHandle (grab to spin)");
+    }
+
+    // 잡기는 XRGrabInteractable의 Colliders 목록으로 판정한다. 임시 모양의 콜라이더를 지웠으므로 새 콜라이더로 바꾼다.
+    // 실린더 손잡이의 콜라이더는 손잡이의 XRSimpleInteractable이 쓰므로 뺀다
     static void SetGrabColliders(GameObject root, List<string> log)
     {
         var grab = root.GetComponent<XRGrabInteractable>();
-        var colliders = root.GetComponentsInChildren<Collider>(true).Where(c => !c.isTrigger).ToArray();
+        var colliders = root.GetComponentsInChildren<Collider>(true).Where(c => !c.isTrigger && c.name != "CylinderHandle").ToArray();
         var serialized = new SerializedObject(grab);
         var list = serialized.FindProperty("m_Colliders");
         var same = list.arraySize == colliders.Length;
@@ -164,13 +215,14 @@ public static class RevolverModelSetup
         log.Add($"Grab colliders: {string.Join(", ", colliders.Select(c => c.name))}");
     }
 
-    static void AddBox(Transform parent, string name, Vector3 center, Vector3 size)
+    static GameObject AddBox(Transform parent, string name, Vector3 center, Vector3 size)
     {
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
         var box = go.AddComponent<BoxCollider>();
         box.center = center;
         box.size = size;
+        return go;
     }
 
     // 패키지의 Standard(Specular) 재질과 같은 텍스처로 URP Lit(Specular) 재질을 만든다
