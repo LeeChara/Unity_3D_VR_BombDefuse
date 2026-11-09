@@ -43,7 +43,7 @@
 
 - 플레이어 1이 호스트(서버 + 클라이언트), 플레이어 2는 클라이언트다.
 - 클라이언트는 **요청만** 보낸다. "2번 버튼 눌렀어요", "방아쇠 당겼어요(조준 방향 포함)".
-- **판정, 무작위(약실, 동시 판정), 상태 변경은 전부 호스트만** 한다.
+- **판정, 무작위(약실 등), 상태 변경은 전부 호스트만** 한다.
 - **약실 상태는 클라이언트에 보내지 않는다.** 결과(발사/불발)만 보낸다. 보내면 메모리를 들여다보는 것만으로 치트가 된다.
 
 ### 상태 머신
@@ -62,7 +62,7 @@ Lobby → Seating → Intro
 | Seating | 각자 의자 뒤에서 등장, 착석 안내 → 경고 → 강제 착석 (규칙서 2절) | 둘 다 앉음 → Intro |
 | Intro | 규칙 설명 세 문장 | 끝 → QuizActive |
 | QuizActive | 문제 출제, 버튼 입력, 압박 대사 | 정답·둘 다 오답·시간 초과 → QuizResolve |
-| QuizResolve | 정답 판정 (동시 판정 포함) | 정답자 있음 → GunHandover / 없음 → BothFailPenalty |
+| QuizResolve | 정답 판정 | 정답자 있음 → GunHandover / 없음 → BothFailPenalty |
 | GunHandover | 총 지급, 대상 구속 | → ShooterTurn |
 | ShooterTurn | 실린더 돌리기(턴당 1회), 상대·자신 쏘기. 제한시간이 지나면 총 반납 | 방아쇠 또는 시간 초과 → ShotResolve |
 | ShotResolve | 공이치기 연출, 실탄/공포탄, 피해, 실탄이면 재장전 | → HostReaction |
@@ -85,9 +85,9 @@ Lobby → Seating → Intro
 ```
 Assets/_Project/
   Scripts/
-    Core/        GameStateMachine, RoundLogic, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
+    Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
     Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
-    Gameplay/    QuizButton, Gun, Seat, SeatedPlayer, Hitbox           ← MonoBehaviour
+    Gameplay/    QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, Hitbox   ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
   Art/  Audio/  Prefabs/  Scenes/
@@ -95,6 +95,8 @@ Assets/_Project/
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
+- `QuizRound`는 시각을 직접 읽지 않고 밖에서 받는다(`Submit(좌석, 선택지, 누른 시각)`, `Tick(현재 시각)`). 멀티에서는 누른 순간의 네트워크 시각을 넘긴다.
+- `Gameplay/QuizTestRunner`는 게임 진행 컨트롤러가 생기기 전까지 쓰는 임시 퀴즈 진행이다. 컨트롤러를 만들면 지운다.
 - **수치 읽기**: `TuningConfig` 에셋은 하나만 두고, 게임 진행 컨트롤러가 Inspector로 연결해서 필요한 값만 각 로직에 넘긴다. `Core` 클래스는 설정 파일을 모르고 숫자만 받는다(예: `new Revolver(약실 수, 총알 수)`).
 - ScriptableObject는 Play 중에 Inspector에서 바꾼 값이 멈춘 뒤에도 남는다. 값을 바꿨으면 규칙서 수치 표도 같이 고친다.
 
@@ -102,10 +104,10 @@ Assets/_Project/
 
 | 문제 | 위험 | 해결 |
 |---|---|---|
-| **먼저 누르기 판정** | 호스트는 지연이 0이라 항상 유리하다 | 클라이언트가 누른 순간의 **네트워크 시간**(NGO `ServerTime`)을 함께 보낸다. 호스트는 그 시간으로 비교한다. 0.15초 이내는 "동시 판정" 연출로 처리한다 (규칙서 3절) |
+| **먼저 누르기 판정** | 호스트는 지연이 0이라 항상 유리하다 | 클라이언트가 누른 순간의 **네트워크 시간**(NGO `ServerTime`)을 함께 보낸다. 호스트는 그 시간으로 비교한다. 아주 근소한 차이의 처리는 테스트 후 정한다 ([확장 E10](02_rules_extended.md#e10-동시-판정-)) |
 | **머리 피하기와 명중 판정** | 사수가 보는 상대 머리 위치가 과거 위치다 | 판정은 **호스트가 자기 시점의 대상 위치로** 한다. 공이치기 0.6초 지연으로 대상에게 반응할 시간을 준다. 발표 환경(LAN)에서는 지연이 작아서 체감 문제가 거의 없다 |
 | **총 잡기 동기화** | 물리 오브젝트를 네트워크로 동기화하면 떨림, 소유권 충돌이 생긴다 | 총은 **사수만 잡을 수 있게** 하고 그때 소유권을 넘긴다. 던지거나 떨어뜨리면 일정 시간(규칙서 수치 표) 뒤 테이블로 돌아온다. 물리 던지기는 지원하지 않는다 |
-| **구속 상태** | 플레이어가 의자를 떠나면 판정이 깨진다 | 착석 이후 게임이 끝날 때까지 **두 사람 모두 일어날 수 없게** 한다. 구속은 대상을 알리는 연출이고, 구속구·팔걸이 고정은 없으며 손 입력도 막지 않는다. 총은 사수만 잡을 수 있다. 머리는 HMD를 따라간다 |
+| **구속 상태** | 플레이어가 의자를 떠나면 판정이 깨진다 | 착석 이후 게임이 끝날 때까지 **두 사람 모두 일어날 수 없게** 한다. 구속은 대상을 알리는 연출이고, 손 입력은 막지 않는다. 총은 사수만 잡을 수 있다. 머리는 HMD를 따라간다 |
 | **아바타** | 전신 IK는 시간이 많이 든다 | 필수 버전: **머리 + 손 + 머리를 따라가는 몸통**(목 아래로 오프셋). 앉아 있는 게임이라 이 정도로 충분하다 |
 | **부위 판정** | 히트박스가 아바타와 어긋난다 | 머리(구)·몸통(캡슐)·양팔(캡슐) 히트박스를 아바타 본에 붙인다. 디버그 모드에서 히트박스가 보이게 한다 |
 | **멀미** | 죽거나 맞을 때 카메라를 강제로 움직이면 멀미가 난다 | **플레이어 카메라는 절대 강제로 움직이지 않는다.** 사망은 페이드아웃 + 사운드로 연출한다. 화면 흔들림 대신 비네팅과 색수차를 쓴다 |

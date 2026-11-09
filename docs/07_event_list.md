@@ -38,7 +38,7 @@
 
 ## 3. 게임 이벤트
 
-**대사** 칸은 [필수 규칙서 8절](01_rules_essential.md#8-진행자-필수-버전)의 필수 대사 이벤트다. 18개가 모두 아래 표에 하나씩 있다. **효과음** 칸은 예시이고 사운드 담당이 정한다.
+**대사** 칸은 [필수 규칙서 8절](01_rules_essential.md#8-진행자-필수-버전)의 필수 대사 이벤트다. 17개가 모두 아래 표에 하나씩 있다. **효과음** 칸은 예시이고 사운드 담당이 정한다.
 
 ### 착석 (`Seating`)
 
@@ -63,10 +63,8 @@
 | `quiz_pressure` | 출제 후 5초마다 | 남은 시간(초) | 압박 | – |
 | `answer_wrong` | 오답을 눌렀을 때 (그 사람은 이 문제에서 잠긴다) | `player`, 고른 번호 | 오답 | 버튼 잠김 |
 | `answer_correct` | 정답자가 정해졌을 때 | `player` | 정답 | 정답음 |
-| `answer_simultaneous` | 두 사람의 정답이 0.15초 이내일 때. 진행자가 한 명을 고른다 | 뽑힌 `player` | 동시 판정 | – |
 | `quiz_timeout` | 제한시간 안에 아무도 정답을 못 맞혔을 때 | – | 시간 초과 | 타이머 종료음 |
 
-- `answer_simultaneous`가 나가면 `answer_correct`는 나가지 않는다. 둘 중 하나만 나간다.
 - 둘 다 오답으로 잠긴 경우에는 각자 `answer_wrong`만 나가고 다음으로 넘어간다 (`quiz_timeout` 없음).
 - 타이머 째깍 소리는 `quiz_start`의 제한시간으로 각자 기기에서 재생한다. 초마다 이벤트를 보내지 않는다.
 
@@ -111,6 +109,7 @@
 
 | 이벤트 (가칭) | 관련 규칙 | 함께 올 정보 |
 |---|---|---|
+| `answer_simultaneous` | [E10 동시 판정](02_rules_extended.md#e10-동시-판정-). 나가면 `answer_correct`는 나가지 않는다 | 뽑힌 `player` |
 | `dread_changed` | 양측 패널티 ([필수 7절](01_rules_essential.md#7-양측-패널티와-공포-단계)) | 새 공포 단계 |
 | `shot_self_reward` | [E4 자신 쏘기 보상](02_rules_extended.md#e4-자신-쏘기-보상-) | 사수, 보상 |
 | `shot_host_blocked` | [E9 진행자 쏘기](02_rules_extended.md#e9-진행자-쏘기-) | 사수 |
