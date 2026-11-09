@@ -5,13 +5,12 @@ using UnityEngine;
 
 /// <summary>
 /// 총을 두 기기에서 맞춘다. 약실과 판정은 호스트의 <see cref="Gun"/>만 믿는다.
-/// - 꺼내기·치우기: 호스트의 진행 컨트롤러가 사수 앞에 꺼내거나 치우면 클라이언트도 같은 좌석 앞에 꺼내거나 치운다.
+/// - 꺼내기·치우기: 호스트의 진행 컨트롤러가 테이블 가운데에 총을 꺼내거나 치우면 클라이언트도 똑같이 한다.
 /// - 잡기: 사수 기기의 총만 잡을 수 있다(진행 컨트롤러가 <see cref="GameFlowController.IsLocalSeat"/>로 정한다).
-/// - 위치: 사수 기기가 총 위치를 보내고, 다른 기기의 총은 그 위치를 따라간다.
+/// - 위치: 사수 기기가 총 위치와 실린더 모습(열림, 돈 각도, 보이는 총알 수)을 보내고, 다른 기기의 총은 그대로 따라간다.
 /// - 발사: 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 호스트에 보내고, 호스트가 약실을 당겨 판정한다.
 ///   호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다.
-/// - 장전: 클라이언트 사수가 총알을 넣고 실린더를 닫으면 넣은 수를 호스트에 보내고, 호스트 약실에 넣고 돌린다.
-/// 아직 없는 것: 상대가 넣어서 사라진 여분 총알을 이쪽 화면에서 지우기, 사망·게임 종료 표시.
+/// 아직 없는 것: 클라이언트 화면의 사망·게임 종료 표시.
 /// </summary>
 public class LanGunSync : MonoBehaviour
 {
@@ -20,7 +19,6 @@ public class LanGunSync : MonoBehaviour
     const string k_PoseMessage = "BombDefuse.GunPose";
     const string k_ShotRequestMessage = "BombDefuse.GunShotRequest";
     const string k_ShotMessage = "BombDefuse.GunShot";
-    const string k_ReloadMessage = "BombDefuse.GunReload";
 
     [SerializeField] GameFlowController m_Flow;
     [SerializeField] Gun m_Gun;
@@ -49,7 +47,6 @@ public class LanGunSync : MonoBehaviour
         m_Flow.GunWithdrawn += OnGunWithdrawn;
         m_Gun.Fired += OnGunFired;
         m_Gun.ShotRequested += OnShotRequested;
-        m_Gun.CylinderClosed += OnCylinderClosed;
     }
 
     void OnDestroy()
@@ -68,7 +65,6 @@ public class LanGunSync : MonoBehaviour
         {
             m_Gun.Fired -= OnGunFired;
             m_Gun.ShotRequested -= OnShotRequested;
-            m_Gun.CylinderClosed -= OnCylinderClosed;
         }
     }
 
@@ -80,7 +76,6 @@ public class LanGunSync : MonoBehaviour
         if (m_NetworkManager.IsServer)
         {
             messaging.RegisterNamedMessageHandler(k_ShotRequestMessage, ReceiveShotRequest);
-            messaging.RegisterNamedMessageHandler(k_ReloadMessage, ReceiveReload);
             m_Gun.ResolvesShotsRemotely = false;
             return;
         }
@@ -98,10 +93,13 @@ public class LanGunSync : MonoBehaviour
             return;
 
         m_NextPoseTime = Time.unscaledTime + 1f / m_PoseSendRate;
-        using (var writer = new FastBufferWriter(32, Allocator.Temp))
+        using (var writer = new FastBufferWriter(48, Allocator.Temp))
         {
             writer.WriteValueSafe(m_Gun.transform.position);
             writer.WriteValueSafe(m_Gun.transform.rotation);
+            writer.WriteValueSafe(m_Gun.IsCylinderOpen);
+            writer.WriteValueSafe(m_Gun.CylinderSpinAngle);
+            writer.WriteValueSafe((byte)m_Gun.DisplayedBulletCount);
             // 위치는 자주 보내고 최신 것만 쓰면 되므로 순서만 지키고 재전송은 하지 않는다
             SendToOthers(k_PoseMessage, writer, NetworkDelivery.UnreliableSequenced);
         }
@@ -115,9 +113,10 @@ public class LanGunSync : MonoBehaviour
         if (!IsServerWithClients())
             return;
 
-        using (var writer = new FastBufferWriter(4, Allocator.Temp))
+        using (var writer = new FastBufferWriter(8, Allocator.Temp))
         {
             writer.WriteValueSafe(seat);
+            writer.WriteValueSafe(m_Gun.BulletCount);
             SendToOthers(k_PresentedMessage, writer, NetworkDelivery.ReliableSequenced);
         }
     }
@@ -138,8 +137,11 @@ public class LanGunSync : MonoBehaviour
             return;
 
         reader.ReadValueSafe(out int seat);
+        reader.ReadValueSafe(out int bulletCount);
         m_PresentedSeat = seat;
         m_Flow.PresentGunForSeat(seat);
+        // 총알 수는 공개 정보라 실린더 모습에 쓴다 (어느 칸인지는 보내지 않는다)
+        m_Gun.SetRemoteBulletCount(bulletCount);
     }
 
     void ReceiveWithdrawn(ulong senderClientId, FastBufferReader reader)
@@ -157,12 +159,15 @@ public class LanGunSync : MonoBehaviour
     {
         reader.ReadValueSafe(out Vector3 position);
         reader.ReadValueSafe(out Quaternion rotation);
+        reader.ReadValueSafe(out bool cylinderOpen);
+        reader.ReadValueSafe(out float spinAngle);
+        reader.ReadValueSafe(out byte shellCount);
 
         // 사수가 아닌 기기가 보낸 위치는 받지 않는다
         if (IsLocalShooter || !IsSenderShooter(senderClientId))
             return;
 
-        m_Gun.FollowRemotePose(position, rotation);
+        m_Gun.FollowRemotePose(position, rotation, cylinderOpen, spinAngle, shellCount);
     }
 
     bool IsSenderShooter(ulong senderClientId)
@@ -231,30 +236,6 @@ public class LanGunSync : MonoBehaviour
         reader.ReadValueSafe(out result.IsLive);
         reader.ReadValueSafe(out result.DidHit);
         m_Gun.ShowRemoteShot(result);
-    }
-
-    // ── 장전 (클라이언트 사수 → 호스트) ──
-
-    void OnCylinderClosed(int inserted)
-    {
-        // 클라이언트 약실은 쓰지 않으므로 넣은 수만 호스트에 알린다
-        if (!IsConnected || m_NetworkManager.IsServer || !IsLocalShooter || inserted == 0)
-            return;
-
-        using (var writer = new FastBufferWriter(4, Allocator.Temp))
-        {
-            writer.WriteValueSafe(inserted);
-            m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_ReloadMessage, NetworkManager.ServerClientId, writer, NetworkDelivery.ReliableSequenced);
-        }
-    }
-
-    void ReceiveReload(ulong senderClientId, FastBufferReader reader)
-    {
-        reader.ReadValueSafe(out int inserted);
-        if (!IsSenderShooter(senderClientId) || m_Flow.StateMachine.Current != GameState.ShooterTurn)
-            return;
-
-        m_Gun.InsertRemote(inserted);
     }
 
     // ── 공통 ──

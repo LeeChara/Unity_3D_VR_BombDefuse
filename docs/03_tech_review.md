@@ -64,7 +64,7 @@ Lobby → Seating → Intro
 | QuizActive | 문제 출제, 버튼 입력, 압박 대사 | 정답·둘 다 오답·시간 초과 → QuizResolve |
 | QuizResolve | 정답 판정 | 정답자 있음 → GunHandover / 없음 → BothFailPenalty |
 | GunHandover | 총 지급, 대상 구속 | → ShooterTurn |
-| ShooterTurn | 상대 쏘기, 자신 쏘기(공포탄이면 이 상태에 머물며 한 번 더), 총알 넣고 돌리기(실린더를 닫으면 쏘지 않고 끝). 제한시간이 지나면 총 반납 | 상대 쏘기·자신 쏘기 실탄·넣고 돌리기·시간 초과 → ShotResolve |
+| ShooterTurn | 상대 쏘기, 자신 쏘기(공포탄이면 이 상태에 머물며 한 번 더). 제한시간이 지나면 총 반납 | 상대 쏘기·자신 쏘기 실탄·시간 초과 → ShotResolve |
 | ShotResolve | 공이치기 연출, 실탄/공포탄, 피해, 총알이 0발이면 재장전(넣는 수가 1발씩 늘어남) | → HostReaction |
 | HostReaction | 결과 브리핑 (진행자 반응) | → DeathCheck |
 | BothFailPenalty | 공포 단계 +1 | → DeathCheck |
@@ -87,7 +87,7 @@ Assets/_Project/
   Scripts/
     Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
     Net/         LanSession, LanDiscovery, NetworkPlayer, NetworkGameController, RPC 정의   ← NGO 의존
-    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, GunLoadZone, SpareBullet, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
     Editor/      RoomNetworkSetup (씬 구성 메뉴)
@@ -110,13 +110,13 @@ Assets/_Project/
 | 좌석 배정 | 호스트가 접속 순서대로 빈 좌석 번호(`SeatRegistry`, 0 = 좌석 1)를 `NetworkVariable`로 준다. 주인은 그 의자 뒤로 옮겨지고 그 의자에만 앉을 수 있다 |
 | `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE / START 버튼과 상태 문구. 지금 누를 수 없는 버튼은 글자가 흐리다. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
 | 퀴즈 동기화 | `LanQuizSync`가 호스트의 출제·퀴즈 종료·버튼 판정 색을 Named Message로 보낸다. 클라이언트는 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 클라이언트가 자기 좌석 단말기를 누르면 답을 호스트에 보내고, 호스트가 받은 순간을 누른 시각으로 판정한다 |
-| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 사수 앞에 총을 꺼내거나 치우면 클라이언트도 같은 좌석 앞에 꺼내거나 치운다. 사수 기기의 총과 여분 총알만 잡을 수 있고, 사수 기기가 총 위치를 초당 30번 보내 다른 기기의 총이 따라간다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 넣은 총알 수도 호스트 약실에 넣고 돌린다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
+| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 테이블 가운데에 총을 꺼내거나 치우면 클라이언트도 똑같이 한다. 사수 기기의 총만 잡을 수 있고, 사수 기기가 총 위치를 초당 30번 보내 다른 기기의 총이 따라간다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
 | 좌석의 몸 | START 때 `LanGameStarter`가 마네킹을 숨기고, 진행 컨트롤러의 좌석 몸을 실제 플레이어로 바꾼다. 이 기기 사람은 XR Origin의 `PlayerBody`, 상대는 아바타(`NetworkPlayer` 프리팹)의 `AvatarBody`가 맞는다. 자기 아바타의 히트박스는 끈다 |
 | 게임 시작 | 정원 2명이 차면 호스트의 START가 켜진다. 누르면 `LanSession`이 클라이언트에게 시작 메시지(Named Message `BombDefuse.StartGame`)를 보내고, 호스트의 `LanGameStarter`만 `GameFlowController.StartGame()`을 부른다. 게임 진행은 호스트에서만 돈다. RoomScene의 `GameFlowController`는 `Start On Play`를 꺼 둔다(혼자 테스트할 때는 켠다) |
 
 - 보이스챗(Vivox)은 2주차에 붙인다. 템플릿의 `VoiceChatManager`를 그대로 쓸 수 있는지는 그때 정한다.
 - 게임 진행은 호스트에서만 돈다. 클라이언트는 퀴즈 화면과 총을 호스트에 맞춰 보여 준다. NGO의 소유권 이전 대신 Named Message로 맞췄다(총을 껐다 켜는 방식이라 NetworkObject로 만들기 어렵다).
-- 아직 맞추지 않은 것: 상대가 넣어서 없어진 여분 총알(이쪽 화면에는 남아 있다), 클라이언트 화면의 피해·사망·게임 종료 표시, 상대 손에 들린 총이 손을 따라 움직이는 모습(위치만 따라간다).
+- 아직 맞추지 않은 것: 클라이언트 화면의 피해·사망·게임 종료 표시, 상대 손에 들린 총이 손을 따라 움직이는 모습(위치만 따라간다).
 - 게임 중에 한 명이 나가도 진행은 멈추지 않는다. 다시 접속하면 START가 다시 켜지지만, 이미 시작한 쪽은 새로 시작하지 않는다.
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
@@ -126,7 +126,11 @@ Assets/_Project/
 - 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
 - `Gun`이 `Revolver`를 직접 들고 있다. 멀티에서는 호스트의 총만 약실을 쓰고, 클라이언트의 총은 `ResolvesShotsRemotely`로 판정을 호스트에 맡긴다(약실 상태는 호스트만 안다).
-- `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 모델과 효과음이 오면 바꾼다.
+- `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 효과음이 오면 바꾼다.
+- 총 모델은 에셋 스토어의 **Reichsrevolver M-1879**(`Assets/Reichsrevolver_M1879`)다. `BombDefuse > Set Up Revolver Model` 메뉴가 `Prefabs/Pistol`의 임시 모양을 이 모델로 바꾸고, 패키지의 Standard 재질 대신 URP Lit 재질(`Art/Material/Revolver_*.mat`, 1024 텍스처)을 만든다. 패키지의 Animator와 데모 스크립트는 뺀다.
+- `Presentation/RevolverModel`이 모델의 뼈를 직접 움직인다: 실린더 옆으로 열기(크레인 축으로 90도), 실린더 돌리기(손으로 밀기, 방아쇠마다 60도. 모습만 바뀌고 약실은 그대로), 공이치기, 총알 수만큼 탄피 보이기. 판정과는 관계없는 모습이다. 탄피가 보이는 칸은 실제 약실 위치와 관계없다.
+- 손목 스냅은 `Gun`이 총열 축 회전 속도로 잡는다(540도/초 이상이 두 프레임 이어지면). 왼쪽이면 열고 오른쪽이면 닫는다.
+- 멀티: 사수 기기가 보내는 총 위치에 실린더 모습(열림, 돈 각도, 보이는 총알 수)을 함께 실어 상대 화면도 같은 모습을 보인다.
 - `Gameplay/TestMannequin`은 상대 자리의 테스트용 마네킹이다. 혼자 테스트할 때만 쓰고, 멀티에서 START를 누르면 숨긴다.
 - **수치 읽기**: `TuningConfig` 에셋은 하나만 두고, 게임 진행 컨트롤러가 Inspector로 연결해서 필요한 값만 각 로직에 넘긴다. `Core` 클래스는 설정 파일을 모르고 숫자만 받는다(예: `new Revolver(약실 수, 총알 수)`).
 - ScriptableObject는 Play 중에 Inspector에서 바꾼 값이 멈춘 뒤에도 남는다. 값을 바꿨으면 규칙서 수치 표도 같이 고친다.

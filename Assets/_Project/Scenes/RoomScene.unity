@@ -389,37 +389,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1514741897}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &236715069
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 236715070}
-  m_Layer: 0
-  m_Name: GunSpawn_2
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &236715070
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 236715069}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.000000030908623, y: 0.7071068, z: -0.7071068, w: -0.000000030908623}
-  m_LocalPosition: {x: -0.4, y: 0.85, z: 0.5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1046809355}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &247088186
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -660,16 +629,10 @@ MonoBehaviour:
   - {fileID: 835194047485494143}
   - {fileID: 279498450}
   m_Gun: {fileID: 403089422}
-  m_GunSpawnPoints:
-  - {fileID: 1752014481}
-  - {fileID: 236715070}
+  m_GunSpawnPoint: {fileID: 1752014481}
   m_Bodies:
   - {fileID: 1685855669}
   - {fileID: 280342469}
-  m_SpareBulletPrefab: {fileID: 5538158391092789043, guid: b13eed1ae59dae44ab0e08620f2a4ed7,
-    type: 3}
-  m_SpareBulletOffset: 0.2
-  m_SpareBulletSpacing: 0.05
   m_QuizResultDelay: 1.5
   m_ShotResultDelay: 1
   m_HostReactionDuration: 1.5
@@ -2319,7 +2282,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1752014481}
-  - {fileID: 236715070}
   m_Father: {fileID: 1514741897}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1084985209
@@ -4128,7 +4090,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1752014481}
   m_Layer: 0
-  m_Name: GunSpawn_1
+  m_Name: GunSpawn_Center
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4142,8 +4104,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752014480}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0.4, y: 0.85, z: -0.5}
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.85, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4866,34 +4828,8 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1860608202353196248, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 932355192433149535}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7171622e8545ee54eaf18f7aa4dfbb08, type: 3}
---- !u!1 &932355192433149534 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1860608202353196248, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
-    type: 3}
-  m_PrefabInstance: {fileID: 932355192433149533}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &932355192433149535
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 932355192433149534}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a4a50d88b55b45648927679791f472de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.Interactors.XRInteractionGroup
-  m_GroupName: 
-  m_InteractionManager: {fileID: 0}
-  m_StartingGroupMembers: []
-  m_StartingInteractionOverridesMap: []
 --- !u!1001 &5595193570221415624
 PrefabInstance:
   m_ObjectHideFlags: 0
