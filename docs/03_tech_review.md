@@ -127,7 +127,7 @@ Assets/_Project/
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
 - `Gun`이 `Revolver`를 직접 들고 있다. 멀티에서는 호스트의 총만 약실을 쓰고, 클라이언트의 총은 `ResolvesShotsRemotely`로 판정을 호스트에 맡긴다(약실 상태는 호스트만 안다).
 - `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 효과음이 오면 바꾼다.
-- 총 모델은 에셋 스토어의 **Reichsrevolver M-1879**(`Assets/Reichsrevolver_M1879`)다. `BombDefuse > Set Up Revolver Model` 메뉴가 `Prefabs/Pistol`의 임시 모양을 이 모델로 바꾸고, 패키지의 Standard 재질 대신 URP Lit 재질(`Art/Material/Revolver_*.mat`, 1024 텍스처)을 만든다. 패키지의 Animator와 데모 스크립트는 뺀다.
+- 총 모델은 에셋 스토어의 **Reichsrevolver M-1879**(`Assets/Reichsrevolver_M1879`, 쓰는 FBX·1024/256 텍스처만 저장소에 포함)다. `BombDefuse > Set Up Revolver Model` 메뉴가 `Prefabs/Pistol`의 임시 모양을 이 모델로 바꾸고, 패키지의 Standard 재질 대신 URP Lit 재질(`Art/Material/Revolver_*.mat`, 1024 텍스처)을 만든다. 패키지의 Animator와 데모 스크립트는 뺀다.
 - `Presentation/RevolverModel`이 모델의 뼈를 직접 움직인다: 실린더 옆으로 열기(크레인 축으로 45도), 실린더 돌리기(반대 손으로 실린더 손잡이 `CylinderHandle`을 그립으로 잡고 실린더 축 둘레로 돌린 각도만큼. 방아쇠마다 60도. 모습만 바뀌고 약실은 그대로), 공이치기, 총알 수만큼 탄피 보이기. 판정과는 관계없는 모습이다. 탄피가 보이는 칸은 실제 약실 위치와 관계없다.
 - 손목 스냅은 `Gun`이 총열 축 회전 속도로 잡는다(540도/초 이상이 두 프레임 이어지면). 왼쪽이면 열고 오른쪽이면 닫는다.
 - 멀티: 사수 기기가 보내는 총 위치에 실린더 모습(열림, 돈 각도, 보이는 총알 수)을 함께 실어 상대 화면도 같은 모습을 보인다.
