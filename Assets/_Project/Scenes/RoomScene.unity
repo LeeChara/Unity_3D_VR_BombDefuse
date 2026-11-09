@@ -661,8 +661,12 @@ MonoBehaviour:
   - {fileID: 1752014481}
   - {fileID: 236715070}
   m_Bodies:
-  - {fileID: 0}
+  - {fileID: 1685855669}
   - {fileID: 280342469}
+  m_SpareBulletPrefab: {fileID: 5538158391092789043, guid: b13eed1ae59dae44ab0e08620f2a4ed7,
+    type: 3}
+  m_SpareBulletOffset: 0.2
+  m_SpareBulletSpacing: 0.05
   m_QuizResultDelay: 1.5
   m_ShotResultDelay: 1
   m_HostReactionDuration: 1.5
@@ -930,6 +934,14 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1685855662}
+    - targetCorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1685855669}
+    - targetCorrespondingSourceObject: {fileID: 1717954561962503725, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1685855670}
     - targetCorrespondingSourceObject: {fileID: 1767192433, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
         type: 3}
       insertIndex: -1
@@ -2045,6 +2057,36 @@ MonoBehaviour:
   m_ControllerInputManagers:
   - {fileID: 531144951}
   - {fileID: 1786885746}
+--- !u!114 &1685855669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685855655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4610c426d5273648a3545d467ccbd08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Damageable
+  m_Config: {fileID: 11400000, guid: bc6b2f0a508dc8340890023d33510a27, type: 2}
+--- !u!114 &1685855670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1685855655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc5cc6c185a660f40a5b67af4a7419dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBody
+  m_HeadRadius: 0.11
+  m_TorsoDrop: 0.42
+  m_TorsoBack: 0.06
+  m_TorsoRadius: 0.16
+  m_TorsoHeight: 0.55
 --- !u!1 &1737920634
 GameObject:
   m_ObjectHideFlags: 0

@@ -14,5 +14,8 @@ public class Hitbox : MonoBehaviour
     public BodyPart Part => m_Part;
     public Damageable Owner => m_Owner != null ? m_Owner : m_Owner = GetComponentInParent<Damageable>();
 
+    /// <summary>코드로 만든 히트박스의 부위를 정한다.</summary>
+    public void SetPart(BodyPart part) => m_Part = part;
+
     public DamageOutcome ApplyHit() => Owner != null ? Owner.ApplyHit(m_Part) : DamageOutcome.Ignored;
 }

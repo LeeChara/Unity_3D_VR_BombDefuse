@@ -64,8 +64,8 @@ Lobby → Seating → Intro
 | QuizActive | 문제 출제, 버튼 입력, 압박 대사 | 정답·둘 다 오답·시간 초과 → QuizResolve |
 | QuizResolve | 정답 판정 | 정답자 있음 → GunHandover / 없음 → BothFailPenalty |
 | GunHandover | 총 지급, 대상 구속 | → ShooterTurn |
-| ShooterTurn | 실린더 돌리기(턴당 1회), 상대·자신 쏘기. 제한시간이 지나면 총 반납 | 방아쇠 또는 시간 초과 → ShotResolve |
-| ShotResolve | 공이치기 연출, 실탄/공포탄, 피해, 실탄이면 재장전 | → HostReaction |
+| ShooterTurn | 상대 쏘기, 자신 쏘기(공포탄이면 이 상태에 머물며 한 번 더), 총알 넣고 돌리기(실린더를 닫으면 쏘지 않고 끝). 제한시간이 지나면 총 반납 | 상대 쏘기·자신 쏘기 실탄·넣고 돌리기·시간 초과 → ShotResolve |
+| ShotResolve | 공이치기 연출, 실탄/공포탄, 피해, 총알이 0발이면 재장전(넣는 수가 1발씩 늘어남) | → HostReaction |
 | HostReaction | 결과 브리핑 (진행자 반응) | → DeathCheck |
 | BothFailPenalty | 공포 단계 +1 | → DeathCheck |
 | DeathCheck | 사망자 확인 | 있음 → GameOver / 없음 → QuizActive |
@@ -87,7 +87,7 @@ Assets/_Project/
   Scripts/
     Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
     Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
-    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, Hitbox, Damageable   ← MonoBehaviour
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, GunLoadZone, SpareBullet, Seat, SeatedPlayer, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
   Art/  Audio/  Prefabs/  Scenes/
@@ -97,6 +97,8 @@ Assets/_Project/
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
 - `QuizRound`는 시각을 직접 읽지 않고 밖에서 받는다(`Submit(좌석, 선택지, 누른 시각)`, `Tick(현재 시각)`). 멀티에서는 누른 순간의 네트워크 시각을 넘긴다.
 - `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인을 반복한다. 착석 단계·규칙 설명은 아직 바로 지나가고, 진행자 대사 대신 정해진 시간만 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
+- 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
+- `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
 - 지금은 `Gun`이 `Revolver`를 직접 들고 있다. 멀티를 붙일 때 호스트 쪽으로 옮긴다(약실 상태는 호스트만 안다).
 - `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 모델과 효과음이 오면 바꾼다.
 - `Gameplay/TestMannequin`은 상대 자리의 테스트용 마네킹이다. 상대 플레이어가 생기면 지운다.

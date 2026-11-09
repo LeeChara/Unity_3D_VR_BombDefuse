@@ -16,6 +16,8 @@ MonoBehaviour:
   m_ForceSeatDelay: 10
   m_ChamberCount: 6
   m_StartingBullets: 1
+  m_ReloadIncrement: 1
+  m_SpareBullets: 2
   m_QuizTimeLimits:
   - 15
   - 12

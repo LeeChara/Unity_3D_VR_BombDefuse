@@ -15,6 +15,8 @@ public class TuningConfig : ScriptableObject
     [Header("Revolver")]
     [SerializeField, Min(1), Tooltip("약실 수")] int m_ChamberCount = 6;
     [SerializeField, Min(1), Tooltip("시작할 때 넣는 총알 수. 약실 수를 넘을 수 없다")] int m_StartingBullets = 1;
+    [SerializeField, Min(0), Tooltip("진행자가 재장전할 때마다 넣는 총알이 늘어나는 수. 최대는 약실 수")] int m_ReloadIncrement = 1;
+    [SerializeField, Min(0), Tooltip("총을 받을 때 함께 놓이는 여분 총알 수")] int m_SpareBullets = 2;
 
     [Header("Quiz")]
     [SerializeField, Tooltip("공포 단계 0~최대의 퀴즈 제한시간(초). 칸 수는 공포 단계 최대 + 1")] float[] m_QuizTimeLimits = { 15f, 12f, 10f, 7f };
@@ -35,6 +37,8 @@ public class TuningConfig : ScriptableObject
     public float ForceSeatDelay => m_ForceSeatDelay;
     public int ChamberCount => m_ChamberCount;
     public int StartingBullets => m_StartingBullets;
+    public int ReloadIncrement => m_ReloadIncrement;
+    public int SpareBullets => m_SpareBullets;
     public float PressureLineInterval => m_PressureLineInterval;
     public float ShooterTurnTimeLimit => m_ShooterTurnTimeLimit;
     public float HammerDelay => m_HammerDelay;
