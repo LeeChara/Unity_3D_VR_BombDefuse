@@ -383,6 +383,18 @@ public static class RoomNetworkSetup
             log.Add($"Added LanQuizSync to {flow.name}");
         }
 
+        if (flow.GetComponent<GameStateSync>() == null)
+        {
+            // 씬에 놓인 NetworkObject. 서버가 시작되면 자동으로 스폰되고 클라이언트와 맞춰진다
+            if (flow.GetComponent<NetworkObject>() == null)
+                Undo.AddComponent<NetworkObject>(flow.gameObject);
+            var stateSync = Undo.AddComponent<GameStateSync>(flow.gameObject);
+            var stateSerialized = new SerializedObject(stateSync);
+            stateSerialized.FindProperty("m_Flow").objectReferenceValue = flow;
+            stateSerialized.ApplyModifiedProperties();
+            log.Add($"Added NetworkObject + GameStateSync to {flow.name}");
+        }
+
         if (flow.GetComponent<LanGunSync>() == null)
         {
             var gunSync = Undo.AddComponent<LanGunSync>(flow.gameObject);

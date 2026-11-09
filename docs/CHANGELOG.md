@@ -33,7 +33,8 @@
 | `LanDiscovery` | 위 알림을 보내고 받는 UDP 소켓 |
 | `NetworkPlayer` | 플레이어 프리팹. 머리·양손을 주인 권한 NetworkTransform으로 보낸다. 호스트가 좌석 번호를 NetworkVariable로 준다. 좌석별 몸(`BodyAtSeat`) 조회 |
 | `LanGameStarter` | START를 받으면 마네킹을 숨기고, 좌석 몸을 실제 플레이어로 바꾼 뒤 호스트만 `GameFlowController.StartGame()` |
-| `LanQuizSync` | 호스트 → 클라이언트: 문제·제한시간, 퀴즈 종료, 버튼 판정 색. 클라이언트 → 호스트: 자기 좌석 단말기 답 |
+| `LanQuizSync` | 호스트 → 클라이언트: 문제·제한시간, 퀴즈 종료, 버튼 판정 색. 클라이언트 → 호스트: 자기 좌석 단말기 답 + 누른 순간의 네트워크 시간 |
+| `GameStateSync` | 호스트 상태를 `NetworkVariable<GameState>`와 전이 RPC로 클라이언트에 맞춘다. 클라이언트 `GameFlowController`는 상태만 비추고 진행은 하지 않는다(`DrivesGame`) |
 | `LanGunSync` | 총 지급·치우기, 사수 기기만 잡기, 총 위치와 실린더 모습(열림·각도·총알 수) 전송, 클라이언트 사격은 레이만 보내 호스트 약실로 판정, 발사 결과를 클라이언트 이펙트로 |
 | `LanSessionButton`, `LanSessionStatusText` | 방 오른쪽 앞 패널의 HOST/JOIN/LEAVE/START 버튼과 상태 글자 |
 | `VirtualPlayerInput` | **에디터 전용.** Player 2 창은 XR을 끄고 시뮬레이터로, 메인 에디터는 헤드셋이 있으면 시뮬레이터를 만들지 않는다 |
@@ -45,11 +46,12 @@
 
 | 파일 | 변경 |
 |---|---|
-| `GameFlowController` (원래 파일) | `Start On Play` 옵션(RoomScene은 꺼 둠), `StartGame()`, `IsLocalSeat`, `SubmitAnswer`, `SetBody`, `PresentGunForSeat`/`WithdrawGun`, 퀴즈·총 이벤트 추가. 총 지급 위치를 좌석별 2곳 → 테이블 가운데 1곳. 여분 총알·넣고 돌리기 제거 |
+| `GameFlowController` (원래 파일) | `Start On Play` 옵션(RoomScene은 꺼 둠), `StartGame()`, `DrivesGame`, `IsLocalSeat`, `SubmitAnswer`(누른 시각 포함), `SetBody`, `PresentGunForSeat`/`WithdrawGun`, 퀴즈·총 이벤트 추가. 총 지급 위치를 좌석별 2곳 → 테이블 가운데 1곳. 여분 총알·넣고 돌리기 제거 |
 | `Gun` (원래 파일) | 멀티용: `SetGrabbable`, `FollowRemotePose`, `ResolvesShotsRemotely`/`ShotRequested`, `FireRemote`, `ShowRemoteShot`. 실린더: 손목 스냅 열기·닫기, `CylinderHandle`을 반대 손으로 잡고 돌리기, `RevolverModel` 연동. 집기용 콜라이더와 "Press Grip to pick up" 안내. 총알 넣기 제거, 놓을 때 던지기 끔 |
 | `AvatarBody` (New) | 상대 아바타의 머리·몸통 히트박스. 자기 아바타에서는 끔 |
 | `SeatRegistry` (New), `Seat`, `SeatedPlayer` | 좌석 목록, 배정된 의자에만 앉기, 의자 뒤로 옮기기 |
 | `HoverOutline` | SkinnedMeshRenderer(총 모델)에도 외곽선 |
+| `Core/GameStateMachine` (원래 파일) | `Sync(상태)` 추가: 네트워크로 받은 호스트 상태를 규칙 검사 없이 적용 |
 | `SpareBullet`, `GunLoadZone` | **삭제** |
 
 ### 2-3. 표현 (`Scripts/Presentation/`)
@@ -65,7 +67,7 @@
 ### 2-5. 에셋·씬
 
 - `Prefabs/NetworkPlayer`, `Art/Material/Avatar.mat`, `Revolver_M1879.mat`, `Revolver_Shell.mat` 추가. `Prefabs/Pistol` 모델 교체. `SpareBullet.prefab`, `Bullet.mat` 삭제.
-- `RoomScene`: NetworkManager, SeatRegistry, LanSessionPanel, GunSpawn_Center 추가. GunSpawn_1/2 제거. `TuningConfig.SpareBullets` 제거.
+- `RoomScene`: NetworkManager, SeatRegistry, LanSessionPanel, GunSpawn_Center, GameFlow에 NetworkObject+GameStateSync 추가. GunSpawn_1/2 제거. `TuningConfig.SpareBullets` 제거.
 - `Assets/Reichsrevolver_M1879/`: 에셋 스토어 패키지에서 **쓰는 것만**(모델 FBX 2개, 1024·256 텍스처 10장, 약 16MB) 남기고 커밋했습니다. 2048 텍스처, 데모 씬, 애니메이션, 원본 재질·프리팹·스크립트는 지웠습니다(필요하면 에셋 스토어에서 다시 받습니다). 비공개 저장소라 팀 공유용으로 넣었습니다.
 
 ---
@@ -75,6 +77,7 @@
 | 항목 | 상태 |
 |---|---|
 | 에디터 2인(호스트+클라이언트) 접속, 좌석, START, 같은 문제 표시 | 확인 |
+| 클라이언트 상태 머신이 호스트 상태를 같은 순서로 따라감 | 확인 |
 | 클라이언트 답 → 호스트 판정 → 클라이언트에 총 지급·잡기·위치 동기화 | 확인 |
 | 클라이언트 사격(상대 머리, 자기 머리) 호스트 판정, 사망·재시작 | 확인 |
 | 헤드셋으로 머리 추적·컨트롤러 | 확인 (시뮬레이터 충돌 문제 해결 후) |

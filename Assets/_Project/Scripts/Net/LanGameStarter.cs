@@ -5,7 +5,7 @@ using UnityEngine;
 /// 호스트가 START를 누르면(<see cref="LanSession.GameStarted"/>) 멀티용으로 게임을 준비하고 호스트의 <see cref="GameFlowController"/>를 시작한다.
 /// 준비: 이 기기의 좌석만 직접 플레이하게 하고(<see cref="GameFlowController.IsLocalSeat"/>), 테스트용 마네킹을 숨기고,
 /// 각 좌석의 몸을 실제 플레이어(이 기기 사람은 XR Origin의 몸, 상대는 아바타의 몸)로 바꾼다.
-/// 클라이언트는 진행을 돌리지 않고 호스트가 보내 주는 화면을 따른다(<see cref="LanQuizSync"/>, <see cref="LanGunSync"/>).
+/// 클라이언트는 진행을 돌리지 않고 호스트의 상태(<see cref="GameStateSync"/>)와 화면(<see cref="LanQuizSync"/>, <see cref="LanGunSync"/>)을 따른다.
 /// GameFlowController의 Start On Play는 꺼 둔다.
 /// </summary>
 public class LanGameStarter : MonoBehaviour

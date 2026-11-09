@@ -153,10 +153,12 @@ public class LanQuizSync : MonoBehaviour
         if (seat != NetworkPlayer.LocalSeatNumber)
             return;
 
-        using (var writer = new FastBufferWriter(8, Allocator.Temp))
+        using (var writer = new FastBufferWriter(16, Allocator.Temp))
         {
             writer.WriteValueSafe(seat);
             writer.WriteValueSafe(choiceIndex);
+            // 누른 순간의 네트워크 시간. 호스트가 자기 시계로 바꿔서 "누가 먼저 눌렀나"를 판정한다 (docs/03 4절)
+            writer.WriteValueSafe(m_NetworkManager.ServerTime.Time);
             m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_AnswerMessage, NetworkManager.ServerClientId, writer);
         }
     }
@@ -165,6 +167,7 @@ public class LanQuizSync : MonoBehaviour
     {
         reader.ReadValueSafe(out int seat);
         reader.ReadValueSafe(out int choiceIndex);
+        reader.ReadValueSafe(out double pressServerTime);
 
         // 자기 좌석 단말기만 누를 수 있다
         var sender = FindPlayer(senderClientId);
@@ -174,7 +177,11 @@ public class LanQuizSync : MonoBehaviour
             return;
         }
 
-        m_Flow.SubmitAnswer(seat, choiceIndex);
+        // 네트워크 시간 → 이 기기의 Time.timeAsDouble. 호스트에서는 두 시계가 같은 속도로 가므로 지금 차이만큼 당기면 된다.
+        // 미래 시각은 지금으로 자른다 (시계 오차)
+        var lag = m_NetworkManager.ServerTime.Time - pressServerTime;
+        var pressTime = Time.timeAsDouble - System.Math.Max(0.0, lag);
+        m_Flow.SubmitAnswer(seat, choiceIndex, pressTime);
     }
 
     static NetworkPlayer FindPlayer(ulong clientId)

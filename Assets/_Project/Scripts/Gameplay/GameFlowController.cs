@@ -67,6 +67,12 @@ public class GameFlowController : MonoBehaviour
     /// <summary>지금 사수 좌석. 사수 턴이 아니면 의미 없다.</summary>
     public int ShooterSeat => m_ShooterSeat;
 
+    /// <summary>
+    /// true면 이 기기가 게임을 진행한다(혼자 플레이, 멀티의 호스트). false면 상태 머신은 네트워크로 받은 호스트 상태를 비추기만 하고
+    /// 출제·총 지급 같은 진행은 하지 않는다(멀티의 클라이언트). 상태 변경 이벤트는 양쪽 모두에서 난다.
+    /// </summary>
+    public bool DrivesGame { get; set; } = true;
+
     static double Now => Time.timeAsDouble;
 
     void Awake() => m_StateMachine.StateChanged += OnStateChanged;
@@ -148,6 +154,10 @@ public class GameFlowController : MonoBehaviour
     {
         Debug.Log($"[Flow] {previous} → {next}", this);
 
+        // 클라이언트는 호스트의 상태를 따라갈 뿐 진행을 돌리지 않는다
+        if (!DrivesGame)
+            return;
+
         switch (next)
         {
             case GameState.QuizActive:
@@ -208,13 +218,16 @@ public class GameFlowController : MonoBehaviour
     }
 
     /// <summary>답을 낸다. 이 기기의 단말기 입력과, 네트워크로 받은 상대의 입력이 모두 여기로 온다.</summary>
-    public void SubmitAnswer(int seat, int choiceIndex)
+    public void SubmitAnswer(int seat, int choiceIndex) => SubmitAnswer(seat, choiceIndex, Now);
+
+    /// <param name="pressTime">누른 시각 (이 기기의 <see cref="Time.timeAsDouble"/> 기준). 네트워크로 받은 입력은 네트워크 시간을 이 기준으로 바꿔서 넘긴다</param>
+    public void SubmitAnswer(int seat, int choiceIndex, double pressTime)
     {
         if (m_StateMachine.Current != GameState.QuizActive || m_Round == null)
             return;
 
-        if (m_Round.Submit(seat, choiceIndex, Now) == QuizSubmitResult.Ignored)
-            Debug.Log($"[Flow] 좌석 {seat}의 {Letter(choiceIndex)} 무시 (이 문제에서 잠김)", this);
+        if (m_Round.Submit(seat, choiceIndex, pressTime) == QuizSubmitResult.Ignored)
+            Debug.Log($"[Flow] 좌석 {seat}의 {Letter(choiceIndex)} 무시 (이 문제에서 잠김이거나 시간 초과)", this);
     }
 
     void OnAnswerWrong(int seat, int choiceIndex)
