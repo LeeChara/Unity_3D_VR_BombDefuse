@@ -51,7 +51,7 @@
 ```
 Lobby → Seating → Intro
   → QuizActive → QuizResolve
-      ├→ GunHandover (대상 구속) → ShooterTurn → ShotResolve → HostReaction
+      ├→ GunHandover → ShooterTurn → ShotResolve → HostReaction
       └→ BothFailPenalty
   → DeathCheck → (QuizActive | GameOver)
 ```
@@ -63,7 +63,7 @@ Lobby → Seating → Intro
 | Intro | 규칙 설명 세 문장 | 끝 → QuizActive |
 | QuizActive | 문제 출제, 버튼 입력, 압박 대사 | 정답·둘 다 오답·시간 초과 → QuizResolve |
 | QuizResolve | 정답 판정 | 정답자 있음 → GunHandover / 없음 → BothFailPenalty |
-| GunHandover | 총 지급, 대상 구속 | → ShooterTurn |
+| GunHandover | 정답자 앞에 총과 여분 총알 지급 | → ShooterTurn |
 | ShooterTurn | 상대 쏘기, 자신 쏘기(공포탄이면 이 상태에 머물며 한 번 더), 총알 넣고 돌리기(실린더를 닫으면 쏘지 않고 끝). 제한시간이 지나면 총 반납 | 상대 쏘기·자신 쏘기 실탄·넣고 돌리기·시간 초과 → ShotResolve |
 | ShotResolve | 공이치기 연출, 실탄/공포탄, 피해, 총알이 0발이면 재장전(넣는 수가 1발씩 늘어남) | → HostReaction |
 | HostReaction | 결과 브리핑 (진행자 반응) | → DeathCheck |
@@ -85,22 +85,25 @@ Lobby → Seating → Intro
 ```
 Assets/_Project/
   Scripts/
-    Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
+    Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel, HostLinePool   ← 순수 C#, 네트워크 모름
     Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
-    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, GunLoadZone, SpareBullet, Seat, SeatedPlayer, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
-    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostCharacter, DreadLevelController, VoiceLinePlayer
-    Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, SpareBullet, Seat, SeatedPlayer, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
+    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostDialogue, HostSubtitle, HostCharacter, DreadLevelController
+    Data/        CsvReader, QuizQuestion, QuizCsvParser, HostLine, HostLineCsvParser, TuningConfig (ScriptableObject)
   Art/  Audio/  Prefabs/  Scenes/
 ```
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
 - `QuizRound`는 시각을 직접 읽지 않고 밖에서 받는다(`Submit(좌석, 선택지, 누른 시각)`, `Tick(현재 시각)`). 멀티에서는 누른 순간의 네트워크 시각을 넘긴다.
-- `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인을 반복한다. 착석 단계·규칙 설명은 아직 바로 지나가고, 진행자 대사 대신 정해진 시간만 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
+- `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 착석 → 규칙 설명 → (퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인)을 반복한다. 진행자 대사가 있는 단계는 대사를 다 읽을 시간만큼 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
 - 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
+- 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다.
+- 진행자 대사: `HostDialogue`가 대사 CSV를 불러와 `HostLinePool`로 이벤트별 대사를 고르고(직전 대사 제외), `HostSubtitle`(Main Camera 아래 자막)에 띄운다. 표시 시간은 글자 수로 정하고, `{bullets}`는 총알 개수로 바꾼다. 자막은 깊이 검사를 끈 재질(`Project/UI Overlay` 셰이더, TMP Overlay 재질)이라 벽·의자에 가려지지 않는다. 녹음이 오면 같은 이벤트 이름으로 음성을 붙인다.
+- 총알 넣기 판정은 `Gun`이 물리 프레임마다 한다. 씬의 여분 총알(`SpareBullet.Active`)마다 지난 물리 프레임부터 지금까지 지나간 길을 나눠 보고, 장전 영역(총 자식 `LoadZone` 콜라이더)이나 총을 쥔 손에 닿았는지 본다. 그래서 빠르게 던진 총알도 놓치지 않는다. 총알을 쥔 손은 손끼리의 거리로 본다.
 - 지금은 `Gun`이 `Revolver`를 직접 들고 있다. 멀티를 붙일 때 호스트 쪽으로 옮긴다(약실 상태는 호스트만 안다).
-- `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 모델과 효과음이 오면 바꾼다.
+- `Presentation/GunEffects`(발사음·딸깍·공이치기 소리, 진동, 반동, 발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 소리는 코드로 만든 파형이고, 클립 칸에 효과음을 넣으면 그것을 쓴다. 반동은 총 자식 `Model`(콜라이더 포함)을 흔든다. 모델과 효과음이 오면 바꾼다.
 - `Gameplay/TestMannequin`은 상대 자리의 테스트용 마네킹이다. 상대 플레이어가 생기면 지운다.
 - **수치 읽기**: `TuningConfig` 에셋은 하나만 두고, 게임 진행 컨트롤러가 Inspector로 연결해서 필요한 값만 각 로직에 넘긴다. `Core` 클래스는 설정 파일을 모르고 숫자만 받는다(예: `new Revolver(약실 수, 총알 수)`).
 - ScriptableObject는 Play 중에 Inspector에서 바꾼 값이 멈춘 뒤에도 남는다. 값을 바꿨으면 규칙서 수치 표도 같이 고친다.
@@ -112,7 +115,7 @@ Assets/_Project/
 | **먼저 누르기 판정** | 호스트는 지연이 0이라 항상 유리하다 | 클라이언트가 누른 순간의 **네트워크 시간**(NGO `ServerTime`)을 함께 보낸다. 호스트는 그 시간으로 비교한다. 아주 근소한 차이의 처리는 테스트 후 정한다 ([확장 E10](02_rules_extended.md#e10-동시-판정-)) |
 | **머리 피하기와 명중 판정** | 사수가 보는 상대 머리 위치가 과거 위치다 | 판정은 **호스트가 자기 시점의 대상 위치로** 한다. 공이치기 0.6초 지연으로 대상에게 반응할 시간을 준다. 발표 환경(LAN)에서는 지연이 작아서 체감 문제가 거의 없다 |
 | **총 잡기 동기화** | 물리 오브젝트를 네트워크로 동기화하면 떨림, 소유권 충돌이 생긴다 | 총은 **사수만 잡을 수 있게** 하고 그때 소유권을 넘긴다. 던지거나 떨어뜨리면 일정 시간(규칙서 수치 표) 뒤 테이블로 돌아온다. 물리 던지기는 지원하지 않는다 |
-| **구속 상태** | 플레이어가 의자를 떠나면 판정이 깨진다 | 착석 이후 게임이 끝날 때까지 **두 사람 모두 일어날 수 없게** 한다. 구속은 대상을 알리는 연출이고, 손 입력은 막지 않는다. 총은 사수만 잡을 수 있다. 머리는 HMD를 따라간다 |
+| **착석 유지** | 플레이어가 의자를 떠나면 판정이 깨진다 | 착석 이후 게임이 끝날 때까지 **두 사람 모두 일어날 수 없게** 한다. 손 입력은 막지 않는다. 총은 사수만 잡을 수 있다. 머리는 HMD를 따라간다 |
 | **아바타** | 전신 IK는 시간이 많이 든다 | 필수 버전: **머리 + 손 + 머리를 따라가는 몸통**(목 아래로 오프셋). 앉아 있는 게임이라 이 정도로 충분하다 |
 | **부위 판정** | 히트박스가 아바타와 어긋난다 | 머리(구)·몸통(캡슐)·양팔(캡슐) 히트박스를 아바타 본에 붙인다. 디버그 모드에서 히트박스가 보이게 한다 |
 | **멀미** | 죽거나 맞을 때 카메라를 강제로 움직이면 멀미가 난다 | **플레이어 카메라는 절대 강제로 움직이지 않는다.** 사망은 페이드아웃 + 사운드로 연출한다. 화면 흔들림 대신 비네팅과 색수차를 쓴다 |

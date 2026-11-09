@@ -11,7 +11,8 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// 리볼버. 그립을 쥐고 있는 동안 손에 들리고, 놓으면 떨어진다.
 /// 쥔 채로 트리거를 당기면 공이치기 연출 시간(0.6초) 뒤에 약실(<see cref="Revolver"/>)을 한 칸 쏜다.
 /// 실탄·공포탄 모두 총구 방향으로 레이캐스트해서 어느 <see cref="Hitbox"/>를 겨눴는지 알린다. 실탄이면 그 부위에 피해를 준다.
-/// 총알 넣기: 총을 쥔 채, 손에서 놓인 <see cref="SpareBullet"/>이 장전 영역(<see cref="GunLoadZone"/>)에 닿으면 들어간다.
+/// 총알 넣기 (총을 쥐고 있을 때): 총알을 쥔 손이 총을 쥔 손에 가까워지거나, 총알이 장전 영역이나 총을 쥔 손에 닿으면 들어간다.
+/// 던진 총알도 지나간 길이 닿았는지로 본다.
 /// 총알을 집거나 넣으면 실린더가 열리고(쏠 수 없음), 총을 내려놓거나 흔들거나 반대 손을 대면 닫는다. 넣은 총알이 있으면 닫을 때 돌린다.
 /// 게임 진행 컨트롤러가 <see cref="Present"/>로 지급 위치에 꺼내고 <see cref="Withdraw"/>로 치운다. 꺼내 둔 동안 떨어뜨리면 잠시 뒤 지급 위치로 돌아온다.
 /// 지금은 총이 약실을 직접 들고 있다. 멀티를 붙일 때 호스트 쪽으로 옮긴다.
@@ -33,6 +34,8 @@ public class Gun : MonoBehaviour
         public Hitbox HitBox;
         /// <summary>맞은 지점. 안 맞았으면 사거리 끝.</summary>
         public Vector3 EndPoint;
+        /// <summary>이 발로 총알이 0발이 되어 진행자가 다시 장전했는지.</summary>
+        public bool Reloaded;
     }
 
     [SerializeField, Tooltip("총구. Z축(파란 화살표)이 발사 방향")] Transform m_Muzzle;
@@ -50,8 +53,16 @@ public class Gun : MonoBehaviour
     [SerializeField, Tooltip("열렸을 때 실린더가 옆으로 나오는 거리 (로컬)")] Vector3 m_CylinderOpenOffset = new Vector3(0f, 0f, 0.05f);
     [SerializeField, Tooltip("이 속도(도/초)보다 빠르게 돌리면 흔든 것으로 보고 실린더를 닫는다")] float m_ShakeAngularSpeed = 720f;
     [SerializeField, Tooltip("빈 반대 손이 이 거리(m) 안으로 들어오면 실린더를 닫는다")] float m_OtherHandCloseDistance = 0.1f;
+    [SerializeField, Tooltip("반대 손이 이 거리(m) 밖으로 한 번 나가야 다시 '다가왔다'로 본다. 총알을 넣은 손이 그대로 다가와서 닫히지 않게")]
+    float m_OtherHandRearmDistance = 0.25f;
     [SerializeField, Tooltip("총을 잡거나 실린더가 열린 직후 이 시간(초) 동안은 흔들기·반대 손으로 닫지 않는다 (잡는 순간 총이 손으로 튀는 움직임을 무시)")]
     float m_CloseGestureGrace = 0.3f;
+
+    [Header("Loading")]
+    [SerializeField, Tooltip("총알이 닿으면 들어가는 영역 (총 자식의 트리거 콜라이더)")] Collider m_LoadZone;
+    [SerializeField, Tooltip("총알을 쥔 손이 총을 쥔 손에 이 거리(m) 안으로 오면 넣는다")] float m_HandLoadDistance = 0.15f;
+    [SerializeField, Tooltip("놓인 총알(던진 총알 포함)이 총을 쥔 손에 이 거리(m) 안으로 오면 넣는다")] float m_HandTouchDistance = 0.08f;
+    [SerializeField, Tooltip("총알 반지름(m). 장전 영역과의 거리가 이보다 가까우면 닿은 것으로 본다")] float m_BulletRadius = 0.02f;
 
     [Header("Prompt")]
     [SerializeField] string m_PickUpPrompt = "Press Grip to pick up";
@@ -88,8 +99,13 @@ public class Gun : MonoBehaviour
     int m_ShakeFrames;
     readonly List<XRBaseInputInteractor> m_HoveringInteractors = new List<XRBaseInputInteractor>();
     readonly RaycastHit[] m_Hits = new RaycastHit[16];
+    readonly Dictionary<SpareBullet, Vector3> m_LastBulletPositions = new Dictionary<SpareBullet, Vector3>();
+    readonly List<SpareBullet> m_BulletBuffer = new List<SpareBullet>();
 
     public bool IsEquipped => m_Holder != null;
+
+    /// <summary>총을 쥔 손 (진동용). 쥐고 있지 않으면 null.</summary>
+    public XRBaseInputInteractor HoldingHand => m_Holder as XRBaseInputInteractor;
     public Transform Muzzle => m_Muzzle;
     public bool IsCylinderOpen { get; private set; }
 
@@ -193,6 +209,7 @@ public class Gun : MonoBehaviour
 
         m_Holder = null;
         m_OtherHands.Clear();
+        m_LastBulletPositions.Clear();
 
         // 내려놓으면 실린더를 닫는다
         if (IsCylinderOpen)
@@ -217,6 +234,12 @@ public class Gun : MonoBehaviour
             CheckCloseGestures();
         if (IsEquipped)
             m_LastRotation = transform.rotation;
+    }
+
+    void FixedUpdate()
+    {
+        if (IsEquipped)
+            CheckBulletLoading();
     }
 
     void UpdatePrompt()
@@ -311,10 +334,10 @@ public class Gun : MonoBehaviour
         CylinderOpened?.Invoke();
     }
 
-    /// <summary>총을 쥐고 있을 때 손에서 놓인 총알이 닿으면 넣는다. 넣었으면 true.</summary>
+    /// <summary>총을 쥐고 있을 때 총알을 넣는다. 손에 들린 총알이면 손에서 빼낸다. 넣었으면 true.</summary>
     public bool TryInsert(SpareBullet bullet)
     {
-        if (bullet == null || bullet.IsHeld || !IsEquipped || IsTriggerLocked || m_IsCocking || m_Revolver == null)
+        if (bullet == null || bullet.IsConsumed || !IsEquipped || IsTriggerLocked || m_IsCocking || m_Revolver == null)
             return false;
         if (m_Revolver.IsFull)
         {
@@ -325,10 +348,62 @@ public class Gun : MonoBehaviour
         OpenCylinder();
         m_Revolver.Insert();
         m_InsertedSinceOpen++;
+        m_LastBulletPositions.Remove(bullet);
         bullet.Consume();
+
+        // 총알을 넣은 손이 그대로 총에 닿아도 실린더가 닫히지 않게, 그 손이 한 번 멀어질 때까지 기다린다
+        m_OtherHandWasNear = true;
+        m_GestureEnableTime = Mathf.Max(m_GestureEnableTime, Time.time + m_CloseGestureGrace);
         Debug.Log($"[Gun] 총알을 넣었다 (총알 {m_Revolver.BulletCount}발)", this);
         BulletInserted?.Invoke(m_Revolver.BulletCount);
         return true;
+    }
+
+    // 이 총에 넣을 수 있는 총알 중 손이나 장전 영역에 닿은 것을 넣는다
+    void CheckBulletLoading()
+    {
+        if (IsTriggerLocked || m_IsCocking || m_Revolver == null || m_Revolver.IsFull)
+            return;
+
+        var hand = m_Holder.transform.position;
+        m_BulletBuffer.Clear();
+        m_BulletBuffer.AddRange(SpareBullet.Active);
+        foreach (var bullet in m_BulletBuffer)
+        {
+            if (bullet == null || bullet.IsConsumed || bullet.Gun != this)
+                continue;
+
+            var position = bullet.transform.position;
+            if (!m_LastBulletPositions.TryGetValue(bullet, out var lastPosition))
+                lastPosition = position;
+            m_LastBulletPositions[bullet] = position;
+
+            if (ShouldLoad(bullet, lastPosition, position, hand))
+                TryInsert(bullet);
+            if (m_Revolver.IsFull)
+                return;
+        }
+    }
+
+    bool ShouldLoad(SpareBullet bullet, Vector3 from, Vector3 to, Vector3 gunHand)
+    {
+        // 총알을 쥔 손이 총을 쥔 손에 가까워졌다
+        if (bullet.IsHeld && Vector3.Distance(bullet.HoldingHandPosition, gunHand) <= m_HandLoadDistance)
+            return true;
+
+        // 총알이 장전 영역이나 총을 쥔 손에 닿았다. 던진 총알은 한 물리 프레임에 멀리 가므로 지나간 길을 나눠서 본다
+        var distance = Vector3.Distance(from, to);
+        var steps = Mathf.Clamp(Mathf.CeilToInt(distance / m_BulletRadius), 1, 50);
+        for (var i = 0; i <= steps; i++)
+        {
+            var point = Vector3.Lerp(from, to, (float)i / steps);
+            if (Vector3.Distance(point, gunHand) <= m_HandTouchDistance)
+                return true;
+            if (m_LoadZone != null && Vector3.Distance(m_LoadZone.ClosestPoint(point), point) <= m_BulletRadius)
+                return true;
+        }
+
+        return false;
     }
 
     void CheckCloseGestures()
@@ -350,17 +425,24 @@ public class Gun : MonoBehaviour
         }
 
         // 반대 손이 빈손으로 새로 다가왔을 때만 닫는다.
-        // 총알을 들고 다가와 놓은 손은 이미 가까이 있었으므로, 놓은 뒤 그대로 있어도 닫히지 않는다
-        var near = IsOtherHandNear(out var emptyHand);
+        // 총알을 넣은 손은 이미 가까이 있었던 것으로 치므로, 넣은 뒤 그대로 다가와도 닫히지 않는다. 한 번 멀어졌다가 다시 오면 닫는다
+        var near = IsOtherHandNear(m_OtherHandCloseDistance, out var emptyHand);
         if (near && !m_OtherHandWasNear && emptyHand)
+        {
             CloseCylinder("반대 손을 댐");
-        m_OtherHandWasNear = near;
+            return;
+        }
+
+        if (near)
+            m_OtherHandWasNear = true;
+        else if (!IsOtherHandNear(m_OtherHandRearmDistance, out _))
+            m_OtherHandWasNear = false;
     }
 
-    bool IsOtherHandNear() => IsOtherHandNear(out _);
+    bool IsOtherHandNear() => IsOtherHandNear(m_OtherHandRearmDistance, out _);
 
-    // 반대 손이 총 가까이 있는지 (손에 뭘 들고 있어도 거리만 본다). emptyHand는 가까이 있는 손이 빈손인지
-    bool IsOtherHandNear(out bool emptyHand)
+    // 반대 손이 총에서 range(m) 안에 있는지 (손에 뭘 들고 있어도 거리만 본다). emptyHand는 가까이 있는 손이 빈손인지
+    bool IsOtherHandNear(float range, out bool emptyHand)
     {
         emptyHand = false;
         var near = false;
@@ -368,7 +450,7 @@ public class Gun : MonoBehaviour
         {
             if (hand == null)
                 continue;
-            if (Vector3.Distance(hand.transform.position, transform.position) <= m_OtherHandCloseDistance)
+            if (Vector3.Distance(hand.transform.position, transform.position) <= range)
             {
                 near = true;
                 if (!hand.hasSelection)
@@ -452,7 +534,10 @@ public class Gun : MonoBehaviour
 
             // 총알이 0발이 되면 진행자가 장전한다 (넣는 수가 매번 늘어난다)
             if (m_Revolver != null && m_Revolver.ReloadIfEmpty())
+            {
+                result.Reloaded = true;
                 Debug.Log($"[Gun] 진행자가 다시 장전했다 (총알 {m_Revolver.BulletCount}발)", this);
+            }
         }
 
         Fired?.Invoke(result);

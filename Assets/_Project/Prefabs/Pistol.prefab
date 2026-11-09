@@ -151,6 +151,39 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!1 &289270273489019849
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3370397954659324171}
+  m_Layer: 0
+  m_Name: Model
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3370397954659324171
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 289270273489019849}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 525680779997893535}
+  - {fileID: 4460424835607483731}
+  m_Father: {fileID: 853642013076298539}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &321109850943298500
 GameObject:
   m_ObjectHideFlags: 0
@@ -214,7 +247,7 @@ Transform:
   m_LocalScale: {x: 0.099999994, y: 0.19999999, z: 0.049999997}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 853642013076298539}
+  m_Father: {fileID: 3370397954659324171}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &6158247183560908069
 MeshFilter:
@@ -328,8 +361,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 525680779997893535}
-  - {fileID: 4460424835607483731}
+  - {fileID: 3370397954659324171}
   - {fileID: 6167858935197427821}
   - {fileID: 8648383571070635620}
   - {fileID: 1246435179292182546}
@@ -532,6 +564,12 @@ MonoBehaviour:
   m_CylinderOpenOffset: {x: 0, y: 0, z: 0.05}
   m_ShakeAngularSpeed: 720
   m_OtherHandCloseDistance: 0.1
+  m_OtherHandRearmDistance: 0.25
+  m_CloseGestureGrace: 0.3
+  m_LoadZone: {fileID: 3249134123104586137}
+  m_HandLoadDistance: 0.15
+  m_HandTouchDistance: 0.08
+  m_BulletRadius: 0.02
   m_PickUpPrompt: Press Grip to pick up
 --- !u!114 &7073576402882634514
 MonoBehaviour:
@@ -547,14 +585,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GunEffects
   m_Tracer: {fileID: 6304953538499415550}
   m_MuzzleFlash: {fileID: 3346111474129351822}
+  m_Model: {fileID: 3370397954659324171}
   m_TracerDuration: 0.15
   m_FlashDuration: 0.06
   m_ImpactDuration: 0.4
   m_BlankDuration: 0.15
   m_ImpactSize: 0.04
   m_ImpactColor: {r: 1, g: 0.55, b: 0.1, a: 1}
-  m_BlankSize: 0.03
+  m_BlankSize: {x: 0.02, y: 0.09}
   m_BlankColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  m_LiveKickAngle: 20
+  m_LiveKickBack: 0.03
+  m_LiveKickDuration: 0.2
+  m_BlankKickAngle: 6
+  m_BlankKickBack: 0.008
+  m_BlankKickDuration: 0.12
+  m_HammerHaptic: {x: 0.25, y: 0.04}
+  m_BlankHaptic: {x: 0.6, y: 0.08}
+  m_LiveHaptic: {x: 1, y: 0.25}
+  m_HammerClip: {fileID: 0}
+  m_BlankClip: {fileID: 0}
+  m_LiveClip: {fileID: 0}
+  m_Volume: 0.9
 --- !u!1 &2528365868513209798
 GameObject:
   m_ObjectHideFlags: 0
@@ -587,7 +639,7 @@ Transform:
   m_LocalScale: {x: 0.1, y: 0.15, z: 0.1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 853642013076298539}
+  m_Father: {fileID: 3370397954659324171}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!33 &7407814827940500692
 MeshFilter:
@@ -679,7 +731,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5272147403514713157}
   - component: {fileID: 3249134123104586137}
-  - component: {fileID: 3026122877032695807}
   m_Layer: 0
   m_Name: LoadZone
   m_TagString: Untagged
@@ -723,19 +774,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.12, y: 0.12, z: 0.12}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &3026122877032695807
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3322750218827924522}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7f9ffede2122d5b46870bf6dcfd777dd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GunLoadZone
-  m_Gun: {fileID: 275335624999359671}
 --- !u!1 &6948075425457466057
 GameObject:
   m_ObjectHideFlags: 0

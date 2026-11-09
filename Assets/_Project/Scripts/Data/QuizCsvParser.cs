@@ -27,7 +27,7 @@ public static class QuizCsvParser
             return questions;
         }
 
-        var records = ReadRecords(text);
+        var records = CsvReader.ReadRecords(text);
         if (records.Count == 0 || !IsHeader(records[0].Fields))
         {
             warnings?.Add($"첫 줄이 제목 줄이 아니다. 필요한 제목 줄: {string.Join(",", k_Header)}");
@@ -38,7 +38,7 @@ public static class QuizCsvParser
         for (var i = 1; i < records.Count; i++)
         {
             var record = records[i];
-            if (IsEmpty(record.Fields))
+            if (CsvReader.IsEmpty(record.Fields))
                 continue;
 
             if (TryCreateQuestion(record.Fields, out var question, out var error))
@@ -148,96 +148,5 @@ public static class QuizCsvParser
         }
 
         return true;
-    }
-
-    static bool IsEmpty(List<string> fields)
-    {
-        foreach (var field in fields)
-        {
-            if (!string.IsNullOrWhiteSpace(field))
-                return false;
-        }
-
-        return true;
-    }
-
-    struct Record
-    {
-        public int Line;            // 이 줄이 시작하는 파일 줄 번호 (1부터)
-        public List<string> Fields;
-    }
-
-    // 따옴표 안의 쉼표·줄바꿈, 따옴표 안의 "" (따옴표 한 개), CRLF, 파일 맨 앞 BOM을 처리한다
-    static List<Record> ReadRecords(string text)
-    {
-        var records = new List<Record>();
-        var fields = new List<string>();
-        var field = new StringBuilder();
-        var inQuotes = false;
-        var line = 1;
-        var recordLine = 1;
-
-        var start = text.Length > 0 && text[0] == '﻿' ? 1 : 0;
-        for (var i = start; i < text.Length; i++)
-        {
-            var ch = text[i];
-
-            if (inQuotes)
-            {
-                if (ch == '"')
-                {
-                    if (i + 1 < text.Length && text[i + 1] == '"')
-                    {
-                        field.Append('"');
-                        i++;
-                    }
-                    else
-                    {
-                        inQuotes = false;
-                    }
-                }
-                else
-                {
-                    if (ch == '\n')
-                        line++;
-                    field.Append(ch);
-                }
-
-                continue;
-            }
-
-            switch (ch)
-            {
-                case '"':
-                    inQuotes = true;
-                    break;
-                case ',':
-                    fields.Add(field.ToString());
-                    field.Clear();
-                    break;
-                case '\r':
-                    break;
-                case '\n':
-                    fields.Add(field.ToString());
-                    field.Clear();
-                    records.Add(new Record { Line = recordLine, Fields = fields });
-                    fields = new List<string>();
-                    line++;
-                    recordLine = line;
-                    break;
-                default:
-                    field.Append(ch);
-                    break;
-            }
-        }
-
-        // 마지막 줄 끝에 줄바꿈이 없을 때
-        if (field.Length > 0 || fields.Count > 0)
-        {
-            fields.Add(field.ToString());
-            records.Add(new Record { Line = recordLine, Fields = fields });
-        }
-
-        return records;
     }
 }

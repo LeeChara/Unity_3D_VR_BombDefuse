@@ -13,7 +13,7 @@ public enum GameState
     QuizActive,
     /// <summary>정답 판정 (동시 판정 포함).</summary>
     QuizResolve,
-    /// <summary>정답자에게 총 지급, 대상 구속.</summary>
+    /// <summary>정답자 앞에 총과 여분 총알 지급.</summary>
     GunHandover,
     /// <summary>사수가 상대 쏘기, 자신 쏘기(공포탄이면 한 번 더), 여분 총알 넣고 돌리기 중에 고른다.</summary>
     ShooterTurn,

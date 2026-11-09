@@ -1,9 +1,11 @@
+using System;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 
 /// <summary>
 /// XR Origin에 붙인다. 의자에 앉으면 시점을 옮기고 이동·회전·텔레포트를 끈다.
 /// 머리 추적은 그대로 남아서 고개를 돌리거나 몸을 기울일 수 있다.
+/// 게임 중에는 착석한 뒤 일어날 수 없게 잠근다 (<see cref="LockSeat"/>).
 /// </summary>
 [RequireComponent(typeof(XROrigin))]
 public class SeatedPlayer : MonoBehaviour
@@ -15,23 +17,26 @@ public class SeatedPlayer : MonoBehaviour
 
     public Seat CurrentSeat { get; private set; }
 
-    /// <summary>구속된 동안에는 의자에서 일어날 수 없다. 총이 상대에게 지급될 때 건다.</summary>
-    public bool IsRestrained { get; private set; }
+    /// <summary>잠긴 동안에는 의자에서 일어날 수 없다. 게임 중 착석하면 잠그고, 게임이 끝나면 푼다.</summary>
+    public bool IsSeatLocked { get; private set; }
+
+    /// <summary>의자에 앉았을 때 (스스로 앉든 강제로 앉든).</summary>
+    public event Action<Seat> Seated;
 
     void Awake() => m_Origin = GetComponent<XROrigin>();
 
-    /// <summary>앉아 있을 때만 구속할 수 있다.</summary>
-    public void Restrain()
+    /// <summary>앉아 있을 때만 잠글 수 있다.</summary>
+    public void LockSeat()
     {
         if (CurrentSeat != null)
-            IsRestrained = true;
+            IsSeatLocked = true;
     }
 
-    public void Release() => IsRestrained = false;
+    public void UnlockSeat() => IsSeatLocked = false;
 
     public void SitOn(Seat seat)
     {
-        if (CurrentSeat != null)
+        if (CurrentSeat != null || seat == null)
             return;
 
         CurrentSeat = seat;
@@ -43,27 +48,44 @@ public class SeatedPlayer : MonoBehaviour
 
         // 3) 이동·회전·텔레포트를 끈다
         SetLocomotionEnabled(false);
+
+        Seated?.Invoke(seat);
     }
 
     public void StandUp()
     {
-        if (CurrentSeat == null || IsRestrained)
+        if (CurrentSeat == null || IsSeatLocked)
             return;
 
         var standPosition = CurrentSeat.StandPosition;
         CurrentSeat = null;
+        MoveTo(standPosition);
+        SetLocomotionEnabled(true);
+    }
 
-        // 머리는 의자 뒤로 옮기고, 리그 바닥은 바닥 높이에 맞춘다 (실제 키는 머리 추적이 더해 준다)
+    /// <summary>
+    /// 의자 뒤에 세운다 (게임 시작 때 등장 위치). 앉아 있었으면 잠금을 풀고 일어난다. 의자 쪽을 보게 돌린다.
+    /// </summary>
+    public void PlaceBehind(Seat seat)
+    {
+        IsSeatLocked = false;
+        CurrentSeat = null;
+        m_Origin.MatchOriginUpCameraForward(Vector3.up, seat.EyePoint.forward);
+        MoveTo(seat.StandPosition);
+        SetLocomotionEnabled(true);
+    }
+
+    // 머리를 position의 수평 위치로 옮기고, 리그 바닥은 position 높이(바닥)에 맞춘다 (실제 키는 머리 추적이 더해 준다)
+    void MoveTo(Vector3 position)
+    {
         var camera = m_Origin.Camera.transform.position;
         var origin = m_Origin.transform.position;
         m_Origin.transform.position = new Vector3(
-            origin.x + standPosition.x - camera.x,
-            standPosition.y,
-            origin.z + standPosition.z - camera.z);
+            origin.x + position.x - camera.x,
+            position.y,
+            origin.z + position.z - camera.z);
         // Character Controller가 옮긴 위치를 바로 알도록 물리 위치를 맞춘다
         Physics.SyncTransforms();
-
-        SetLocomotionEnabled(true);
     }
 
     void SetLocomotionEnabled(bool enabled)
