@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -8,6 +10,7 @@ using UnityEngine;
 /// 호스트는 게임 포트를 브로드캐스트로 알리고, 접속하는 쪽은 그 알림을 듣고 바로 붙는다.
 /// 알림을 못 들으면 <see cref="m_FallbackAddress"/>로 붙는다 (에디터에서 둘을 띄울 때는 127.0.0.1).
 /// 정원(2명)이 차면 다음 접속은 거절한다. 세션 서비스(Relay·Lobby)는 쓰지 않는다.
+/// 정원이 차면 호스트가 <see cref="StartGame"/>으로 게임을 시작하고, 모두에게 <see cref="GameStarted"/>를 알린다.
 /// </summary>
 [RequireComponent(typeof(NetworkManager), typeof(UnityTransport))]
 public class LanSession : MonoBehaviour
@@ -21,6 +24,8 @@ public class LanSession : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField, Tooltip("에디터·개발 빌드에서 화면 왼쪽 위에 호스트/접속 버튼을 띄운다 (Multiplayer Play Mode용)")] bool m_ShowDebugGui = true;
+
+    const string k_StartGameMessage = "BombDefuse.StartGame";
 
     static LanSession s_Instance;
 
@@ -40,6 +45,15 @@ public class LanSession : MonoBehaviour
 
     /// <summary>호스트를 열었거나, 접속했거나, 접속하는 중.</summary>
     public bool IsActive => m_IsDiscovering || m_NetworkManager.IsListening;
+
+    /// <summary>이번 접속에서 게임을 시작했는지. 나가거나 끊기면 다시 false.</summary>
+    public bool IsGameStarted { get; private set; }
+
+    /// <summary>호스트이고, 정원이 찼고, 아직 시작하지 않았다.</summary>
+    public bool CanStartGame => m_NetworkManager.IsServer && !IsGameStarted && m_NetworkManager.ConnectedClientsIds.Count >= m_MaxPlayers;
+
+    /// <summary>호스트가 게임을 시작했다. 호스트와 클라이언트 모두에서 한 번씩 불린다.</summary>
+    public event Action GameStarted;
 
     void Awake()
     {
@@ -121,7 +135,37 @@ public class LanSession : MonoBehaviour
         StopDiscovery();
         if (m_NetworkManager.IsListening)
             m_NetworkManager.Shutdown();
+        IsGameStarted = false;
         SetStatus("Offline");
+    }
+
+    /// <summary>호스트만 쓴다. 클라이언트에게 시작을 알리고 자기도 시작한다.</summary>
+    public void StartGame()
+    {
+        if (!CanStartGame)
+            return;
+
+        var clients = new List<ulong>(m_NetworkManager.ConnectedClientsIds);
+        clients.Remove(NetworkManager.ServerClientId);
+        using (var writer = new FastBufferWriter(0, Allocator.Temp))
+            m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_StartGameMessage, clients, writer);
+        OnGameStarted();
+    }
+
+    void OnStartGameMessage(ulong senderClientId, FastBufferReader reader)
+    {
+        if (senderClientId == NetworkManager.ServerClientId)
+            OnGameStarted();
+    }
+
+    void OnGameStarted()
+    {
+        if (IsGameStarted)
+            return;
+
+        IsGameStarted = true;
+        SetStatus("Game started");
+        GameStarted?.Invoke();
     }
 
     void Update()
@@ -150,9 +194,15 @@ public class LanSession : MonoBehaviour
     {
         m_Transport.SetConnectionData(address, port);
         if (m_NetworkManager.StartClient())
+        {
+            // 메시지 관리자는 접속할 때마다 새로 만들어지므로 매번 등록한다
+            m_NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler(k_StartGameMessage, OnStartGameMessage);
             SetStatus($"Connecting to {address}:{port}...");
+        }
         else
+        {
             SetStatus($"Failed to connect to {address}:{port}");
+        }
     }
 
     void StopDiscovery()
@@ -179,12 +229,12 @@ public class LanSession : MonoBehaviour
             {
                 // 정원이 찼으니 더 알리지 않는다
                 m_Discovery.Dispose();
-                SetStatus($"Players {count}/{m_MaxPlayers}");
+                SetStatus($"Players {count}/{m_MaxPlayers}\nPress START");
             }
         }
         else if (clientId == m_NetworkManager.LocalClientId)
         {
-            SetStatus("Connected");
+            SetStatus("Connected\nWaiting for host to start");
         }
     }
 
@@ -197,11 +247,13 @@ public class LanSession : MonoBehaviour
 
             // 자리가 났으니 다시 알린다
             m_Discovery.StartAnnouncing(m_DiscoveryPort);
+            IsGameStarted = false;
             SetStatus("Player 2 left\nWaiting for player 2");
             return;
         }
 
         // 클라이언트: 호스트가 끊었거나, 정원이 찼거나, 접속에 실패했다
+        IsGameStarted = false;
         var reason = m_NetworkManager.DisconnectReason;
         SetStatus(string.IsNullOrEmpty(reason) ? "Disconnected" : $"Disconnected: {reason}");
     }
@@ -228,13 +280,16 @@ public class LanSession : MonoBehaviour
         if (!m_ShowDebugGui)
             return;
 
-        GUILayout.BeginArea(new Rect(10, 10, 260, 160), GUI.skin.box);
+        GUILayout.BeginArea(new Rect(10, 10, 260, 190), GUI.skin.box);
         GUILayout.Label(Status);
         GUI.enabled = !IsActive;
         if (GUILayout.Button("Host"))
             StartHost();
         if (GUILayout.Button("Join"))
             Join();
+        GUI.enabled = CanStartGame;
+        if (GUILayout.Button("Start Game"))
+            StartGame();
         GUI.enabled = IsActive;
         if (GUILayout.Button("Leave"))
             Leave();

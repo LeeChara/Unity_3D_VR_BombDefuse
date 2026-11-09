@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -28,6 +29,10 @@ public class GameFlowController : MonoBehaviour
     [SerializeField, Min(0f), Tooltip("결과 브리핑 시간(초)")] float m_HostReactionDuration = 1.5f;
     [SerializeField, Min(0f), Tooltip("게임이 끝나고 처음부터 다시 시작하기까지(초)")] float m_RestartDelay = 3f;
 
+    [Header("Start")]
+    [SerializeField, Tooltip("켜면 Play하자마자 시작한다 (혼자 테스트할 때). 끄면 StartGame()을 부를 때까지 기다린다 (RoomScene은 LAN 패널의 START 버튼)")]
+    bool m_StartOnPlay = true;
+
     readonly GameStateMachine m_StateMachine = new GameStateMachine();
     QuizDeck m_Deck;
     QuizRound m_Round;
@@ -37,6 +42,18 @@ public class GameFlowController : MonoBehaviour
 
     /// <summary>상태 변경을 구독하려는 쪽(조명·사운드 등)이 쓴다.</summary>
     public GameStateMachine StateMachine => m_StateMachine;
+
+    /// <summary>첫 게임을 시작했는지. 시작한 뒤에는 게임이 끝나도 자동으로 다시 시작한다.</summary>
+    public bool HasStarted { get; private set; }
+
+    /// <summary>문제를 띄웠을 때 (문제, 제한시간 초). 네트워크 쪽이 클라이언트 화면에 같은 문제를 띄울 때 쓴다.</summary>
+    public event Action<QuizQuestion, float> QuizShown;
+
+    /// <summary>퀴즈가 끝나서 남은 시간 줄이 멈췄을 때.</summary>
+    public event Action QuizEnded;
+
+    /// <summary>단말기 버튼에 판정 색을 표시했을 때 (좌석, 선택지, 정답 여부).</summary>
+    public event Action<int, int, bool> ButtonResultShown;
 
     static double Now => Time.timeAsDouble;
 
@@ -65,6 +82,17 @@ public class GameFlowController : MonoBehaviour
         }
 
         m_Gun.Withdraw();
+        if (m_StartOnPlay)
+            StartGame();
+    }
+
+    /// <summary>첫 게임을 시작한다. 이미 시작했거나 준비가 안 됐으면 무시한다.</summary>
+    public void StartGame()
+    {
+        if (HasStarted || !enabled || m_Deck == null)
+            return;
+
+        HasStarted = true;
         BeginGame();
     }
 
@@ -160,6 +188,7 @@ public class GameFlowController : MonoBehaviour
         m_Round.Resolved += OnQuizResolved;
 
         m_Board.Show(question);
+        QuizShown?.Invoke(question, timeLimit);
         Debug.Log($"[Flow] {question.Id} 출제: {question.Question} (정답 {Letter(question.AnswerIndex)}, {timeLimit}초)", this);
     }
 
@@ -180,6 +209,7 @@ public class GameFlowController : MonoBehaviour
 
     void OnQuizResolved(QuizResult result)
     {
+        QuizEnded?.Invoke();
         switch (result.Outcome)
         {
             case QuizOutcome.Correct:
@@ -345,6 +375,7 @@ public class GameFlowController : MonoBehaviour
     {
         if (seat >= 1 && seat <= m_Terminals.Length && m_Terminals[seat - 1] != null)
             m_Terminals[seat - 1].ShowResult(choiceIndex, correct);
+        ButtonResultShown?.Invoke(seat, choiceIndex, correct);
     }
 
     static char Letter(int choiceIndex) => choiceIndex >= 0 && choiceIndex < 4 ? "ABCD"[choiceIndex] : '?';

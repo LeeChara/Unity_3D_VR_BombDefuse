@@ -108,10 +108,13 @@ Assets/_Project/
 | `LanSession` | 호스트 열기·접속·나가기. 호스트는 UDP 47777로 게임 포트(7777)를 1초마다 알린다. 접속하는 쪽은 3초 동안 알림을 듣고, 못 들으면 `127.0.0.1`로 붙는다. 정원 2명이 차면 다음 접속은 "Room is full"로 거절 |
 | `NetworkPlayer` | 머리·양손 상자. 주인이 자기 XR 리그 위치를 복사하고, 자식 `NetworkTransform`(주인 권한)이 보낸다. 자기 화면에서는 숨긴다 |
 | 좌석 배정 | 호스트가 접속 순서대로 빈 좌석 번호(`SeatRegistry`, 0 = 좌석 1)를 `NetworkVariable`로 준다. 주인은 그 의자 뒤로 옮겨지고 그 의자에만 앉을 수 있다 |
-| `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE 버튼과 상태 문구. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
+| `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE / START 버튼과 상태 문구. 지금 누를 수 없는 버튼은 글자가 흐리다. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
+| 퀴즈 동기화 | `LanQuizSync`가 호스트의 출제·퀴즈 종료·버튼 판정 색을 Named Message로 보낸다. 클라이언트는 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 클라이언트의 답은 아직 호스트로 가지 않는다 |
+| 게임 시작 | 정원 2명이 차면 호스트의 START가 켜진다. 누르면 `LanSession`이 클라이언트에게 시작 메시지(Named Message `BombDefuse.StartGame`)를 보내고, 호스트의 `LanGameStarter`만 `GameFlowController.StartGame()`을 부른다. 게임 진행은 호스트에서만 돈다. RoomScene의 `GameFlowController`는 `Start On Play`를 꺼 둔다(혼자 테스트할 때는 켠다) |
 
 - 보이스챗(Vivox)은 2주차에 붙인다. 템플릿의 `VoiceChatManager`를 그대로 쓸 수 있는지는 그때 정한다.
-- 총·단말기 같은 씬 오브젝트는 아직 각자 화면에서 따로 움직인다. 2주차에 호스트 판정과 소유권 이전으로 바꾼다.
+- 총·단말기 같은 씬 오브젝트와 게임 진행은 아직 각자 화면에서 따로 움직인다. 퀴즈 화면(문제·시간 줄·버튼 색)만 호스트를 따른다. 클라이언트의 답 전송과 총·사격은 아직 없다. 2주차에 호스트 판정과 소유권 이전으로 바꾼다.
+- 게임 중에 한 명이 나가도 진행은 멈추지 않는다. 다시 접속하면 START가 다시 켜지지만, 이미 시작한 쪽은 새로 시작하지 않는다.
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).

@@ -41,6 +41,7 @@ public static class RoomNetworkSetup
         SetUpNetworkManager(playerPrefab, log);
         SetUpSeatRegistry(log);
         SetUpSessionPanel(log);
+        SetUpGameStart(log);
         AddSceneToBuildSettings(log);
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -197,9 +198,29 @@ public static class RoomNetworkSetup
 
     static void SetUpSessionPanel(List<string> log)
     {
-        if (Object.FindAnyObjectByType<LanSessionButton>() != null)
-            return;
+        var panelObject = GameObject.Find("LanSessionPanel");
+        var panel = panelObject != null ? panelObject.transform : CreateSessionPanel(log);
 
+        var hasStartButton = panel.GetComponentsInChildren<LanSessionButton>(true)
+            .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.StartGame);
+        if (!hasStartButton)
+        {
+            // 접속 버튼 줄 아래에 넓은 START 버튼을 두고, 판을 그만큼 늘린다
+            var board = panel.Find("Board");
+            if (board != null)
+            {
+                board.localPosition = new Vector3(0f, -0.09f, 0.03f);
+                board.localScale = new Vector3(0.9f, 0.68f, 0.02f);
+            }
+            CreateButton(panel, LanSessionButton.Command.StartGame, "START", "Press Trigger to start the game", new Vector2(0f, -0.3f), 0.5f);
+            log.Add("Added START button to LanSessionPanel");
+        }
+
+        LinkButtonLabels(panel);
+    }
+
+    static Transform CreateSessionPanel(List<string> log)
+    {
         var origin = Object.FindAnyObjectByType<XROrigin>();
         var originTransform = origin != null ? origin.transform : null;
         var basePosition = originTransform != null ? originTransform.position : Vector3.zero;
@@ -215,9 +236,6 @@ public static class RoomNetworkSetup
         Undo.RegisterCreatedObjectUndo(panel.gameObject, "Create LanSessionPanel");
         panel.SetPositionAndRotation(position, Quaternion.LookRotation(toPanel, Vector3.up));
 
-        var buttonMaterial = AssetDatabase.LoadAssetAtPath<Material>(k_ButtonMaterialPath);
-        var outlineMaterial = AssetDatabase.LoadAssetAtPath<Material>(k_OutlineMaterialPath);
-
         var board = GameObject.CreatePrimitive(PrimitiveType.Cube);
         board.name = "Board";
         Object.DestroyImmediate(board.GetComponent<Collider>());
@@ -231,21 +249,22 @@ public static class RoomNetworkSetup
         statusSerialized.FindProperty("m_Text").objectReferenceValue = status;
         statusSerialized.ApplyModifiedPropertiesWithoutUndo();
 
-        CreateButton(panel, LanSessionButton.Command.Host, "HOST", "Press Trigger to host", -0.28f, buttonMaterial, outlineMaterial);
-        CreateButton(panel, LanSessionButton.Command.Join, "JOIN", "Press Trigger to join", 0f, buttonMaterial, outlineMaterial);
-        CreateButton(panel, LanSessionButton.Command.Leave, "LEAVE", "Press Trigger to leave", 0.28f, buttonMaterial, outlineMaterial);
+        CreateButton(panel, LanSessionButton.Command.Host, "HOST", "Press Trigger to host", new Vector2(-0.28f, -0.1f), 0.24f);
+        CreateButton(panel, LanSessionButton.Command.Join, "JOIN", "Press Trigger to join", new Vector2(0f, -0.1f), 0.24f);
+        CreateButton(panel, LanSessionButton.Command.Leave, "LEAVE", "Press Trigger to leave", new Vector2(0.28f, -0.1f), 0.24f);
 
         log.Add("Created LanSessionPanel (move it if it blocks anything)");
+        return panel;
     }
 
-    static void CreateButton(Transform panel, LanSessionButton.Command command, string label, string prompt, float x,
-        Material buttonMaterial, Material outlineMaterial)
+    static void CreateButton(Transform panel, LanSessionButton.Command command, string label, string prompt, Vector2 position, float width)
     {
         var button = GameObject.CreatePrimitive(PrimitiveType.Cube);
         button.name = $"Button_{label}";
         button.transform.SetParent(panel, false);
-        button.transform.localPosition = new Vector3(x, -0.1f, 0f);
-        button.transform.localScale = new Vector3(0.24f, 0.12f, 0.04f);
+        button.transform.localPosition = new Vector3(position.x, position.y, 0f);
+        button.transform.localScale = new Vector3(width, 0.12f, 0.04f);
+        var buttonMaterial = AssetDatabase.LoadAssetAtPath<Material>(k_ButtonMaterialPath);
         if (buttonMaterial != null)
             button.GetComponent<MeshRenderer>().sharedMaterial = buttonMaterial;
 
@@ -256,6 +275,7 @@ public static class RoomNetworkSetup
         serialized.FindProperty("m_Prompt").stringValue = prompt;
         serialized.ApplyModifiedPropertiesWithoutUndo();
 
+        var outlineMaterial = AssetDatabase.LoadAssetAtPath<Material>(k_OutlineMaterialPath);
         if (outlineMaterial != null)
         {
             var outline = button.AddComponent<HoverOutline>();
@@ -265,7 +285,71 @@ public static class RoomNetworkSetup
         }
 
         // 글자가 버튼 스케일을 따라 찌그러지지 않게 버튼이 아니라 패널의 자식으로 둔다
-        CreateText(panel, $"Label_{label}", new Vector3(x, -0.1f, -0.025f), new Vector2(0.22f, 0.1f), label);
+        CreateText(panel, $"Label_{label}", new Vector3(position.x, position.y, -0.025f), new Vector2(width - 0.02f, 0.1f), label);
+    }
+
+    // 누를 수 없을 때 글자를 흐리게 하도록 각 버튼에 같은 이름의 Label_ 글자를 연결한다
+    static void LinkButtonLabels(Transform panel)
+    {
+        foreach (var button in panel.GetComponentsInChildren<LanSessionButton>(true))
+        {
+            var serialized = new SerializedObject(button);
+            var labelProperty = serialized.FindProperty("m_Label");
+            if (labelProperty.objectReferenceValue != null)
+                continue;
+
+            var label = panel.Find("Label_" + button.name.Replace("Button_", ""));
+            if (label == null)
+                continue;
+
+            labelProperty.objectReferenceValue = label.GetComponent<TMP_Text>();
+            serialized.ApplyModifiedProperties();
+        }
+    }
+
+    // 게임은 Play하자마자가 아니라 호스트가 START를 누르면 시작한다
+    static void SetUpGameStart(List<string> log)
+    {
+        var flow = Object.FindAnyObjectByType<GameFlowController>();
+        if (flow == null)
+        {
+            log.Add("WARNING: No GameFlowController. The START button won't start anything.");
+            return;
+        }
+
+        var flowSerialized = new SerializedObject(flow);
+        var startOnPlay = flowSerialized.FindProperty("m_StartOnPlay");
+        if (startOnPlay.boolValue)
+        {
+            startOnPlay.boolValue = false;
+            flowSerialized.ApplyModifiedProperties();
+            log.Add("GameFlowController now waits for START");
+        }
+
+        if (flow.GetComponent<LanGameStarter>() == null)
+        {
+            var starter = Undo.AddComponent<LanGameStarter>(flow.gameObject);
+            var starterSerialized = new SerializedObject(starter);
+            starterSerialized.FindProperty("m_Flow").objectReferenceValue = flow;
+            starterSerialized.ApplyModifiedProperties();
+            log.Add($"Added LanGameStarter to {flow.name}");
+        }
+
+        if (flow.GetComponent<LanQuizSync>() == null)
+        {
+            // 퀴즈 화면과 단말기는 진행 컨트롤러에 연결된 것을 그대로 쓴다
+            var quizSync = Undo.AddComponent<LanQuizSync>(flow.gameObject);
+            var syncSerialized = new SerializedObject(quizSync);
+            syncSerialized.FindProperty("m_Flow").objectReferenceValue = flow;
+            syncSerialized.FindProperty("m_Board").objectReferenceValue = flowSerialized.FindProperty("m_Board").objectReferenceValue;
+            var flowTerminals = flowSerialized.FindProperty("m_Terminals");
+            var syncTerminals = syncSerialized.FindProperty("m_Terminals");
+            syncTerminals.arraySize = flowTerminals.arraySize;
+            for (var i = 0; i < flowTerminals.arraySize; i++)
+                syncTerminals.GetArrayElementAtIndex(i).objectReferenceValue = flowTerminals.GetArrayElementAtIndex(i).objectReferenceValue;
+            syncSerialized.ApplyModifiedProperties();
+            log.Add($"Added LanQuizSync to {flow.name}");
+        }
     }
 
     static TextMeshPro CreateText(Transform parent, string name, Vector3 localPosition, Vector2 size, string text)
