@@ -577,6 +577,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d24e16330b09c8b4f95685d42540566a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuizTerminal
+--- !u!114 &280342469 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4558522555940380232, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+    type: 3}
+  m_PrefabInstance: {fileID: 616581617}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4610c426d5273648a3545d467ccbd08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Damageable
 --- !u!1 &284400392
 GameObject:
   m_ObjectHideFlags: 0
@@ -609,6 +621,79 @@ Transform:
   - {fileID: 846846682}
   m_Father: {fileID: 860091418}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &294580878
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 294580880}
+  - component: {fileID: 294580879}
+  m_Layer: 0
+  m_Name: GameFlow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &294580879
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a00d9d70efec2ab4e8e8b99a3add581c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameFlowController
+  m_QuestionsCsv: {fileID: 4900000, guid: d0be2e0f7ea1c674ca19cf7bc43058a4, type: 3}
+  m_Config: {fileID: 11400000, guid: bc6b2f0a508dc8340890023d33510a27, type: 2}
+  m_Board: {fileID: 1570897675}
+  m_Terminals:
+  - {fileID: 835194047485494143}
+  - {fileID: 279498450}
+  m_Gun: {fileID: 403089422}
+  m_GunSpawnPoints:
+  - {fileID: 1752014481}
+  - {fileID: 236715070}
+  m_Bodies:
+  - {fileID: 0}
+  - {fileID: 280342469}
+  m_QuizResultDelay: 1.5
+  m_ShotResultDelay: 1
+  m_HostReactionDuration: 1.5
+  m_RestartDelay: 3
+--- !u!4 &294580880
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &403089422 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 275335624999359671, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
+    type: 3}
+  m_PrefabInstance: {fileID: 932355192433149533}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fc149cb317f51743ae3ed8b0786c6cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Gun
 --- !u!1 &464940700
 GameObject:
   m_ObjectHideFlags: 0
@@ -906,6 +991,74 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!1001 &616581617
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5991236366757770312, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_Name
+      value: TestMannequin
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.00000004371139
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181658561870155260, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43, type: 3}
 --- !u!1 &650452367
 GameObject:
   m_ObjectHideFlags: 0
@@ -1655,57 +1808,6 @@ MonoBehaviour:
   m_StandUpDistance: 0.6
   m_SitPrompt: Press Trigger to sit
   m_StandUpPrompt: Press Trigger to stand up
---- !u!1 &1380770864
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1380770866}
-  - component: {fileID: 1380770865}
-  m_Layer: 0
-  m_Name: QuizTestRunner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1380770865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1380770864}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 96f17ba362dfdab48bb1f949a1368d62, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::QuizTestRunner
-  m_QuestionsCsv: {fileID: 4900000, guid: d0be2e0f7ea1c674ca19cf7bc43058a4, type: 3}
-  m_Config: {fileID: 11400000, guid: bc6b2f0a508dc8340890023d33510a27, type: 2}
-  m_Board: {fileID: 1570897675}
-  m_Terminals:
-  - {fileID: 835194047485494143}
-  - {fileID: 279498450}
-  m_NextQuestionDelay: 2
---- !u!4 &1380770866
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1380770864}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1386220870 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5167925059111895691, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
@@ -2543,6 +2645,12 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 275335624999359671, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
+        type: 3}
+      propertyPath: m_Config
+      value: 
+      objectReference: {fileID: 11400000, guid: bc6b2f0a508dc8340890023d33510a27,
+        type: 2}
     - target: {fileID: 853642013076298539, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -2863,4 +2971,5 @@ SceneRoots:
   - {fileID: 727195471}
   - {fileID: 279498449}
   - {fileID: 1570897676}
-  - {fileID: 1380770866}
+  - {fileID: 616581617}
+  - {fileID: 294580880}

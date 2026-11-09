@@ -37,6 +37,23 @@ public class QuizTerminal : MonoBehaviour
             button.Pressed -= OnButtonPressed;
     }
 
+    /// <summary>선택지 버튼에 판정 결과 색을 표시한다.</summary>
+    public void ShowResult(int choiceIndex, bool correct)
+    {
+        foreach (var button in m_Buttons)
+        {
+            if (button.ChoiceIndex == choiceIndex)
+                button.SetResult(correct ? QuizButtonResult.Correct : QuizButtonResult.Wrong);
+        }
+    }
+
+    /// <summary>모든 버튼을 원래 색으로 되돌린다. 새 문제를 낼 때 부른다.</summary>
+    public void ClearResults()
+    {
+        foreach (var button in m_Buttons)
+            button.SetResult(QuizButtonResult.None);
+    }
+
     void OnButtonPressed(QuizButton button)
     {
         if (button.ChoiceIndex >= 0)

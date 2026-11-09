@@ -87,8 +87,8 @@ Assets/_Project/
   Scripts/
     Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
     Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
-    Gameplay/    QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, Hitbox   ← MonoBehaviour
-    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, HostCharacter, DreadLevelController, VoiceLinePlayer
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, Hitbox, Damageable   ← MonoBehaviour
+    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
   Art/  Audio/  Prefabs/  Scenes/
 ```
@@ -96,7 +96,10 @@ Assets/_Project/
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
 - `QuizRound`는 시각을 직접 읽지 않고 밖에서 받는다(`Submit(좌석, 선택지, 누른 시각)`, `Tick(현재 시각)`). 멀티에서는 누른 순간의 네트워크 시각을 넘긴다.
-- `Gameplay/QuizTestRunner`는 게임 진행 컨트롤러가 생기기 전까지 쓰는 임시 퀴즈 진행이다. 컨트롤러를 만들면 지운다.
+- `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인을 반복한다. 착석 단계·규칙 설명은 아직 바로 지나가고, 진행자 대사 대신 정해진 시간만 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
+- 지금은 `Gun`이 `Revolver`를 직접 들고 있다. 멀티를 붙일 때 호스트 쪽으로 옮긴다(약실 상태는 호스트만 안다).
+- `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 모델과 효과음이 오면 바꾼다.
+- `Gameplay/TestMannequin`은 상대 자리의 테스트용 마네킹이다. 상대 플레이어가 생기면 지운다.
 - **수치 읽기**: `TuningConfig` 에셋은 하나만 두고, 게임 진행 컨트롤러가 Inspector로 연결해서 필요한 값만 각 로직에 넘긴다. `Core` 클래스는 설정 파일을 모르고 숫자만 받는다(예: `new Revolver(약실 수, 총알 수)`).
 - ScriptableObject는 Play 중에 Inspector에서 바꾼 값이 멈춘 뒤에도 남는다. 값을 바꿨으면 규칙서 수치 표도 같이 고친다.
 
