@@ -7,13 +7,14 @@ using UnityEngine;
 /// 호스트가 낸 퀴즈를 클라이언트 화면에 그대로 띄운다. 게임 진행(<see cref="GameFlowController"/>)은 호스트에서만 돈다.
 /// 호스트: 진행 컨트롤러의 문제·종료·판정 색 이벤트를 Named Message로 보낸다.
 /// 클라이언트: 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 판정 색도 같이 표시한다.
-/// 아직 없는 것: 클라이언트의 답 전송(지금은 클라이언트가 눌러도 아무 일도 없다).
+/// 클라이언트가 자기 좌석 단말기를 누르면 호스트에 보내고, 호스트는 받은 순간을 누른 시각으로 판정한다.
 /// </summary>
 public class LanQuizSync : MonoBehaviour
 {
     const string k_QuizShownMessage = "BombDefuse.QuizShown";
     const string k_QuizEndedMessage = "BombDefuse.QuizEnded";
     const string k_ButtonResultMessage = "BombDefuse.QuizButtonResult";
+    const string k_AnswerMessage = "BombDefuse.QuizAnswer";
 
     [SerializeField] GameFlowController m_Flow;
     [SerializeField] QuizBoard m_Board;
@@ -34,21 +35,31 @@ public class LanQuizSync : MonoBehaviour
         }
 
         m_NetworkManager.OnClientStarted += RegisterHandlers;
+        m_NetworkManager.OnServerStarted += RegisterHandlers;
         m_Flow.QuizShown += OnQuizShown;
         m_Flow.QuizEnded += OnQuizEnded;
         m_Flow.ButtonResultShown += OnButtonResultShown;
+        foreach (var terminal in m_Terminals)
+            if (terminal != null)
+                terminal.AnswerPressed += OnLocalAnswerPressed;
     }
 
     void OnDestroy()
     {
         if (m_NetworkManager != null)
+        {
             m_NetworkManager.OnClientStarted -= RegisterHandlers;
+            m_NetworkManager.OnServerStarted -= RegisterHandlers;
+        }
         if (m_Flow != null)
         {
             m_Flow.QuizShown -= OnQuizShown;
             m_Flow.QuizEnded -= OnQuizEnded;
             m_Flow.ButtonResultShown -= OnButtonResultShown;
         }
+        foreach (var terminal in m_Terminals)
+            if (terminal != null)
+                terminal.AnswerPressed -= OnLocalAnswerPressed;
     }
 
     void Update()
@@ -63,10 +74,13 @@ public class LanQuizSync : MonoBehaviour
     // 메시지 관리자는 접속할 때마다 새로 만들어지므로 매번 등록한다
     void RegisterHandlers()
     {
-        if (m_NetworkManager.IsServer)
-            return;
-
         var messaging = m_NetworkManager.CustomMessagingManager;
+        if (m_NetworkManager.IsServer)
+        {
+            messaging.RegisterNamedMessageHandler(k_AnswerMessage, ReceiveAnswer);
+            return;
+        }
+
         messaging.RegisterNamedMessageHandler(k_QuizShownMessage, ReceiveQuizShown);
         messaging.RegisterNamedMessageHandler(k_QuizEndedMessage, ReceiveQuizEnded);
         messaging.RegisterNamedMessageHandler(k_ButtonResultMessage, ReceiveButtonResult);
@@ -127,6 +141,48 @@ public class LanQuizSync : MonoBehaviour
         var clients = new List<ulong>(m_NetworkManager.ConnectedClientsIds);
         clients.Remove(NetworkManager.ServerClientId);
         m_NetworkManager.CustomMessagingManager.SendNamedMessage(messageName, clients, writer);
+    }
+
+    // ── 답 (클라이언트 → 호스트) ──
+
+    void OnLocalAnswerPressed(int seat, int choiceIndex)
+    {
+        // 호스트는 진행 컨트롤러가 직접 받는다
+        if (m_NetworkManager == null || !m_NetworkManager.IsConnectedClient || m_NetworkManager.IsServer)
+            return;
+        if (seat != NetworkPlayer.LocalSeatNumber)
+            return;
+
+        using (var writer = new FastBufferWriter(8, Allocator.Temp))
+        {
+            writer.WriteValueSafe(seat);
+            writer.WriteValueSafe(choiceIndex);
+            m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_AnswerMessage, NetworkManager.ServerClientId, writer);
+        }
+    }
+
+    void ReceiveAnswer(ulong senderClientId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int seat);
+        reader.ReadValueSafe(out int choiceIndex);
+
+        // 자기 좌석 단말기만 누를 수 있다
+        var sender = FindPlayer(senderClientId);
+        if (sender == null || sender.SeatNumber != seat)
+        {
+            Debug.LogWarning($"[LanQuizSync] Client {senderClientId} answered for seat {seat}, not its own", this);
+            return;
+        }
+
+        m_Flow.SubmitAnswer(seat, choiceIndex);
+    }
+
+    static NetworkPlayer FindPlayer(ulong clientId)
+    {
+        foreach (var player in NetworkPlayer.Players)
+            if (player.OwnerClientId == clientId)
+                return player;
+        return null;
     }
 
     // ── 클라이언트: 받기 ──

@@ -633,6 +633,7 @@ GameObject:
   - component: {fileID: 294580879}
   - component: {fileID: 294580881}
   - component: {fileID: 294580882}
+  - component: {fileID: 294580883}
   m_Layer: 0
   m_Name: GameFlow
   m_TagString: Untagged
@@ -719,6 +720,21 @@ MonoBehaviour:
   m_Terminals:
   - {fileID: 835194047485494143}
   - {fileID: 279498450}
+--- !u!114 &294580883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46423ecbd52f55d4f871de44f0abc9f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanGunSync
+  m_Flow: {fileID: 294580879}
+  m_Gun: {fileID: 403089422}
+  m_PoseSendRate: 30
 --- !u!114 &403089422 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 275335624999359671, guid: 7171622e8545ee54eaf18f7aa4dfbb08,

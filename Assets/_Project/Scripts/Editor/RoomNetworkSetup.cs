@@ -38,6 +38,7 @@ public static class RoomNetworkSetup
 
         var log = new List<string>();
         var playerPrefab = GetOrCreatePlayerPrefab(log);
+        AddAvatarBody(log);
         SetUpNetworkManager(playerPrefab, log);
         SetUpSeatRegistry(log);
         SetUpSessionPanel(log);
@@ -80,6 +81,37 @@ public static class RoomNetworkSetup
         Object.DestroyImmediate(root);
         log.Add($"Created {k_PlayerPrefabPath}");
         return prefab;
+    }
+
+    // 상대 아바타가 총에 맞을 수 있게 몸(Damageable + AvatarBody)을 붙인다
+    static void AddAvatarBody(List<string> log)
+    {
+        var root = PrefabUtility.LoadPrefabContents(k_PlayerPrefabPath);
+        try
+        {
+            if (root.GetComponent<AvatarBody>() != null)
+                return;
+
+            var damageable = root.AddComponent<Damageable>();
+            var config = AssetDatabase.FindAssets("t:TuningConfig")
+                .Select(guid => AssetDatabase.LoadAssetAtPath<TuningConfig>(AssetDatabase.GUIDToAssetPath(guid)))
+                .FirstOrDefault();
+            var damageableSerialized = new SerializedObject(damageable);
+            damageableSerialized.FindProperty("m_Config").objectReferenceValue = config;
+            damageableSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var body = root.AddComponent<AvatarBody>();
+            var bodySerialized = new SerializedObject(body);
+            bodySerialized.FindProperty("m_Head").objectReferenceValue = root.transform.Find("Head");
+            bodySerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            PrefabUtility.SaveAsPrefabAsset(root, k_PlayerPrefabPath);
+            log.Add($"Added AvatarBody to {k_PlayerPrefabPath}");
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
     }
 
     // 방이 어두워서 조명을 받으면 거의 보이지 않는다. 조명과 관계없이 밝은 회색으로 그린다
@@ -349,6 +381,16 @@ public static class RoomNetworkSetup
                 syncTerminals.GetArrayElementAtIndex(i).objectReferenceValue = flowTerminals.GetArrayElementAtIndex(i).objectReferenceValue;
             syncSerialized.ApplyModifiedProperties();
             log.Add($"Added LanQuizSync to {flow.name}");
+        }
+
+        if (flow.GetComponent<LanGunSync>() == null)
+        {
+            var gunSync = Undo.AddComponent<LanGunSync>(flow.gameObject);
+            var gunSerialized = new SerializedObject(gunSync);
+            gunSerialized.FindProperty("m_Flow").objectReferenceValue = flow;
+            gunSerialized.FindProperty("m_Gun").objectReferenceValue = flowSerialized.FindProperty("m_Gun").objectReferenceValue;
+            gunSerialized.ApplyModifiedProperties();
+            log.Add($"Added LanGunSync to {flow.name}");
         }
     }
 

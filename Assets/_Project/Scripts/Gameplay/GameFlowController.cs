@@ -7,7 +7,8 @@ using UnityEngine;
 /// 게임 한 판을 <see cref="GameStateMachine"/>으로 진행한다. 수치는 <see cref="TuningConfig"/>에서 읽어 각 로직에 넘긴다.
 /// 흐름: 퀴즈 → (정답자 있음) 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인 → 다음 퀴즈 또는 게임 종료.
 /// 사수 턴: 상대 쏘기(턴 끝), 자신 쏘기(공포탄이면 한 번 더), 여분 총알 넣고 돌리기(턴 끝). 상대·자신은 겨눈 몸으로 구분한다.
-/// 아직 없는 것: 착석 단계와 규칙 설명(바로 지나감), 양측 패널티(정답자가 없으면 다음 문제), 진행자 대사(정해진 시간만 기다림), 네트워크.
+/// 아직 없는 것: 착석 단계와 규칙 설명(바로 지나감), 양측 패널티(정답자가 없으면 다음 문제), 진행자 대사(정해진 시간만 기다림).
+/// 멀티: 호스트에서만 돈다. 네트워크 쪽(Net/)이 이벤트를 받아 클라이언트에 보내고, <see cref="IsLocalSeat"/>, <see cref="SubmitAnswer"/>, <see cref="SetBody"/>로 상대 입력과 몸을 넣는다.
 /// </summary>
 public class GameFlowController : MonoBehaviour
 {
@@ -54,6 +55,21 @@ public class GameFlowController : MonoBehaviour
 
     /// <summary>단말기 버튼에 판정 색을 표시했을 때 (좌석, 선택지, 정답 여부).</summary>
     public event Action<int, int, bool> ButtonResultShown;
+
+    /// <summary>사수 앞에 총을 꺼냈을 때 (사수 좌석).</summary>
+    public event Action<int> GunPresented;
+
+    /// <summary>총을 치웠을 때.</summary>
+    public event Action GunWithdrawn;
+
+    /// <summary>
+    /// 이 기기에서 직접 플레이하는 좌석인지. 비워 두면(null) 모든 좌석을 이 기기에서 쓴다 (혼자 테스트).
+    /// 멀티에서는 네트워크 쪽이 정한다: 이 기기의 단말기 입력은 자기 좌석만 받고, 총과 여분 총알은 사수가 이 기기 사람일 때만 잡을 수 있다.
+    /// </summary>
+    public Func<int, bool> IsLocalSeat { get; set; }
+
+    /// <summary>지금 사수 좌석. 사수 턴이 아니면 의미 없다.</summary>
+    public int ShooterSeat => m_ShooterSeat;
 
     static double Now => Time.timeAsDouble;
 
@@ -192,7 +208,17 @@ public class GameFlowController : MonoBehaviour
         Debug.Log($"[Flow] {question.Id} 출제: {question.Question} (정답 {Letter(question.AnswerIndex)}, {timeLimit}초)", this);
     }
 
+    // 이 기기의 단말기 입력
     void OnAnswerPressed(int seat, int choiceIndex)
+    {
+        if (IsLocalSeat != null && !IsLocalSeat(seat))
+            return;
+
+        SubmitAnswer(seat, choiceIndex);
+    }
+
+    /// <summary>답을 낸다. 이 기기의 단말기 입력과, 네트워크로 받은 상대의 입력이 모두 여기로 온다.</summary>
+    public void SubmitAnswer(int seat, int choiceIndex)
     {
         if (m_StateMachine.Current != GameState.QuizActive || m_Round == null)
             return;
@@ -248,17 +274,42 @@ public class GameFlowController : MonoBehaviour
 
     void HandOverGun()
     {
-        var spawn = m_GunSpawnPoints != null && m_ShooterSeat - 1 < m_GunSpawnPoints.Length ? m_GunSpawnPoints[m_ShooterSeat - 1] : null;
+        if (!PresentGunForSeat(m_ShooterSeat))
+            return;
+
+        Debug.Log($"[Flow] 좌석 {m_ShooterSeat}에게 총 지급 (총알 {m_Gun.BulletCount}발, 여분 {m_SpareBullets.Count}발)", this);
+        GunPresented?.Invoke(m_ShooterSeat);
+        GoTo(GameState.ShooterTurn);
+    }
+
+    /// <summary>
+    /// 좌석 앞에 총과 여분 총알을 꺼낸다. 그 좌석이 이 기기의 좌석이 아니면(<see cref="IsLocalSeat"/>) 잡을 수 없게 둔다.
+    /// 진행을 돌리지 않는 네트워크 클라이언트는 호스트의 알림을 받아 이것만 부른다.
+    /// </summary>
+    public bool PresentGunForSeat(int seat)
+    {
+        var spawn = m_GunSpawnPoints != null && seat >= 1 && seat - 1 < m_GunSpawnPoints.Length ? m_GunSpawnPoints[seat - 1] : null;
         if (spawn == null)
         {
-            Debug.LogError($"[Flow] 좌석 {m_ShooterSeat}의 총 지급 위치가 없다", this);
-            return;
+            Debug.LogError($"[Flow] 좌석 {seat}의 총 지급 위치가 없다", this);
+            return false;
         }
 
         m_Gun.Present(spawn);
         SpawnSpareBullets(spawn);
-        Debug.Log($"[Flow] 좌석 {m_ShooterSeat}에게 총 지급 (총알 {m_Gun.BulletCount}발, 여분 {m_SpareBullets.Count}발)", this);
-        GoTo(GameState.ShooterTurn);
+
+        var grabbable = IsLocalSeat == null || IsLocalSeat(seat);
+        m_Gun.SetGrabbable(grabbable);
+        foreach (var bullet in m_SpareBullets)
+            bullet.SetGrabbable(grabbable);
+        return true;
+    }
+
+    /// <summary>총과 남은 여분 총알을 치운다.</summary>
+    public void WithdrawGun()
+    {
+        m_Gun.Withdraw();
+        ClearSpareBullets();
     }
 
     IEnumerator ShooterTimeout()
@@ -339,8 +390,8 @@ public class GameFlowController : MonoBehaviour
         m_Gun.IsTriggerLocked = true;
         GoTo(GameState.ShotResolve);
         yield return new WaitForSeconds(m_ShotResultDelay);
-        m_Gun.Withdraw();
-        ClearSpareBullets();
+        WithdrawGun();
+        GunWithdrawn?.Invoke();
 
         GoTo(GameState.HostReaction);
         yield return new WaitForSeconds(m_HostReactionDuration);
@@ -362,6 +413,16 @@ public class GameFlowController : MonoBehaviour
     }
 
     Damageable BodyOf(int seat) => seat >= 1 && seat <= m_Bodies.Length ? m_Bodies[seat - 1] : null;
+
+    /// <summary>좌석의 몸을 바꾼다. 멀티에서는 마네킹 대신 실제 플레이어의 몸을 넣는다.</summary>
+    public void SetBody(int seat, Damageable body)
+    {
+        if (seat < 1)
+            return;
+        if (m_Bodies == null || m_Bodies.Length < seat)
+            Array.Resize(ref m_Bodies, seat);
+        m_Bodies[seat - 1] = body;
+    }
 
     int FindDeadSeat()
     {

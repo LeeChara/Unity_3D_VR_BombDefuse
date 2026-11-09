@@ -519,6 +519,8 @@ GameObject:
   - component: {fileID: 8122952550232716226}
   - component: {fileID: 6324746804225450688}
   - component: {fileID: 4938566960641629260}
+  - component: {fileID: 5947926457864307593}
+  - component: {fileID: 7350613659942970639}
   m_Layer: 0
   m_Name: NetworkPlayer
   m_TagString: Untagged
@@ -586,6 +588,37 @@ MonoBehaviour:
   m_Head: {fileID: 920013895987282475}
   m_LeftHand: {fileID: 5581957464898280385}
   m_RightHand: {fileID: 8317332812428528259}
+--- !u!114 &5947926457864307593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7273901808398598114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4610c426d5273648a3545d467ccbd08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Damageable
+  m_Config: {fileID: 11400000, guid: bc6b2f0a508dc8340890023d33510a27, type: 2}
+--- !u!114 &7350613659942970639
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7273901808398598114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1eec88a2a1f61c49b090f9473df1386, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AvatarBody
+  m_Head: {fileID: 920013895987282475}
+  m_HeadRadius: 0.11
+  m_TorsoDrop: 0.42
+  m_TorsoBack: 0.06
+  m_TorsoRadius: 0.16
+  m_TorsoHeight: 0.55
 --- !u!1 &7558333426619838773
 GameObject:
   m_ObjectHideFlags: 0

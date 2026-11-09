@@ -51,7 +51,7 @@
 3. Play를 누른다. 가상 플레이어 창이 처음 뜰 때는 시간이 걸린다
 4. 메인 에디터 Game 창 왼쪽 위의 **Host**를 누르고, 가상 플레이어 창에서 **Join**을 누른다
 5. 통과 기준: 상태 문구가 호스트는 `Players 2/2 / Press START`, 가상 플레이어는 `Connected / Waiting for host to start`가 된다. 두 사람이 테이블을 사이에 두고 각자 의자 뒤에 서 있고, 상대의 머리(눈가리개가 달린 회색 상자)가 보인다
-6. 메인 에디터에서 **Start Game**을 누른다. 양쪽 모두 `Game started`가 되고 퀴즈 화면에 **같은 문제**가 뜬다. 지금은 클라이언트가 단말기를 눌러도 반영되지 않는다
+6. 메인 에디터에서 **Start Game**을 누른다. 양쪽 모두 `Game started`가 되고 퀴즈 화면에 **같은 문제**가 뜬다. 각자 자기 좌석 단말기로 답하고, 먼저 맞힌 사람 앞에 총이 나온다. 총은 사수만 잡을 수 있다
 - 게임은 START를 눌러야 시작한다. 혼자 게임 흐름만 볼 때는 `GameFlow` 오브젝트의 `GameFlowController` → **Start On Play**를 켠다 (커밋하기 전에 다시 끈다)
 - 헤드셋 없이는 손 위치가 움직이지 않는다. 손까지 보려면 Interaction Simulator를 켠다
 - 왼쪽 위 버튼은 에디터와 개발 빌드에서만 뜬다 (`LanSession`의 `Show Debug Gui`로 끌 수 있다)

@@ -28,6 +28,9 @@ public class SpareBullet : MonoBehaviour
     /// <summary>이 총알을 넣을 총. 집으면 이 총의 실린더가 열린다.</summary>
     public void SetGun(Gun gun) => m_Gun = gun;
 
+    /// <summary>잡을 수 있는지. 멀티에서 사수가 아닌 기기에서는 끈다.</summary>
+    public void SetGrabbable(bool grabbable) => m_Grab.enabled = grabbable;
+
     void OnSelectEntered(SelectEnterEventArgs args)
     {
         if (m_Gun != null)

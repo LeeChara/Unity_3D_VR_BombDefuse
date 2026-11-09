@@ -14,7 +14,9 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// 총알 넣기: 총을 쥔 채, 손에서 놓인 <see cref="SpareBullet"/>이 장전 영역(<see cref="GunLoadZone"/>)에 닿으면 들어간다.
 /// 총알을 집거나 넣으면 실린더가 열리고(쏠 수 없음), 총을 내려놓거나 흔들거나 반대 손을 대면 닫는다. 넣은 총알이 있으면 닫을 때 돌린다.
 /// 게임 진행 컨트롤러가 <see cref="Present"/>로 지급 위치에 꺼내고 <see cref="Withdraw"/>로 치운다. 꺼내 둔 동안 떨어뜨리면 잠시 뒤 지급 위치로 돌아온다.
-/// 지금은 총이 약실을 직접 들고 있다. 멀티를 붙일 때 호스트 쪽으로 옮긴다.
+/// 멀티: 약실은 호스트의 총만 믿는다. 클라이언트의 총은 <see cref="ResolvesShotsRemotely"/>를 켜서 쏠 때 <see cref="ShotRequested"/>로 호스트에 맡기고,
+/// 호스트가 <see cref="FireRemote"/>로 판정한 결과를 <see cref="ShowRemoteShot"/>으로 받는다. 사수가 아닌 쪽의 총은 잡을 수 없고(<see cref="SetGrabbable"/>)
+/// 사수 쪽에서 보내 주는 위치를 따라간다(<see cref="FollowRemotePose"/>).
 /// </summary>
 [RequireComponent(typeof(XRGrabInteractable))]
 public class Gun : MonoBehaviour
@@ -56,6 +58,9 @@ public class Gun : MonoBehaviour
     [Header("Prompt")]
     [SerializeField] string m_PickUpPrompt = "Press Grip to pick up";
 
+    [Header("Network")]
+    [SerializeField, Tooltip("상대가 든 총의 위치를 따라갈 때 부드럽게 하는 정도 (클수록 빨리 따라감)")] float m_RemoteFollowSharpness = 20f;
+
     /// <summary>방아쇠를 당겨 공이치기가 젖혀질 때. 결과는 공이치기 연출 시간 뒤 <see cref="Fired"/>로 온다.</summary>
     public event Action HammerCocked;
 
@@ -70,6 +75,9 @@ public class Gun : MonoBehaviour
 
     /// <summary>실린더를 닫았을 때 (이번에 넣은 총알 수). 넣은 총알이 있으면 돌린 뒤다.</summary>
     public event Action<int> CylinderClosed;
+
+    /// <summary><see cref="ResolvesShotsRemotely"/>일 때 공이치기가 내려간 순간 (레이 시작점, 방향). 결과는 호스트가 정한다.</summary>
+    public event Action<Vector3, Vector3> ShotRequested;
 
     XRGrabInteractable m_Grab;
     IXRSelectInteractor m_Holder;
@@ -88,6 +96,9 @@ public class Gun : MonoBehaviour
     int m_ShakeFrames;
     readonly List<XRBaseInputInteractor> m_HoveringInteractors = new List<XRBaseInputInteractor>();
     readonly RaycastHit[] m_Hits = new RaycastHit[16];
+    bool m_IsFollowingRemote;
+    Vector3 m_RemotePosition;
+    Quaternion m_RemoteRotation;
 
     public bool IsEquipped => m_Holder != null;
     public Transform Muzzle => m_Muzzle;
@@ -101,6 +112,9 @@ public class Gun : MonoBehaviour
 
     /// <summary>지금 꺼내져 있는지 (보이고 잡을 수 있는지).</summary>
     public bool IsPresented => gameObject.activeSelf;
+
+    /// <summary>true면 쏠 때 약실을 쓰지 않고 <see cref="ShotRequested"/>로 알리기만 한다 (멀티의 클라이언트).</summary>
+    public bool ResolvesShotsRemotely { get; set; }
 
     void Awake()
     {
@@ -211,6 +225,14 @@ public class Gun : MonoBehaviour
 
     void Update()
     {
+        if (m_IsFollowingRemote)
+        {
+            var t = 1f - Mathf.Exp(-m_RemoteFollowSharpness * Time.deltaTime);
+            transform.SetPositionAndRotation(
+                Vector3.Lerp(transform.position, m_RemotePosition, t),
+                Quaternion.Slerp(transform.rotation, m_RemoteRotation, t));
+        }
+
         UpdatePrompt();
 
         if (IsEquipped && IsCylinderOpen)
@@ -247,9 +269,39 @@ public class Gun : MonoBehaviour
 
     // ── 꺼내기·치우기 ──
 
+    /// <summary>잡을 수 있는지. 멀티에서 사수가 아닌 기기의 총은 끈다.</summary>
+    public void SetGrabbable(bool grabbable)
+    {
+        if (!grabbable)
+            Drop();
+        m_Grab.enabled = grabbable;
+    }
+
+    /// <summary>상대 기기에서 들고 있는 총의 위치를 따라간다. 잡을 수 없는 총에만 쓴다.</summary>
+    public void FollowRemotePose(Vector3 position, Quaternion rotation)
+    {
+        if (!IsPresented || IsEquipped)
+            return;
+
+        if (!m_IsFollowingRemote)
+        {
+            if (m_ReturnRoutine != null)
+            {
+                StopCoroutine(m_ReturnRoutine);
+                m_ReturnRoutine = null;
+            }
+            StopRigidbody();
+            m_IsFollowingRemote = true;
+        }
+
+        m_RemotePosition = position;
+        m_RemoteRotation = rotation;
+    }
+
     /// <summary>지급 위치에 꺼낸다. 그 자리에 가만히 놓이고, 떨어뜨리면 이 위치로 돌아온다.</summary>
     public void Present(Transform homePoint)
     {
+        m_IsFollowingRemote = false;
         m_HomePoint = homePoint;
         IsTriggerLocked = false;
         gameObject.SetActive(true);
@@ -266,6 +318,7 @@ public class Gun : MonoBehaviour
         if (IsCylinderOpen)
             CloseCylinder("치움");
         m_HomePoint = null;
+        m_IsFollowingRemote = false;
         gameObject.SetActive(false);
     }
 
@@ -273,6 +326,12 @@ public class Gun : MonoBehaviour
     {
         if (m_HomePoint == null)
             return;
+        StopRigidbody();
+        transform.SetPositionAndRotation(m_HomePoint.position, m_HomePoint.rotation);
+    }
+
+    void StopRigidbody()
+    {
         // 키네마틱으로 바꾸기 전에 멈춰야 경고가 나오지 않는다
         if (!m_Rigidbody.isKinematic)
         {
@@ -280,7 +339,6 @@ public class Gun : MonoBehaviour
             m_Rigidbody.angularVelocity = Vector3.zero;
         }
         m_Rigidbody.isKinematic = true;
-        transform.SetPositionAndRotation(m_HomePoint.position, m_HomePoint.rotation);
     }
 
     IEnumerator ReturnHomeAfterDelay()
@@ -316,14 +374,16 @@ public class Gun : MonoBehaviour
     {
         if (bullet == null || bullet.IsHeld || !IsEquipped || IsTriggerLocked || m_IsCocking || m_Revolver == null)
             return false;
-        if (m_Revolver.IsFull)
+        // 원격 판정이면 이 기기의 약실은 쓰지 않는다. 꽉 찼는지는 호스트가 넣을 때 본다
+        if (!ResolvesShotsRemotely && m_Revolver.IsFull)
         {
             Debug.Log("[Gun] 약실이 꽉 차서 더 넣을 수 없다", this);
             return false;
         }
 
         OpenCylinder();
-        m_Revolver.Insert();
+        if (!ResolvesShotsRemotely)
+            m_Revolver.Insert();
         m_InsertedSinceOpen++;
         bullet.Consume();
         Debug.Log($"[Gun] 총알을 넣었다 (총알 {m_Revolver.BulletCount}발)", this);
@@ -400,6 +460,25 @@ public class Gun : MonoBehaviour
         CylinderClosed?.Invoke(inserted);
     }
 
+    /// <summary>호스트: 상대 기기에서 사수가 총알을 넣고 실린더를 닫았다. 약실에 넣고 돌린 뒤 <see cref="CylinderClosed"/>를 알린다.</summary>
+    public void InsertRemote(int count)
+    {
+        if (m_Revolver == null || IsTriggerLocked)
+            return;
+
+        var inserted = 0;
+        for (var i = 0; i < count && !m_Revolver.IsFull; i++)
+        {
+            m_Revolver.Insert();
+            inserted++;
+        }
+        if (inserted > 0)
+            m_Revolver.Spin();
+
+        Debug.Log($"[Gun] 상대가 총알 {inserted}발을 넣고 돌렸다 (총알 {m_Revolver.BulletCount}발)", this);
+        CylinderClosed?.Invoke(inserted);
+    }
+
     void SetCylinderOpen(bool open)
     {
         IsCylinderOpen = open;
@@ -434,9 +513,33 @@ public class Gun : MonoBehaviour
         m_IsCocking = false;
         m_NextFireTime = Time.time + m_FireCooldown;
 
+        if (ResolvesShotsRemotely)
+        {
+            // 약실은 호스트가 판정한다. 결과는 ShowRemoteShot으로 온다
+            var direction = m_Muzzle.forward;
+            ShotRequested?.Invoke(m_Muzzle.position - direction * m_RayBackOffset, direction);
+            yield break;
+        }
+
+        var shooterRig = m_Holder != null ? m_Holder.transform.GetComponentInParent<XROrigin>() : null;
+        Resolve(m_Muzzle.position - m_Muzzle.forward * m_RayBackOffset, m_Muzzle.forward, m_Muzzle.position, shooterRig);
+    }
+
+    /// <summary>호스트: 상대 기기의 사수가 쏜 한 발을 판정한다. 레이는 상대 기기의 총구 기준이다.</summary>
+    public ShotResult FireRemote(Vector3 rayOrigin, Vector3 direction)
+    {
+        direction.Normalize();
+        return Resolve(rayOrigin, direction, rayOrigin + direction * m_RayBackOffset, null);
+    }
+
+    /// <summary>클라이언트: 호스트가 판정한 한 발을 보여 준다 (<see cref="Fired"/>로 이펙트가 반응한다).</summary>
+    public void ShowRemoteShot(ShotResult result) => Fired?.Invoke(result);
+
+    ShotResult Resolve(Vector3 rayOrigin, Vector3 direction, Vector3 muzzlePosition, XROrigin shooterRig)
+    {
         // 공포탄이어도 누구를 겨눴는지 알아야 해서 항상 레이캐스트한다
         var live = m_Revolver == null || m_Revolver.Pull();
-        var result = Hitscan();
+        var result = Hitscan(rayOrigin, direction, muzzlePosition, shooterRig);
         result.IsLive = live;
 
         var target = result.HitBox != null ? $"{(result.HitBox.Owner != null ? result.HitBox.Owner.name : result.HitBox.name)}의 {result.HitBox.Part}" : result.DidHit ? result.Hit.collider.name : "허공";
@@ -456,16 +559,15 @@ public class Gun : MonoBehaviour
         }
 
         Fired?.Invoke(result);
+        return result;
     }
 
-    ShotResult Hitscan()
+    ShotResult Hitscan(Vector3 rayOrigin, Vector3 direction, Vector3 muzzlePosition, XROrigin shooterRig)
     {
-        var direction = m_Muzzle.forward;
-        var rayOrigin = m_Muzzle.position - direction * m_RayBackOffset;
-        var result = new ShotResult { Origin = m_Muzzle.position, Direction = direction, EndPoint = m_Muzzle.position + direction * m_Range };
+        var result = new ShotResult { Origin = muzzlePosition, Direction = direction, EndPoint = muzzlePosition + direction * m_Range };
 
-        // 총 자신, 총알, 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛰고 가장 가까운 것을 고른다
-        var shooterRig = m_Holder != null ? m_Holder.transform.GetComponentInParent<XROrigin>() : null;
+        // 총 자신, 총알, 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛰고 가장 가까운 것을 고른다.
+        // shooterRig가 null이면 상대 기기의 사수가 쏜 것이다
         var count = Physics.RaycastNonAlloc(rayOrigin, direction, m_Hits, m_Range + m_RayBackOffset, m_HitMask, QueryTriggerInteraction.Ignore);
         var closest = float.MaxValue;
         for (var i = 0; i < count; i++)
@@ -476,6 +578,9 @@ public class Gun : MonoBehaviour
                 continue;
             var hitbox = hit.collider.GetComponent<Hitbox>();
             if (shooterRig != null && hitTransform.IsChildOf(shooterRig.transform) && hitbox == null)
+                continue;
+            // 상대 기기의 사수가 쏜 한 발은 이 기기 리그의 이동용 캡슐에 막히면 안 된다 (이 기기 사람은 히트박스로만 맞는다)
+            if (shooterRig == null && hitbox == null && hit.collider.GetComponentInParent<XROrigin>() != null)
                 continue;
 
             if (hit.distance < closest)

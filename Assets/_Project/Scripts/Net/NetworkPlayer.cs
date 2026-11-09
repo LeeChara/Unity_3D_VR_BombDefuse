@@ -32,6 +32,41 @@ public class NetworkPlayer : NetworkBehaviour
 
     public int SeatIndex => m_SeatIndex.Value;
 
+    /// <summary>좌석 번호 (1부터). 아직 없으면 0.</summary>
+    public int SeatNumber => m_SeatIndex.Value + 1;
+
+    /// <summary>이 기기의 플레이어 좌석 번호 (1부터). 접속 전이면 0.</summary>
+    public static int LocalSeatNumber => Local != null ? Local.SeatNumber : 0;
+
+    /// <summary>그 좌석의 플레이어. 없으면 null.</summary>
+    public static NetworkPlayer AtSeat(int seatNumber)
+    {
+        foreach (var player in s_Players)
+        {
+            if (player.SeatNumber == seatNumber)
+                return player;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 그 좌석의 맞을 수 있는 몸. 이 기기의 플레이어면 XR Origin의 <see cref="PlayerBody"/>, 상대면 아바타의 <see cref="AvatarBody"/>.
+    /// </summary>
+    public static Damageable BodyAtSeat(int seatNumber)
+    {
+        if (seatNumber < 1)
+            return null;
+        if (seatNumber == LocalSeatNumber)
+        {
+            var body = FindAnyObjectByType<PlayerBody>();
+            return body != null ? body.GetComponent<Damageable>() : null;
+        }
+
+        var player = AtSeat(seatNumber);
+        return player != null ? player.GetComponent<Damageable>() : null;
+    }
+
     public override void OnNetworkSpawn()
     {
         s_Players.Add(this);
@@ -61,9 +96,11 @@ public class NetworkPlayer : NetworkBehaviour
     {
         Local = this;
 
-        // 자기 머리와 손은 XR 리그가 그린다
+        // 자기 머리와 손은 XR 리그가 그리고, 자기 몸은 XR 리그의 PlayerBody가 맞는다
         foreach (var avatarRenderer in GetComponentsInChildren<Renderer>(true))
             avatarRenderer.enabled = false;
+        if (TryGetComponent<AvatarBody>(out var avatarBody))
+            avatarBody.SetHitboxesEnabled(false);
 
         m_Origin = FindAnyObjectByType<XROrigin>();
         if (m_Origin == null)
