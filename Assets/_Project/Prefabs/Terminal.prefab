@@ -339,6 +339,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7560920342279096749}
+  - component: {fileID: 6993930898041705975}
   m_Layer: 0
   m_Name: Terminal
   m_TagString: Untagged
@@ -366,6 +367,19 @@ Transform:
   - {fileID: 6882848561535122944}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6993930898041705975
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2583194735085399155}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d24e16330b09c8b4f95685d42540566a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuizTerminal
+  m_Seat: 1
 --- !u!1 &5293417562107878581
 GameObject:
   m_ObjectHideFlags: 0

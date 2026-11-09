@@ -1,27 +1,14 @@
 using UnityEngine;
 
 /// <summary>
-/// 두 플레이어의 퀴즈 화면을 함께 다룬다. 같은 문제를 모든 화면에 동시에 띄운다.
+/// 두 플레이어의 퀴즈 화면을 함께 다룬다. 같은 문제와 남은 시간을 모든 화면에 동시에 띄운다.
 /// </summary>
 public class QuizBoard : MonoBehaviour
 {
     [SerializeField] QuizScreen[] m_Screens;
 
-    [Header("Test")]
-    [SerializeField, Tooltip("켜 두면 시작할 때 테스트 문제를 띄운다")] bool m_ShowTestOnStart = true;
-    [SerializeField] QuizQuestion m_TestQuestion = new QuizQuestion
-    {
-        Question = "TEST: How many bones are in the adult human body?",
-        Choices = new[] { "106", "206", "306", "406" },
-    };
-
-    void Start()
-    {
-        if (m_ShowTestOnStart)
-            Show(m_TestQuestion);
-        else
-            Clear();
-    }
+    // Start가 아니라 Awake에서 비워야 다른 스크립트가 Start에서 띄운 문제를 지우지 않는다
+    void Awake() => Clear();
 
     public void Show(QuizQuestion question)
     {
@@ -29,12 +16,16 @@ public class QuizBoard : MonoBehaviour
             screen.Show(question);
     }
 
+    /// <summary>남은 시간 비율 (1 = 가득, 0 = 없음).</summary>
+    public void SetRemainingTime(float ratio)
+    {
+        foreach (var screen in m_Screens)
+            screen.SetRemainingTime(ratio);
+    }
+
     public void Clear()
     {
         foreach (var screen in m_Screens)
             screen.Clear();
     }
-
-    [ContextMenu("Show Test Question")]
-    void ShowTestQuestion() => Show(m_TestQuestion);
 }
