@@ -1009,10 +1009,25 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2572679551788494089, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3999823344273166380, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 5174422897380864701, guid: 39066058a47d0124fb5c10e1248bcdd0,
         type: 3}
       propertyPath: m_Name
       value: QuizDisplay_P2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5629400376607228896, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 5830905131546743924, guid: 39066058a47d0124fb5c10e1248bcdd0,
         type: 3}
@@ -1063,6 +1078,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7228107535205780542, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 9156005404194219816, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1716,14 +1741,8 @@ MonoBehaviour:
   m_Screens:
   - {fileID: 1789238713}
   - {fileID: 727195472}
-  m_ShowTestOnStart: 1
-  m_TestQuestion:
-    Question: "\uD14C\uC2A4\uD2B8: \uC0AC\uB78C\uC758 \uBF08\uB294 \uBA87 \uAC1C\uC778\uAC00?"
-    Choices:
-    - "106\uAC1C"
-    - "206\uAC1C"
-    - "306\uAC1C"
-    - "406\uAC1C"
+  m_QuestionsCsv: {fileID: 4900000, guid: d0be2e0f7ea1c674ca19cf7bc43058a4, type: 3}
+  m_ShowRandomOnStart: 1
 --- !u!4 &1570897676
 Transform:
   m_ObjectHideFlags: 0
@@ -2053,10 +2072,25 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2572679551788494089, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3999823344273166380, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 5174422897380864701, guid: 39066058a47d0124fb5c10e1248bcdd0,
         type: 3}
       propertyPath: m_Name
       value: QuizDisplay_P1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5629400376607228896, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     - target: {fileID: 5830905131546743924, guid: 39066058a47d0124fb5c10e1248bcdd0,
         type: 3}
@@ -2107,6 +2141,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7228107535205780542, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 9156005404194219816, guid: 39066058a47d0124fb5c10e1248bcdd0,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -89,7 +89,7 @@ Assets/_Project/
     Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
     Gameplay/    QuizButton, Gun, Seat, SeatedPlayer, Hitbox           ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, HostCharacter, DreadLevelController, VoiceLinePlayer
-    Data/        QuizQuestion, VoiceLineData, TuningConfig (ScriptableObject)
+    Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
   Art/  Audio/  Prefabs/  Scenes/
 ```
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -8,17 +9,19 @@ public class QuizBoard : MonoBehaviour
     [SerializeField] QuizScreen[] m_Screens;
 
     [Header("Test")]
-    [SerializeField, Tooltip("켜 두면 시작할 때 테스트 문제를 띄운다")] bool m_ShowTestOnStart = true;
-    [SerializeField] QuizQuestion m_TestQuestion = new QuizQuestion
-    {
-        Question = "TEST: How many bones are in the adult human body?",
-        Choices = new[] { "106", "206", "306", "406" },
-    };
+    [SerializeField, Tooltip("문제 CSV (Assets/_Project/Data/Quiz/questions.csv). 퀴즈 진행 로직이 생기면 그쪽으로 옮긴다")]
+    TextAsset m_QuestionsCsv;
+    [SerializeField, Tooltip("켜 두면 시작할 때 CSV에서 무작위 문제를 띄운다")] bool m_ShowRandomOnStart = true;
+
+    List<QuizQuestion> m_Questions = new List<QuizQuestion>();
+    int m_LastIndex = -1;
 
     void Start()
     {
-        if (m_ShowTestOnStart)
-            Show(m_TestQuestion);
+        LoadQuestions();
+
+        if (m_ShowRandomOnStart)
+            ShowRandomQuestion();
         else
             Clear();
     }
@@ -35,6 +38,37 @@ public class QuizBoard : MonoBehaviour
             screen.Clear();
     }
 
-    [ContextMenu("Show Test Question")]
-    void ShowTestQuestion() => Show(m_TestQuestion);
+    void LoadQuestions()
+    {
+        if (m_QuestionsCsv == null)
+        {
+            Debug.LogWarning("[QuizBoard] 문제 CSV가 연결되지 않았다", this);
+            return;
+        }
+
+        var warnings = new List<string>();
+        m_Questions = QuizCsvParser.Parse(m_QuestionsCsv.text, warnings);
+        foreach (var warning in warnings)
+            Debug.LogWarning($"[QuizBoard] {m_QuestionsCsv.name}.csv: {warning}", m_QuestionsCsv);
+        Debug.Log($"[QuizBoard] {m_QuestionsCsv.name}.csv에서 문제 {m_Questions.Count}개를 불러왔다", this);
+    }
+
+    // 직전 문제와 다른 문제를 무작위로 띄운다
+    [ContextMenu("Show Random Question")]
+    void ShowRandomQuestion()
+    {
+        if (m_Questions.Count == 0)
+            LoadQuestions();
+        if (m_Questions.Count == 0)
+            return;
+
+        var index = Random.Range(0, m_Questions.Count);
+        if (m_Questions.Count > 1 && index == m_LastIndex)
+            index = (index + 1) % m_Questions.Count;
+        m_LastIndex = index;
+
+        var question = m_Questions[index];
+        Show(question);
+        Debug.Log($"[QuizBoard] {question.Id} 표시 (정답 {"ABCD"[question.AnswerIndex]})", this);
+    }
 }
