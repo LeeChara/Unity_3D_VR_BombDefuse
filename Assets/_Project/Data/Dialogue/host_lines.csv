@@ -1,39 +1,73 @@
 ﻿event,id,text,emotion
+# #으로 시작하는 줄은 게임이 읽지 않는 설명이다. 각 이벤트 위의 설명이 그 대사가 나오는 때다
+# 한 이벤트에 여러 줄을 쓰면 무작위로 하나가 나온다 (같은 줄이 연속으로 나오지 않는다)
+
+# ===== 착석 (게임 시작) =====
+# seat_prompt: 게임이 시작되어 의자 뒤에 섰을 때
 seat_prompt,sp01,자리에 앉아라.,calm
+# seat_warning: 착석 안내 후 15초가 지나도 앉지 않았을 때
 seat_warning,sw01,앉지 않으면 시작할 수 없다.,cold
+# seat_forced: 경고 후 10초가 지나 진행자가 강제로 앉힐 때
 seat_forced,sf01,앉으라고 했을 텐데.,cold
+
+# ===== 규칙 설명 =====
+# rules_intro: 앉은 직후 첫 문제 전에 한 번. 다 읽으면 첫 문제가 나온다
 rules_intro,ri01,정답을 맞힌 사람이 기회를 얻는다. 총알은 한 발이다. 살아남는 쪽이 이긴다.,calm
+
+# ===== 퀴즈 =====
+# quiz_start: 문제가 화면에 나올 때마다
 quiz_start,qs01,"자, 머리를 써 볼 시간이다.",calm
 quiz_start,qs02,다음 문제다.,calm
 quiz_start,qs03,이번엔 맞힐 수 있겠나?,mocking
+# quiz_pressure: 문제를 푸는 중 5초마다
 quiz_pressure,qp01,시간이 없다.,cold
 quiz_pressure,qp02,생각이 길군.,mocking
 quiz_pressure,qp03,망설이면 기회는 상대에게 간다.,cold
+# answer_wrong: 누군가 오답을 눌렀을 때 바로
 answer_wrong,aw01,틀렸다.,mocking
 answer_wrong,aw02,그것도 모르나.,mocking
 answer_wrong,aw03,실망스럽군.,cold
+# answer_correct: 정답자가 정해졌을 때
 answer_correct,ac01,정답. 총을 쥘 자격이 생겼다.,calm
 answer_correct,ac02,맞혔군. 기회를 주지.,calm
+# quiz_timeout: 제한시간 안에 아무도 못 맞혔을 때 (둘 다 오답이면 나오지 않고 오답 대사만 나온다)
 quiz_timeout,qt01,시간 끝. 둘 다 아무것도 아니군.,cold
 quiz_timeout,qt02,아무도 못 맞혔다.,cold
+
+# ===== 총 지급과 사수 턴 =====
+# gun_handover: 정답자 앞에 총이 나타날 때. {bullets} = 총에 든 총알 수
 gun_handover,gh01,총알은 {bullets}발. 더 넣고 싶으면 넣어도 좋다.,calm
 gun_handover,gh02,총이다. 들어 있는 건 {bullets}발.,calm
-cylinder_spun,cs01,배짱이 있군. 이제 {bullets}발이다.,delighted
-cylinder_spun,cs02,총알을 더 넣었다. {bullets}발.,calm
-shooter_timeout,st01,망설이다 기회를 날렸군.,mocking
-shot_hit_opponent,sho01,명중이다.,delighted
-shot_hit_opponent,sho02,좋은 솜씨군.,delighted
-shot_blank_opponent,sbo01,"빈 약실이다. 운이 좋았군, 상대가.",mocking
-shot_blank_opponent,sbo02,딸깍. 아무 일도 없었다.,cold
-shot_miss,sm01,빗나갔다. 그 거리에서.,mocking
-shot_miss,sm02,허공을 쐈군.,mocking
+# shot_blank_self: 사수가 자신을 쐈는데 공포탄일 때 바로. 한 번 더 쏠 수 있다는 것을 알려 준다
 shot_blank_self,sbs01,살았군. 한 발 더 쏴라.,delighted
 shot_blank_self,sbs02,운이 좋다. 다시 쏠 수 있다.,delighted
+
+# ===== 결과 브리핑 (사수 턴이 끝나고 총이 사라진 뒤 하나만 나온다) =====
+# shot_hit_opponent: 실탄이 상대 몸에 맞았을 때
+shot_hit_opponent,sho01,명중이다.,delighted
+shot_hit_opponent,sho02,좋은 솜씨군.,delighted
+# shot_blank_opponent: 상대를 쐈는데 공포탄일 때 (벽이나 허공을 쏜 공포탄도 여기)
+shot_blank_opponent,sbo01,"빈 약실이다. 운이 좋았군, 상대가.",mocking
+shot_blank_opponent,sbo02,딸깍. 아무 일도 없었다.,cold
+# shot_miss: 실탄이 아무 몸에도 맞지 않았을 때
+shot_miss,sm01,빗나갔다. 그 거리에서.,mocking
+shot_miss,sm02,허공을 쐈군.,mocking
+# shot_hit_self: 자신을 쐈는데 실탄일 때
 shot_hit_self,shs01,제 몸에 쏘다니.,delighted
 shot_hit_self,shs02,어리석은 선택이었다.,cold
+# cylinder_spun: 여분 총알을 넣고 실린더를 돌려 턴을 넘겼을 때. {bullets} = 넣은 뒤 총알 수
+cylinder_spun,cs01,배짱이 있군. 이제 {bullets}발이다.,delighted
+cylinder_spun,cs02,총알을 더 넣었다. {bullets}발.,calm
+# shooter_timeout: 사수가 20초 동안 아무것도 하지 않아 총이 반납될 때
+shooter_timeout,st01,망설이다 기회를 날렸군.,mocking
+# reload: 결과 브리핑 대사 다음에. 총알이 0발이 되어 진행자가 다시 장전했을 때만. {bullets} = 새로 넣은 총알 수
 reload,rl01,총알이 떨어졌군. 이번엔 {bullets}발이다.,calm
 reload,rl02,다시 장전한다. {bullets}발.,calm
+
+# ===== 게임 종료 =====
+# player_died: 사망자가 나왔을 때
 player_died,pd01,한 명이 쓰러졌다.,cold
 player_died,pd02,끝났군.,cold
+# player_won: 사망 대사 다음에. 몇 초 뒤 처음(착석)부터 다시 시작한다
 player_won,pw01,살아남았군. 이번엔.,calm
 player_won,pw02,승자가 정해졌다.,calm

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 진행자 대사 CSV 글을 <see cref="HostLine"/> 목록으로 바꾼다. 양식은 docs/04_roles_and_schedule.md 2절 (event,id,text,emotion).
-/// 잘못된 줄은 건너뛰고 경고 목록에 이유를 남긴다.
+/// 잘못된 줄은 건너뛰고 경고 목록에 이유를 남긴다. 첫 칸이 #으로 시작하는 줄은 설명(주석)이라 읽지 않는다.
 /// </summary>
 public static class HostLineCsvParser
 {
@@ -25,7 +25,7 @@ public static class HostLineCsvParser
         for (var i = 1; i < records.Count; i++)
         {
             var record = records[i];
-            if (CsvReader.IsEmpty(record.Fields))
+            if (CsvReader.IsEmpty(record.Fields) || CsvReader.IsComment(record.Fields))
                 continue;
 
             if (record.Fields.Count != k_Header.Length)

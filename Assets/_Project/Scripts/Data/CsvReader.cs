@@ -90,6 +90,9 @@ public static class CsvReader
         return records;
     }
 
+    /// <summary>첫 칸이 #으로 시작하는 설명 줄인지. 게임은 이 줄을 읽지 않는다.</summary>
+    public static bool IsComment(List<string> fields) => fields.Count > 0 && fields[0].TrimStart().StartsWith("#");
+
     /// <summary>모든 칸이 비어 있는 줄인지.</summary>
     public static bool IsEmpty(List<string> fields)
     {
