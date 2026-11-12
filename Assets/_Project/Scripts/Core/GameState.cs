@@ -15,9 +15,9 @@ public enum GameState
     QuizResolve,
     /// <summary>정답자에게 총 지급, 대상 구속.</summary>
     GunHandover,
-    /// <summary>사수가 실린더 돌리기, 상대·자신 쏘기 중에 고른다.</summary>
+    /// <summary>사수가 상대 쏘기, 자신 쏘기(공포탄이면 한 번 더), 여분 총알 넣고 돌리기 중에 고른다.</summary>
     ShooterTurn,
-    /// <summary>공이치기 연출, 실탄/공포탄, 피해, 실탄이면 재장전.</summary>
+    /// <summary>결과 처리. 총알이 0발이면 진행자가 재장전한다(넣는 수가 매번 늘어남).</summary>
     ShotResolve,
     /// <summary>결과 브리핑 (진행자 반응).</summary>
     HostReaction,

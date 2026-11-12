@@ -15,6 +15,9 @@ public class SeatedPlayer : MonoBehaviour
 
     public Seat CurrentSeat { get; private set; }
 
+    /// <summary>앉을 수 있는 유일한 의자. null이면 아무 의자에나 앉을 수 있다. 접속하면 좌석 배정으로 정해진다.</summary>
+    public Seat AssignedSeat { get; set; }
+
     /// <summary>구속된 동안에는 의자에서 일어날 수 없다. 총이 상대에게 지급될 때 건다.</summary>
     public bool IsRestrained { get; private set; }
 
@@ -53,17 +56,31 @@ public class SeatedPlayer : MonoBehaviour
         var standPosition = CurrentSeat.StandPosition;
         CurrentSeat = null;
 
-        // 머리는 의자 뒤로 옮기고, 리그 바닥은 바닥 높이에 맞춘다 (실제 키는 머리 추적이 더해 준다)
+        MoveFeetTo(standPosition);
+        SetLocomotionEnabled(true);
+    }
+
+    /// <summary>의자 뒤에 서서 의자 정면을 보게 옮긴다. 앉아 있으면 아무것도 하지 않는다.</summary>
+    public void PlaceBehind(Seat seat)
+    {
+        if (CurrentSeat != null)
+            return;
+
+        m_Origin.MatchOriginUpCameraForward(Vector3.up, seat.EyePoint.forward);
+        MoveFeetTo(seat.StandPosition);
+    }
+
+    // 머리를 바닥 위치 위로 옮기고, 리그 바닥은 바닥 높이에 맞춘다 (실제 키는 머리 추적이 더해 준다)
+    void MoveFeetTo(Vector3 floorPosition)
+    {
         var camera = m_Origin.Camera.transform.position;
         var origin = m_Origin.transform.position;
         m_Origin.transform.position = new Vector3(
-            origin.x + standPosition.x - camera.x,
-            standPosition.y,
-            origin.z + standPosition.z - camera.z);
+            origin.x + floorPosition.x - camera.x,
+            floorPosition.y,
+            origin.z + floorPosition.z - camera.z);
         // Character Controller가 옮긴 위치를 바로 알도록 물리 위치를 맞춘다
         Physics.SyncTransforms();
-
-        SetLocomotionEnabled(true);
     }
 
     void SetLocomotionEnabled(bool enabled)
