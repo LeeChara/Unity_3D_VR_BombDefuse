@@ -1,0 +1,241 @@
+using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Netcode;
+using UnityEngine;
+
+/// <summary>
+/// 호스트가 낸 퀴즈를 클라이언트 화면에 그대로 띄운다. 게임 진행(<see cref="GameFlowController"/>)은 호스트에서만 돈다.
+/// 호스트: 진행 컨트롤러의 문제·종료·판정 색 이벤트를 Named Message로 보낸다.
+/// 클라이언트: 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 판정 색도 같이 표시한다.
+/// 클라이언트가 자기 좌석 단말기를 누르면 호스트에 보내고, 호스트는 받은 순간을 누른 시각으로 판정한다.
+/// </summary>
+public class LanQuizSync : MonoBehaviour
+{
+    const string k_QuizShownMessage = "BombDefuse.QuizShown";
+    const string k_QuizEndedMessage = "BombDefuse.QuizEnded";
+    const string k_ButtonResultMessage = "BombDefuse.QuizButtonResult";
+    const string k_AnswerMessage = "BombDefuse.QuizAnswer";
+
+    [SerializeField] GameFlowController m_Flow;
+    [SerializeField] QuizBoard m_Board;
+    [SerializeField, Tooltip("좌석 1, 2 순서")] QuizTerminal[] m_Terminals;
+
+    NetworkManager m_NetworkManager;
+    bool m_IsTimerRunning;
+    double m_QuizStartTime;
+    float m_TimeLimit;
+
+    void Start()
+    {
+        m_NetworkManager = NetworkManager.Singleton;
+        if (m_NetworkManager == null)
+        {
+            Debug.LogWarning("[LanQuizSync] No NetworkManager in the scene", this);
+            return;
+        }
+
+        m_NetworkManager.OnClientStarted += RegisterHandlers;
+        m_NetworkManager.OnServerStarted += RegisterHandlers;
+        m_Flow.QuizShown += OnQuizShown;
+        m_Flow.QuizEnded += OnQuizEnded;
+        m_Flow.ButtonResultShown += OnButtonResultShown;
+        foreach (var terminal in m_Terminals)
+            if (terminal != null)
+                terminal.AnswerPressed += OnLocalAnswerPressed;
+    }
+
+    void OnDestroy()
+    {
+        if (m_NetworkManager != null)
+        {
+            m_NetworkManager.OnClientStarted -= RegisterHandlers;
+            m_NetworkManager.OnServerStarted -= RegisterHandlers;
+        }
+        if (m_Flow != null)
+        {
+            m_Flow.QuizShown -= OnQuizShown;
+            m_Flow.QuizEnded -= OnQuizEnded;
+            m_Flow.ButtonResultShown -= OnButtonResultShown;
+        }
+        foreach (var terminal in m_Terminals)
+            if (terminal != null)
+                terminal.AnswerPressed -= OnLocalAnswerPressed;
+    }
+
+    void Update()
+    {
+        if (!m_IsTimerRunning)
+            return;
+
+        var remaining = m_TimeLimit > 0f ? (float)(1.0 - (Time.timeAsDouble - m_QuizStartTime) / m_TimeLimit) : 0f;
+        m_Board.SetRemainingTime(Mathf.Clamp01(remaining));
+    }
+
+    // 메시지 관리자는 접속할 때마다 새로 만들어지므로 매번 등록한다
+    void RegisterHandlers()
+    {
+        var messaging = m_NetworkManager.CustomMessagingManager;
+        if (m_NetworkManager.IsServer)
+        {
+            messaging.RegisterNamedMessageHandler(k_AnswerMessage, ReceiveAnswer);
+            return;
+        }
+
+        messaging.RegisterNamedMessageHandler(k_QuizShownMessage, ReceiveQuizShown);
+        messaging.RegisterNamedMessageHandler(k_QuizEndedMessage, ReceiveQuizEnded);
+        messaging.RegisterNamedMessageHandler(k_ButtonResultMessage, ReceiveButtonResult);
+    }
+
+    // ── 호스트: 보내기 ──
+
+    void OnQuizShown(QuizQuestion question, float timeLimit)
+    {
+        if (!CanSend())
+            return;
+
+        // 문제 글이 길 수 있어 필요하면 늘어나게 한다
+        using (var writer = new FastBufferWriter(256, Allocator.Temp, 8192))
+        {
+            writer.WriteValueSafe(question.Id ?? string.Empty);
+            writer.WriteValueSafe(question.Difficulty);
+            writer.WriteValueSafe(question.Category ?? string.Empty);
+            writer.WriteValueSafe(question.Question ?? string.Empty);
+            for (var i = 0; i < 4; i++)
+            {
+                var choice = question.Choices != null && i < question.Choices.Length ? question.Choices[i] : null;
+                writer.WriteValueSafe(choice ?? string.Empty);
+            }
+            writer.WriteValueSafe(question.AnswerIndex);
+            writer.WriteValueSafe(timeLimit);
+            Send(k_QuizShownMessage, writer);
+        }
+    }
+
+    void OnQuizEnded()
+    {
+        if (!CanSend())
+            return;
+
+        using (var writer = new FastBufferWriter(0, Allocator.Temp))
+            Send(k_QuizEndedMessage, writer);
+    }
+
+    void OnButtonResultShown(int seat, int choiceIndex, bool correct)
+    {
+        if (!CanSend())
+            return;
+
+        using (var writer = new FastBufferWriter(16, Allocator.Temp))
+        {
+            writer.WriteValueSafe(seat);
+            writer.WriteValueSafe(choiceIndex);
+            writer.WriteValueSafe(correct);
+            Send(k_ButtonResultMessage, writer);
+        }
+    }
+
+    bool CanSend() => m_NetworkManager != null && m_NetworkManager.IsServer && m_NetworkManager.ConnectedClientsIds.Count > 1;
+
+    void Send(string messageName, FastBufferWriter writer)
+    {
+        var clients = new List<ulong>(m_NetworkManager.ConnectedClientsIds);
+        clients.Remove(NetworkManager.ServerClientId);
+        m_NetworkManager.CustomMessagingManager.SendNamedMessage(messageName, clients, writer);
+    }
+
+    // ── 답 (클라이언트 → 호스트) ──
+
+    void OnLocalAnswerPressed(int seat, int choiceIndex)
+    {
+        // 호스트는 진행 컨트롤러가 직접 받는다
+        if (m_NetworkManager == null || !m_NetworkManager.IsConnectedClient || m_NetworkManager.IsServer)
+            return;
+        if (seat != NetworkPlayer.LocalSeatNumber)
+            return;
+
+        using (var writer = new FastBufferWriter(16, Allocator.Temp))
+        {
+            writer.WriteValueSafe(seat);
+            writer.WriteValueSafe(choiceIndex);
+            // 누른 순간의 네트워크 시간. 호스트가 자기 시계로 바꿔서 "누가 먼저 눌렀나"를 판정한다 (docs/03 4절)
+            writer.WriteValueSafe(m_NetworkManager.ServerTime.Time);
+            m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_AnswerMessage, NetworkManager.ServerClientId, writer);
+        }
+    }
+
+    void ReceiveAnswer(ulong senderClientId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int seat);
+        reader.ReadValueSafe(out int choiceIndex);
+        reader.ReadValueSafe(out double pressServerTime);
+
+        // 자기 좌석 단말기만 누를 수 있다
+        var sender = FindPlayer(senderClientId);
+        if (sender == null || sender.SeatNumber != seat)
+        {
+            Debug.LogWarning($"[LanQuizSync] Client {senderClientId} answered for seat {seat}, not its own", this);
+            return;
+        }
+
+        // 네트워크 시간 → 이 기기의 Time.timeAsDouble. 호스트에서는 두 시계가 같은 속도로 가므로 지금 차이만큼 당기면 된다.
+        // 미래 시각은 지금으로 자른다 (시계 오차)
+        var lag = m_NetworkManager.ServerTime.Time - pressServerTime;
+        var pressTime = Time.timeAsDouble - System.Math.Max(0.0, lag);
+        m_Flow.SubmitAnswer(seat, choiceIndex, pressTime);
+    }
+
+    static NetworkPlayer FindPlayer(ulong clientId)
+    {
+        foreach (var player in NetworkPlayer.Players)
+            if (player.OwnerClientId == clientId)
+                return player;
+        return null;
+    }
+
+    // ── 클라이언트: 받기 ──
+
+    void ReceiveQuizShown(ulong senderClientId, FastBufferReader reader)
+    {
+        if (senderClientId != NetworkManager.ServerClientId)
+            return;
+
+        var question = new QuizQuestion();
+        reader.ReadValueSafe(out question.Id);
+        reader.ReadValueSafe(out question.Difficulty);
+        reader.ReadValueSafe(out question.Category);
+        reader.ReadValueSafe(out question.Question);
+        for (var i = 0; i < 4; i++)
+            reader.ReadValueSafe(out question.Choices[i]);
+        reader.ReadValueSafe(out question.AnswerIndex);
+        reader.ReadValueSafe(out float timeLimit);
+
+        foreach (var terminal in m_Terminals)
+            if (terminal != null)
+                terminal.ClearResults();
+        m_Board.Show(question);
+
+        // 같은 LAN이라 지연은 무시하고 받은 순간을 시작 시각으로 본다
+        m_QuizStartTime = Time.timeAsDouble;
+        m_TimeLimit = timeLimit;
+        m_IsTimerRunning = true;
+        Debug.Log($"[LanQuizSync] Host question {question.Id}: {question.Question} ({timeLimit}s)", this);
+    }
+
+    void ReceiveQuizEnded(ulong senderClientId, FastBufferReader reader)
+    {
+        if (senderClientId == NetworkManager.ServerClientId)
+            m_IsTimerRunning = false;
+    }
+
+    void ReceiveButtonResult(ulong senderClientId, FastBufferReader reader)
+    {
+        if (senderClientId != NetworkManager.ServerClientId)
+            return;
+
+        reader.ReadValueSafe(out int seat);
+        reader.ReadValueSafe(out int choiceIndex);
+        reader.ReadValueSafe(out bool correct);
+        if (seat >= 1 && seat <= m_Terminals.Length && m_Terminals[seat - 1] != null)
+            m_Terminals[seat - 1].ShowResult(choiceIndex, correct);
+    }
+}

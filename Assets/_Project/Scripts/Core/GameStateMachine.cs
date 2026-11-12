@@ -66,6 +66,22 @@ public sealed class GameStateMachine
         return true;
     }
 
+    /// <summary>
+    /// 네트워크로 받은 호스트의 상태를 그대로 적용한다 (클라이언트용). 전이 규칙은 검사하지 않는다. 호스트가 이미 검사했기 때문이다.
+    /// 같은 상태면 아무것도 하지 않는다. 알림은 <see cref="TryTransitionTo"/>와 같은 순서 규칙을 따른다.
+    /// </summary>
+    public void Sync(GameState next)
+    {
+        if (next == m_LastRequestedState)
+            return;
+
+        m_LastRequestedState = next;
+        m_PendingStates.Enqueue(next);
+
+        if (!m_IsNotifying)
+            ProcessPendingStates();
+    }
+
     void ProcessPendingStates()
     {
         m_IsNotifying = true;

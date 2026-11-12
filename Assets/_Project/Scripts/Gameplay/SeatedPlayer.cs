@@ -17,6 +17,9 @@ public class SeatedPlayer : MonoBehaviour
 
     public Seat CurrentSeat { get; private set; }
 
+    /// <summary>앉을 수 있는 유일한 의자. null이면 아무 의자에나 앉을 수 있다. 접속하면 좌석 배정으로 정해진다.</summary>
+    public Seat AssignedSeat { get; set; }
+
     /// <summary>잠긴 동안에는 의자에서 일어날 수 없다. 게임 중 착석하면 잠그고, 게임이 끝나면 푼다.</summary>
     public bool IsSeatLocked { get; private set; }
 

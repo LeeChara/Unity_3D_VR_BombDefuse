@@ -33,14 +33,42 @@
 1. Quest를 Link 케이블 또는 Air Link로 PC에 연결
 2. Meta Quest Link 앱 설정에서 **OpenXR 런타임을 Meta Quest Link로 지정**
 3. 헤드셋에서 Link를 켜서 **Link 홈 화면에 들어간 상태**로 Play를 누른다. Play를 누를 때 헤드셋이 연결돼 있지 않으면 `XR_ERROR_FORM_FACTOR_UNAVAILABLE` 오류가 나고 그 Play 동안은 헤드셋으로 화면이 나오지 않는다
-4. Interaction Simulator가 켜져 있으면 끈다 (아래)
+4. Interaction Simulator 설정은 그대로 둬도 된다. Play할 때 헤드셋이 붙어 있으면 메인 에디터는 시뮬레이터를 만들지 않는다(`Net/VirtualPlayerInput`). 콘솔에 `Headset found ... simulator will not be created`가 뜨면 정상이다
+   - **시뮬레이터가 켜진 채로 두면 안 되는 이유**: XRI 시뮬레이터는 켜지는 순간 진짜 헤드셋 입력 장치를 지운다(Remove Other HMD Devices 기본값). 그러면 머리 추적이 끊겨 시점이 낮은 곳에 고정되고, 나중에 시뮬레이터를 치워도 그 Play 동안은 돌아오지 않는다
 5. 통과 기준: 고개를 돌리면 시점이 따라오고, 컨트롤러로 물체를 잡을 수 있다
 
 ## 헤드셋 없이 확인하기
 
 - 템플릿에 포함된 XRI **Interaction Simulator**로 키보드와 마우스로 조작할 수 있다.
-- 켜고 끄기: `Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit` → **Use XR Interaction Simulator in scenes**. 켜 두면 Play할 때 시뮬레이터가 자동으로 생기고, 헤드셋을 연결해도 입력을 시뮬레이터가 가져간다. 헤드셋으로 테스트할 때는 끈다.
-- 2인 테스트: `Window > Multiplayer > Multiplayer Play Mode`에서 가상 플레이어를 켜면 에디터 하나에서 호스트와 클라이언트를 같이 띄울 수 있다
+- 켜고 끄기: `Edit > Project Settings > XR Plug-in Management > XR Interaction Toolkit` → **Use XR Interaction Simulator in scenes**. 켜 두면 Play할 때 시뮬레이터가 자동으로 생긴다. 헤드셋이 붙어 있는 Play에서는 메인 에디터가 시뮬레이터를 만들지 않으므로 헤드셋 테스트 때 끌 필요는 없다.
+- 조작: 마우스로 겨누고 **T** = 트리거(버튼·앉기·쏘기), **G** = 그립(총 잡기). Game 창을 한 번 클릭해야 그 창에 입력이 들어간다.
+- 2인 테스트: 아래 "2인 테스트" 참고
+
+## 2인 테스트
+
+### 에디터 하나로 (Multiplayer Play Mode)
+
+1. `RoomScene`을 연다
+2. 툴바의 Play Mode Scenario 목록에서 **Two Player Scenario**를 고른다 (메인 에디터 + 가상 플레이어 1명)
+3. Play를 누른다. 가상 플레이어 창이 처음 뜰 때는 시간이 걸린다
+4. 메인 에디터 Game 창 왼쪽 위의 **Host**를 누르고, 가상 플레이어 창에서 **Join**을 누른다
+5. 통과 기준: 상태 문구가 호스트는 `Players 2/2 / Press START`, 가상 플레이어는 `Connected / Waiting for host to start`가 된다. 두 사람이 테이블을 사이에 두고 각자 의자 뒤에 서 있고, 상대의 머리(눈가리개가 달린 회색 상자)가 보인다
+6. 메인 에디터에서 **Start Game**을 누른다. 양쪽 모두 `Game started`가 되고 퀴즈 화면에 **같은 문제**가 뜬다. 각자 자기 좌석 단말기로 답하고, 먼저 맞힌 사람 앞에 총이 나온다. 총은 사수만 잡을 수 있다
+- 게임은 START를 눌러야 시작한다. 혼자 게임 흐름만 볼 때는 `GameFlow` 오브젝트의 `GameFlowController` → **Start On Play**를 켠다 (커밋하기 전에 다시 끈다)
+- **Player 2(가상 플레이어) 창은 항상 VR을 끄고 키보드·마우스 시뮬레이터로 돈다** (`Net/VirtualPlayerInput`, 에디터 전용). 한 헤드셋을 두 창이 동시에 잡으면 머리 추적이 깨지기 때문이다
+- 그래서 한 컴퓨터로 **메인 에디터는 헤드셋, Player 2는 키보드·마우스**로 둘이 함께 테스트할 수 있다
+- 왼쪽 위 버튼은 에디터와 개발 빌드에서만 뜬다 (`LanSession`의 `Show Debug Gui`로 끌 수 있다)
+
+### 헤드셋 두 대로 (LAN)
+
+1. 두 기기를 **같은 공유기(같은 서브넷)**에 연결한다
+2. 한쪽이 방 오른쪽 앞의 패널에서 **HOST**를 레이로 가리키고 트리거, 다른 쪽이 **JOIN**. 둘이 붙으면 호스트 쪽 **START**가 밝아지고, 누르면 게임이 시작된다
+3. JOIN은 호스트의 알림(UDP 47777)을 3초 동안 듣고 자동으로 붙는다. 처음 호스트를 열 때 Windows 방화벽이 물으면 **허용**한다 (게임 포트 7777, 알림 포트 47777)
+- 알림을 못 들으면 `127.0.0.1`로 붙으려다 실패한다. 이때는 방화벽과 같은 네트워크인지부터 확인한다. 공유기가 브로드캐스트를 막는 경우도 있다
+
+### 씬 구성을 다시 만들 때
+
+- `BombDefuse > Set Up Room Network` 메뉴가 NetworkManager, 플레이어 프리팹, 좌석 목록, 접속 패널, Build Settings 등록을 한 번에 한다. 이미 있는 것은 건너뛴다
 
 ## 남은 정리 (급하지 않음)
 

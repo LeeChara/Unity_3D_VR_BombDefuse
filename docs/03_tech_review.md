@@ -63,8 +63,8 @@ Lobby → Seating → Intro
 | Intro | 규칙 설명 세 문장 | 끝 → QuizActive |
 | QuizActive | 문제 출제, 버튼 입력, 압박 대사 | 정답·둘 다 오답·시간 초과 → QuizResolve |
 | QuizResolve | 정답 판정 | 정답자 있음 → GunHandover / 없음 → BothFailPenalty |
-| GunHandover | 정답자 앞에 총과 여분 총알 지급 | → ShooterTurn |
-| ShooterTurn | 상대 쏘기, 자신 쏘기(공포탄이면 이 상태에 머물며 한 번 더), 총알 넣고 돌리기(실린더를 닫으면 쏘지 않고 끝). 제한시간이 지나면 총 반납 | 상대 쏘기·자신 쏘기 실탄·넣고 돌리기·시간 초과 → ShotResolve |
+| GunHandover | 총 지급, 대상 구속 | → ShooterTurn |
+| ShooterTurn | 상대 쏘기, 자신 쏘기(공포탄이면 이 상태에 머물며 한 번 더). 제한시간이 지나면 총 반납 | 상대 쏘기·자신 쏘기 실탄·시간 초과 → ShotResolve |
 | ShotResolve | 공이치기 연출, 실탄/공포탄, 피해, 총알이 0발이면 재장전(넣는 수가 1발씩 늘어남) | → HostReaction |
 | HostReaction | 결과 브리핑 (진행자 반응) | → DeathCheck |
 | BothFailPenalty | 공포 단계 +1 | → DeathCheck |
@@ -86,12 +86,39 @@ Lobby → Seating → Intro
 Assets/_Project/
   Scripts/
     Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel, HostLinePool   ← 순수 C#, 네트워크 모름
-    Net/         NetworkGameController, PlayerNetwork, RPC 정의        ← NGO 의존
-    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, SpareBullet, Seat, SeatedPlayer, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
-    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostDialogue, HostSubtitle, HostCharacter, DreadLevelController
-    Data/        CsvReader, QuizQuestion, QuizCsvParser, HostLine, HostLineCsvParser, TuningConfig (ScriptableObject)
+    Net/         LanSession, LanDiscovery, NetworkPlayer, NetworkGameController, RPC 정의   ← NGO 의존
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
+    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, RevolverModel, HostDialogue, HostSubtitle, HostCharacter, DreadLevelController, VoiceLinePlayer
+    Data/        CsvReader, QuizQuestion, QuizCsvParser, HostLine, HostLineCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
+    Editor/      RoomNetworkSetup (씬 구성 메뉴)
   Art/  Audio/  Prefabs/  Scenes/
 ```
+
+### 네트워크 구성 (1주차)
+
+템플릿의 네트워크 코드(`XRINetworkGameManager`, `SessionManager`, `XRINetworkPlayer`)는 **쓰지 않는다**.
+- 템플릿은 세션을 **Distributed Authority**로 만든다. 각 클라이언트가 자기 오브젝트를 결정하는 방식이라 위의 호스트 권한 모델과 맞지 않는다.
+- `XRINetworkPlayer`는 템플릿의 게임 매니저, Vivox 매니저, 이름표 UI를 전부 전제로 해서 따로 떼어 쓸 수 없다.
+
+대신 `Net/`에 작은 LAN 전용 구성을 두었다. RoomScene에는 `BombDefuse > Set Up Room Network` 메뉴로 한 번에 넣는다(여러 번 실행해도 된다).
+
+| 구성 | 하는 일 |
+|---|---|
+| `NetworkManager` | **Client-Server** 토폴로지, 접속 승인 켬, Player Prefab = `Prefabs/NetworkPlayer` |
+| `LanSession` | 호스트 열기·접속·나가기. 호스트는 UDP 47777로 게임 포트(7777)를 1초마다 알린다. 접속하는 쪽은 3초 동안 알림을 듣고, 못 들으면 `127.0.0.1`로 붙는다. 정원 2명이 차면 다음 접속은 "Room is full"로 거절 |
+| `NetworkPlayer` | 머리·양손 상자. 주인이 자기 XR 리그 위치를 복사하고, 자식 `NetworkTransform`(주인 권한)이 보낸다. 자기 화면에서는 숨긴다 |
+| 좌석 배정 | 호스트가 접속 순서대로 빈 좌석 번호(`SeatRegistry`, 0 = 좌석 1)를 `NetworkVariable`로 준다. 주인은 그 의자 뒤로 옮겨지고 그 의자에만 앉을 수 있다 |
+| `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE / START 버튼과 상태 문구. 지금 누를 수 없는 버튼은 글자가 흐리다. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
+| 퀴즈 동기화 | `LanQuizSync`가 호스트의 출제·퀴즈 종료·버튼 판정 색을 Named Message로 보낸다. 클라이언트는 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 클라이언트가 자기 좌석 단말기를 누르면 답과 **누른 순간의 네트워크 시간**(`ServerTime`)을 호스트에 보내고, 호스트는 그 시각을 자기 시계로 바꿔 판정한다(4절 "먼저 누르기 판정") |
+| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 테이블 가운데에 총을 꺼내거나 치우면 클라이언트도 똑같이 한다. 사수 기기의 총만 잡을 수 있고, 사수 기기가 총 위치를 초당 30번 보내 다른 기기의 총이 따라간다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
+| 좌석의 몸 | START 때 `LanGameStarter`가 마네킹을 숨기고, 진행 컨트롤러의 좌석 몸을 실제 플레이어로 바꾼다. 이 기기 사람은 XR Origin의 `PlayerBody`, 상대는 아바타(`NetworkPlayer` 프리팹)의 `AvatarBody`가 맞는다. 자기 아바타의 히트박스는 끈다 |
+| 상태 동기화 | `GameStateSync`(GameFlow의 NetworkObject). 호스트 상태를 `NetworkVariable<GameState>`로 두고, 상태가 바뀔 때마다 RPC로도 보내 한 틱 안에 여러 번 바뀌어도 클라이언트 상태 머신이 같은 순서로 지나간다. 클라이언트의 `GameFlowController`는 `DrivesGame = false`로 상태만 비추고 진행은 하지 않는다. 조명·사운드는 양쪽 모두 `StateMachine.StateChanged`를 구독하면 된다 |
+| 게임 시작 | 정원 2명이 차면 호스트의 START가 켜진다. 누르면 `LanSession`이 클라이언트에게 시작 메시지(Named Message `BombDefuse.StartGame`)를 보내고, 호스트의 `LanGameStarter`만 `GameFlowController.StartGame()`을 부른다. 게임 진행은 호스트에서만 돈다. RoomScene의 `GameFlowController`는 `Start On Play`를 꺼 둔다(혼자 테스트할 때는 켠다) |
+
+- 보이스챗(Vivox)은 2주차에 붙인다. 템플릿의 `VoiceChatManager`를 그대로 쓸 수 있는지는 그때 정한다.
+- 게임 진행은 호스트에서만 돈다. 클라이언트는 상태 머신을 호스트에 맞추고, 퀴즈 화면과 총도 호스트에 맞춰 보여 준다. 총은 NGO의 소유권 이전 대신 Named Message로 맞췄다(총을 껐다 켜는 방식이라 NetworkObject로 만들기 어렵다).
+- 아직 맞추지 않은 것: 클라이언트 화면의 피해·사망·게임 종료 표시, 상대 손에 들린 총이 손을 따라 움직이는 모습(위치만 따라간다).
+- 게임 중에 한 명이 나가도 진행은 멈추지 않는다. 다시 접속하면 START가 다시 켜지지만, 이미 시작한 쪽은 새로 시작하지 않는다.
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
@@ -99,12 +126,15 @@ Assets/_Project/
 - `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 착석 → 규칙 설명 → (퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인)을 반복한다. 진행자 대사가 있는 단계는 대사를 다 읽을 시간만큼 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
 - 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
-- 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다.
+- 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 이 기기의 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다. 멀티에서는 `IsLocalSeat`가 정한 좌석을 쓴다.
 - 진행자 대사: `HostDialogue`가 대사 CSV를 불러와 `HostLinePool`로 이벤트별 대사를 고르고(직전 대사 제외), `HostSubtitle`(Main Camera 아래 자막)에 띄운다. 표시 시간은 글자 수로 정하고, `{bullets}`는 총알 개수로 바꾼다. 자막은 깊이 검사를 끈 재질(`Project/UI Overlay` 셰이더, TMP Overlay 재질)이라 벽·의자에 가려지지 않는다. 녹음이 오면 같은 이벤트 이름으로 음성을 붙인다.
-- 총알 넣기 판정은 `Gun`이 물리 프레임마다 한다. 씬의 여분 총알(`SpareBullet.Active`)마다 지난 물리 프레임부터 지금까지 지나간 길을 나눠 보고, 장전 영역(총 자식 `LoadZone` 콜라이더)이나 총을 쥔 손에 닿았는지 본다. 그래서 빠르게 던진 총알도 놓치지 않는다. 총알을 쥔 손은 손끼리의 거리로 본다.
-- 지금은 `Gun`이 `Revolver`를 직접 들고 있다. 멀티를 붙일 때 호스트 쪽으로 옮긴다(약실 상태는 호스트만 안다).
-- `Presentation/GunEffects`(발사음·딸깍·공이치기 소리, 진동, 반동, 발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 소리는 코드로 만든 파형이고, 클립 칸에 효과음을 넣으면 그것을 쓴다. 반동은 총 자식 `Model`(콜라이더 포함)을 흔든다. 모델과 효과음이 오면 바꾼다.
-- `Gameplay/TestMannequin`은 상대 자리의 테스트용 마네킹이다. 상대 플레이어가 생기면 지운다.
+- `Gun`이 `Revolver`를 직접 들고 있다. 멀티에서는 호스트의 총만 약실을 쓰고, 클라이언트의 총은 `ResolvesShotsRemotely`로 판정을 호스트에 맡긴다(약실 상태는 호스트만 안다).
+- `Presentation/GunEffects`(발사음·딸깍·공이치기 소리, 진동, 반동, 발사 궤적·총구 섬광·명중 표시, 공포탄 연기 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 소리는 코드로 만든 파형이고, 클립 칸에 효과음을 넣으면 그것을 쓴다. 반동은 총 모델을 흔든다. 효과음이 오면 바꾼다.
+- 총 모델은 에셋 스토어의 **Reichsrevolver M-1879**(`Assets/Reichsrevolver_M1879`, 쓰는 FBX·1024/256 텍스처만 저장소에 포함)다. `BombDefuse > Set Up Revolver Model` 메뉴가 `Prefabs/Pistol`의 임시 모양을 이 모델로 바꾸고, 패키지의 Standard 재질 대신 URP Lit 재질(`Art/Material/Revolver_*.mat`, 1024 텍스처)을 만든다. 패키지의 Animator와 데모 스크립트는 뺀다.
+- `Presentation/RevolverModel`이 모델의 뼈를 직접 움직인다: 실린더 옆으로 열기(크레인 축으로 45도), 실린더 돌리기(반대 손으로 실린더 손잡이 `CylinderHandle`을 그립으로 잡고 실린더 축 둘레로 돌린 각도만큼. 방아쇠마다 60도. 모습만 바뀌고 약실은 그대로), 공이치기, 총알 수만큼 탄피 보이기. 판정과는 관계없는 모습이다. 탄피가 보이는 칸은 실제 약실 위치와 관계없다.
+- 손목 스냅은 `Gun`이 총열 축 회전 속도로 잡는다(540도/초 이상이 두 프레임 이어지면). 왼쪽이면 열고 오른쪽이면 닫는다.
+- 멀티: 사수 기기가 보내는 총 위치에 실린더 모습(열림, 돈 각도, 보이는 총알 수)을 함께 실어 상대 화면도 같은 모습을 보인다.
+- `Gameplay/TestMannequin`은 상대 자리의 테스트용 마네킹이다. 혼자 테스트할 때만 쓰고, 멀티에서 START를 누르면 숨긴다.
 - **수치 읽기**: `TuningConfig` 에셋은 하나만 두고, 게임 진행 컨트롤러가 Inspector로 연결해서 필요한 값만 각 로직에 넘긴다. `Core` 클래스는 설정 파일을 모르고 숫자만 받는다(예: `new Revolver(약실 수, 총알 수)`).
 - ScriptableObject는 Play 중에 Inspector에서 바꾼 값이 멈춘 뒤에도 남는다. 값을 바꿨으면 규칙서 수치 표도 같이 고친다.
 
@@ -127,7 +157,9 @@ Assets/_Project/
 - **씬 충돌 방지**: Unity 씬 파일은 병합이 거의 불가능하다. 메인 씬은 메인 개발자만 수정하고, 다른 사람은 **프리팹이나 개인 테스트 씬**에서 작업한다.
 - **UnityYAMLMerge**: `.gitattributes`에 설정은 되어 있지만, **각자 로컬 git config에 merge 드라이버를 등록해야** 동작한다. 1주차에 전원 설정한다.
 - **Git LFS**: `.gitattributes`에 모델·오디오·이미지가 LFS로 설정되어 있다. 전원 `git lfs install`을 해야 한다. 안 하면 파일이 깨진다.
-- **브랜치**: 기능별 브랜치 → main 병합. main은 항상 빌드가 되는 상태를 유지한다.
+- **브랜치**: main에서 기능별 브랜치를 따서 작업하고 main에 병합한다. main은 항상 빌드가 되는 상태를 유지한다. 두 가지를 자주 한다.
+  1. **작업 전에 main을 가져온다.** GitHub Desktop에서 `Fetch origin` → `Branch > Update from main`.
+  2. **작업한 내용은 자주 main에 병합한다.** 기능이 작게라도 동작하면 Pull Request를 올려 합친다. 오래 쌓아 두면 충돌이 커진다.
 - **모델 규격**: 1 unit = 1m, Y-up, 피벗 위치 사전 합의 (총은 손잡이, 버튼은 바닥면).
 
 ## 6. 위험 요소 순위

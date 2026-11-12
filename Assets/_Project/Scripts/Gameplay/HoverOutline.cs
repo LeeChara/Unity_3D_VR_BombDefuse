@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
@@ -12,13 +13,14 @@ public class HoverOutline : MonoBehaviour
     [SerializeField, Tooltip("BombDefuse/Outline 셰이더를 쓰는 머티리얼")] Material m_OutlineMaterial;
 
     XRBaseInteractable m_Interactable;
-    MeshRenderer[] m_Renderers;
+    Renderer[] m_Renderers;
     bool m_IsShown;
 
     void Awake()
     {
         m_Interactable = GetComponent<XRBaseInteractable>();
-        m_Renderers = GetComponentsInChildren<MeshRenderer>(true);
+        // 리볼버 모델처럼 뼈로 움직이는 SkinnedMeshRenderer도 포함한다
+        m_Renderers = GetComponentsInChildren<Renderer>(true).Where(r => r is MeshRenderer || r is SkinnedMeshRenderer).ToArray();
     }
 
     void OnEnable()

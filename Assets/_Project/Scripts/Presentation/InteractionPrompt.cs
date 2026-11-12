@@ -37,6 +37,9 @@ public class InteractionPrompt : MonoBehaviour
         s_Instance.m_Panel.SetActive(true);
     }
 
+    /// <summary>다른 주인이 안내를 띄워 둔 상태인지. 가리키지 않아도 띄우는 안내가 가리킨 물체의 안내를 덮지 않게 할 때 쓴다.</summary>
+    public static bool IsOwnedByOther(Object owner) => s_Instance != null && s_Instance.m_Owner != null && s_Instance.m_Owner != owner;
+
     public static void Hide(Object owner)
     {
         if (s_Instance == null || s_Instance.m_Owner != owner)
