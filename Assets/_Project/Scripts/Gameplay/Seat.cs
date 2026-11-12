@@ -42,11 +42,11 @@ public class Seat : TriggerInteraction
             return false;
 
         if (player.CurrentSeat == this)
-            prompt = player.IsRestrained ? null : m_StandUpPrompt;
+            prompt = player.IsSeatLocked ? null : m_StandUpPrompt;
         else if (player.CurrentSeat == null && (player.AssignedSeat == null || player.AssignedSeat == this))
             prompt = m_SitPrompt;
 
-        // 다른 의자에 앉아 있거나, 구속돼 있거나, 상대 좌석이면 이 의자는 반응하지 않는다
+        // 다른 의자에 앉아 있거나, 일어날 수 없게 잠겨 있거나, 상대 좌석이면 이 의자는 반응하지 않는다
         return prompt != null;
     }
 

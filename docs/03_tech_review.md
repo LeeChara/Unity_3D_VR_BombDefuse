@@ -51,7 +51,7 @@
 ```
 Lobby → Seating → Intro
   → QuizActive → QuizResolve
-      ├→ GunHandover (대상 구속) → ShooterTurn → ShotResolve → HostReaction
+      ├→ GunHandover → ShooterTurn → ShotResolve → HostReaction
       └→ BothFailPenalty
   → DeathCheck → (QuizActive | GameOver)
 ```
@@ -85,11 +85,11 @@ Lobby → Seating → Intro
 ```
 Assets/_Project/
   Scripts/
-    Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel   ← 순수 C#, 네트워크 모름
+    Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel, HostLinePool   ← 순수 C#, 네트워크 모름
     Net/         LanSession, LanDiscovery, NetworkPlayer, NetworkGameController, RPC 정의   ← NGO 의존
     Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
-    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, HostCharacter, DreadLevelController, VoiceLinePlayer
-    Data/        QuizQuestion, QuizCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
+    Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, RevolverModel, HostDialogue, HostSubtitle, HostCharacter, DreadLevelController, VoiceLinePlayer
+    Data/        CsvReader, QuizQuestion, QuizCsvParser, HostLine, HostLineCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
     Editor/      RoomNetworkSetup (씬 구성 메뉴)
   Art/  Audio/  Prefabs/  Scenes/
 ```
@@ -123,11 +123,13 @@ Assets/_Project/
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
 - 나중에 테스트가 필요해지면 asmdef 없이 `Assets/_Project/Tests/Editor/`에 두면 된다(NUnit이 자동 참조라 Test Runner에서 실행된다).
 - `QuizRound`는 시각을 직접 읽지 않고 밖에서 받는다(`Submit(좌석, 선택지, 누른 시각)`, `Tick(현재 시각)`). 멀티에서는 누른 순간의 네트워크 시각을 넘긴다.
-- `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인을 반복한다. 착석 단계·규칙 설명은 아직 바로 지나가고, 진행자 대사 대신 정해진 시간만 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
+- `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 착석 → 규칙 설명 → (퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인)을 반복한다. 진행자 대사가 있는 단계는 대사를 다 읽을 시간만큼 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
 - 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
+- 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 이 기기의 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다. 멀티에서는 `IsLocalSeat`가 정한 좌석을 쓴다.
+- 진행자 대사: `HostDialogue`가 대사 CSV를 불러와 `HostLinePool`로 이벤트별 대사를 고르고(직전 대사 제외), `HostSubtitle`(Main Camera 아래 자막)에 띄운다. 표시 시간은 글자 수로 정하고, `{bullets}`는 총알 개수로 바꾼다. 자막은 깊이 검사를 끈 재질(`Project/UI Overlay` 셰이더, TMP Overlay 재질)이라 벽·의자에 가려지지 않는다. 녹음이 오면 같은 이벤트 이름으로 음성을 붙인다.
 - `Gun`이 `Revolver`를 직접 들고 있다. 멀티에서는 호스트의 총만 약실을 쓰고, 클라이언트의 총은 `ResolvesShotsRemotely`로 판정을 호스트에 맡긴다(약실 상태는 호스트만 안다).
-- `Presentation/GunEffects`(발사 궤적·총구 섬광·명중 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 효과음이 오면 바꾼다.
+- `Presentation/GunEffects`(발사음·딸깍·공이치기 소리, 진동, 반동, 발사 궤적·총구 섬광·명중 표시, 공포탄 연기 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 소리는 코드로 만든 파형이고, 클립 칸에 효과음을 넣으면 그것을 쓴다. 반동은 총 모델을 흔든다. 효과음이 오면 바꾼다.
 - 총 모델은 에셋 스토어의 **Reichsrevolver M-1879**(`Assets/Reichsrevolver_M1879`, 쓰는 FBX·1024/256 텍스처만 저장소에 포함)다. `BombDefuse > Set Up Revolver Model` 메뉴가 `Prefabs/Pistol`의 임시 모양을 이 모델로 바꾸고, 패키지의 Standard 재질 대신 URP Lit 재질(`Art/Material/Revolver_*.mat`, 1024 텍스처)을 만든다. 패키지의 Animator와 데모 스크립트는 뺀다.
 - `Presentation/RevolverModel`이 모델의 뼈를 직접 움직인다: 실린더 옆으로 열기(크레인 축으로 45도), 실린더 돌리기(반대 손으로 실린더 손잡이 `CylinderHandle`을 그립으로 잡고 실린더 축 둘레로 돌린 각도만큼. 방아쇠마다 60도. 모습만 바뀌고 약실은 그대로), 공이치기, 총알 수만큼 탄피 보이기. 판정과는 관계없는 모습이다. 탄피가 보이는 칸은 실제 약실 위치와 관계없다.
 - 손목 스냅은 `Gun`이 총열 축 회전 속도로 잡는다(540도/초 이상이 두 프레임 이어지면). 왼쪽이면 열고 오른쪽이면 닫는다.
@@ -143,7 +145,7 @@ Assets/_Project/
 | **먼저 누르기 판정** | 호스트는 지연이 0이라 항상 유리하다 | 클라이언트가 누른 순간의 **네트워크 시간**(NGO `ServerTime`)을 함께 보낸다. 호스트는 그 시간으로 비교한다. 아주 근소한 차이의 처리는 테스트 후 정한다 ([확장 E10](02_rules_extended.md#e10-동시-판정-)) |
 | **머리 피하기와 명중 판정** | 사수가 보는 상대 머리 위치가 과거 위치다 | 판정은 **호스트가 자기 시점의 대상 위치로** 한다. 공이치기 0.6초 지연으로 대상에게 반응할 시간을 준다. 발표 환경(LAN)에서는 지연이 작아서 체감 문제가 거의 없다 |
 | **총 잡기 동기화** | 물리 오브젝트를 네트워크로 동기화하면 떨림, 소유권 충돌이 생긴다 | 총은 **사수만 잡을 수 있게** 하고 그때 소유권을 넘긴다. 던지거나 떨어뜨리면 일정 시간(규칙서 수치 표) 뒤 테이블로 돌아온다. 물리 던지기는 지원하지 않는다 |
-| **구속 상태** | 플레이어가 의자를 떠나면 판정이 깨진다 | 착석 이후 게임이 끝날 때까지 **두 사람 모두 일어날 수 없게** 한다. 구속은 대상을 알리는 연출이고, 손 입력은 막지 않는다. 총은 사수만 잡을 수 있다. 머리는 HMD를 따라간다 |
+| **착석 유지** | 플레이어가 의자를 떠나면 판정이 깨진다 | 착석 이후 게임이 끝날 때까지 **두 사람 모두 일어날 수 없게** 한다. 손 입력은 막지 않는다. 총은 사수만 잡을 수 있다. 머리는 HMD를 따라간다 |
 | **아바타** | 전신 IK는 시간이 많이 든다 | 필수 버전: **머리 + 손 + 머리를 따라가는 몸통**(목 아래로 오프셋). 앉아 있는 게임이라 이 정도로 충분하다 |
 | **부위 판정** | 히트박스가 아바타와 어긋난다 | 머리(구)·몸통(캡슐)·양팔(캡슐) 히트박스를 아바타 본에 붙인다. 디버그 모드에서 히트박스가 보이게 한다 |
 | **멀미** | 죽거나 맞을 때 카메라를 강제로 움직이면 멀미가 난다 | **플레이어 카메라는 절대 강제로 움직이지 않는다.** 사망은 페이드아웃 + 사운드로 연출한다. 화면 흔들림 대신 비네팅과 색수차를 쓴다 |

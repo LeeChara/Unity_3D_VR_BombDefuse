@@ -37,6 +37,8 @@ public class Gun : MonoBehaviour
         public Hitbox HitBox;
         /// <summary>맞은 지점. 안 맞았으면 사거리 끝.</summary>
         public Vector3 EndPoint;
+        /// <summary>이 발로 총알이 0발이 되어 진행자가 다시 장전했는지.</summary>
+        public bool Reloaded;
     }
 
     [SerializeField, Tooltip("총구. Z축(파란 화살표)이 발사 방향")] Transform m_Muzzle;
@@ -106,6 +108,9 @@ public class Gun : MonoBehaviour
     Quaternion m_RemoteRotation;
 
     public bool IsEquipped => m_Holder != null;
+
+    /// <summary>총을 쥔 손 (진동용). 쥐고 있지 않으면 null.</summary>
+    public XRBaseInputInteractor HoldingHand => m_Holder as XRBaseInputInteractor;
     public Transform Muzzle => m_Muzzle;
     public bool IsCylinderOpen { get; private set; }
 
@@ -635,7 +640,10 @@ public class Gun : MonoBehaviour
 
             // 총알이 0발이 되면 진행자가 장전한다 (넣는 수가 매번 늘어난다)
             if (m_Revolver != null && m_Revolver.ReloadIfEmpty())
+            {
+                result.Reloaded = true;
                 Debug.Log($"[Gun] 진행자가 다시 장전했다 (총알 {m_Revolver.BulletCount}발)", this);
+            }
         }
 
         Fired?.Invoke(result);

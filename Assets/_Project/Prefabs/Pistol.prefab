@@ -490,14 +490,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GunEffects
   m_Tracer: {fileID: 6304953538499415550}
   m_MuzzleFlash: {fileID: 3346111474129351822}
+  m_Model: {fileID: 4692846034436620471}
   m_TracerDuration: 0.15
   m_FlashDuration: 0.06
   m_ImpactDuration: 0.4
   m_BlankDuration: 0.15
   m_ImpactSize: 0.04
   m_ImpactColor: {r: 1, g: 0.55, b: 0.1, a: 1}
-  m_BlankSize: 0.03
+  m_BlankSize: {x: 0.02, y: 0.09}
   m_BlankColor: {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  m_LiveKickAngle: 20
+  m_LiveKickBack: 0.03
+  m_LiveKickDuration: 0.2
+  m_BlankKickAngle: 6
+  m_BlankKickBack: 0.008
+  m_BlankKickDuration: 0.12
+  m_HammerHaptic: {x: 0.25, y: 0.04}
+  m_BlankHaptic: {x: 0.6, y: 0.08}
+  m_LiveHaptic: {x: 1, y: 0.25}
+  m_HammerClip: {fileID: 0}
+  m_BlankClip: {fileID: 0}
+  m_LiveClip: {fileID: 0}
+  m_Volume: 0.9
 --- !u!1 &4692846034436818445
 GameObject:
   m_ObjectHideFlags: 0
