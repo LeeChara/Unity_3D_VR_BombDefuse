@@ -6,7 +6,8 @@ using UnityEngine;
 /// <summary>
 /// 게임 한 판을 <see cref="GameStateMachine"/>으로 진행한다. 수치는 <see cref="TuningConfig"/>에서 읽어 각 로직에 넘긴다.
 /// 흐름: 퀴즈 → (정답자 있음) 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인 → 다음 퀴즈 또는 게임 종료.
-/// 사수 턴: 상대 쏘기(턴 끝), 자신 쏘기(공포탄이면 한 번 더). 상대·자신은 겨눈 몸으로 구분한다. 총알은 진행자가 넣어 두고 사수는 쏘는 방법만 고른다.
+/// 사수 턴: 상대 쏘기(턴 끝), 자신 쏘기(공포탄이면 한 번 더), 여분 총알 넣고 돌리기(쏘지 않고 턴 끝). 상대·자신은 겨눈 몸으로 구분한다.
+/// 총은 정답자 앞에 여분 총알과 함께 나타난다.
 /// 착석 단계: 이 기기의 플레이어를 자기 의자 뒤에 세우고, 앉을 때까지 기다린다. 안내 → 경고 → 강제 착석. 앉으면 게임이 끝날 때까지 일어날 수 없다.
 /// 진행자 대사는 <see cref="HostDialogue"/>가 이벤트 이름(docs/07_event_list.md)으로 골라 자막으로 띄운다. 대사가 끝날 때까지 기다린 뒤 다음으로 넘어간다.
 /// 아직 없는 것: 양측 패널티(정답자가 없으면 다음 문제), 공포 단계.
@@ -19,7 +20,10 @@ public class GameFlowController : MonoBehaviour
     [SerializeField] QuizBoard m_Board;
     [SerializeField, Tooltip("좌석 1, 2 순서")] QuizTerminal[] m_Terminals;
     [SerializeField] Gun m_Gun;
-    [SerializeField, Tooltip("총이 나타나는 위치 (테이블 가운데). 사수가 누구든 여기에 나온다")] Transform m_GunSpawnPoint;
+    [SerializeField, Tooltip("좌석 1, 2 순서. 정답자 앞에 총이 나타나는 위치")] Transform[] m_GunSpawnPoints;
+    [SerializeField, Tooltip("총과 함께 사수 앞에 놓을 여분 총알")] SpareBullet m_SpareBulletPrefab;
+    [SerializeField, Tooltip("총 지급 위치에서 테이블 바깥쪽으로 첫 여분 총알까지(m)")] float m_SpareBulletOffset = 0.2f;
+    [SerializeField, Tooltip("여분 총알 사이 간격(m)")] float m_SpareBulletSpacing = 0.05f;
     [SerializeField, Tooltip("좌석 1, 2 순서. 비워 두면 그 좌석은 죽지 않는다 (지금은 좌석 1이 플레이어 몸, 좌석 2가 마네킹)")]
     Damageable[] m_Bodies;
     [SerializeField, Tooltip("진행자 대사 (비워 두면 대사 없이 진행한다)")] HostDialogue m_Host;
@@ -50,6 +54,7 @@ public class GameFlowController : MonoBehaviour
     // 사수 턴이 어떻게 끝났는지. 결과 브리핑에서 이 이벤트의 대사를 말한다
     string m_ShotReaction;
     bool m_ReloadedThisTurn;
+    readonly List<SpareBullet> m_SpareBullets = new List<SpareBullet>();
 
     /// <summary>상태 변경을 구독하려는 쪽(조명·사운드 등)이 쓴다.</summary>
     public GameStateMachine StateMachine => m_StateMachine;
@@ -134,7 +139,10 @@ public class GameFlowController : MonoBehaviour
             if (terminal != null)
                 terminal.AnswerPressed += OnAnswerPressed;
         if (m_Gun != null)
+        {
             m_Gun.Fired += OnGunFired;
+            m_Gun.CylinderClosed += OnCylinderClosed;
+        }
     }
 
     void OnDisable()
@@ -143,7 +151,10 @@ public class GameFlowController : MonoBehaviour
             if (terminal != null)
                 terminal.AnswerPressed -= OnAnswerPressed;
         if (m_Gun != null)
+        {
             m_Gun.Fired -= OnGunFired;
+            m_Gun.CylinderClosed -= OnCylinderClosed;
+        }
     }
 
     void Update()
@@ -379,30 +390,101 @@ public class GameFlowController : MonoBehaviour
         m_ShotReaction = null;
         m_ReloadedThisTurn = false;
         Say("gun_handover", m_Gun.BulletCount);
-        Debug.Log($"[Flow] 좌석 {m_ShooterSeat}에게 총 지급 (총알 {m_Gun.BulletCount}발)", this);
+        Debug.Log($"[Flow] 좌석 {m_ShooterSeat}에게 총 지급 (총알 {m_Gun.BulletCount}발, 여분 {m_SpareBullets.Count}발)", this);
         GunPresented?.Invoke(m_ShooterSeat);
         GoTo(GameState.ShooterTurn);
     }
 
     /// <summary>
-    /// 테이블 가운데에 총을 꺼낸다. 사수 좌석이 이 기기의 좌석이 아니면(<see cref="IsLocalSeat"/>) 잡을 수 없게 둔다.
+    /// 사수 앞에 총과 여분 총알을 꺼낸다. 사수 좌석이 이 기기의 좌석이 아니면(<see cref="IsLocalSeat"/>) 잡을 수 없게 둔다.
     /// 진행을 돌리지 않는 네트워크 클라이언트는 호스트의 알림을 받아 이것만 부른다.
     /// </summary>
     public bool PresentGunForSeat(int seat)
     {
-        if (m_GunSpawnPoint == null)
+        var spawn = m_GunSpawnPoints != null && seat >= 1 && seat <= m_GunSpawnPoints.Length ? m_GunSpawnPoints[seat - 1] : null;
+        if (spawn == null)
         {
-            Debug.LogError("[Flow] 총 지급 위치가 없다", this);
+            Debug.LogError($"[Flow] 좌석 {seat}의 총 지급 위치가 없다", this);
             return false;
         }
 
-        m_Gun.Present(m_GunSpawnPoint);
-        m_Gun.SetGrabbable(IsLocalSeat == null || IsLocalSeat(seat));
+        var grabbable = IsLocalSeat == null || IsLocalSeat(seat);
+        m_Gun.Present(spawn);
+        m_Gun.SetGrabbable(grabbable);
+        SpawnSpareBullets(spawn, grabbable);
         return true;
     }
 
-    /// <summary>총을 치운다.</summary>
-    public void WithdrawGun() => m_Gun.Withdraw();
+    /// <summary>총과 남은 여분 총알을 치운다.</summary>
+    public void WithdrawGun()
+    {
+        m_Gun.Withdraw();
+        ClearSpareBullets();
+    }
+
+    /// <summary>테이블에 남아 있는 여분 총알 수.</summary>
+    public int SpareBulletsLeft
+    {
+        get
+        {
+            var count = 0;
+            foreach (var bullet in m_SpareBullets)
+                if (bullet != null && !bullet.IsConsumed)
+                    count++;
+            return count;
+        }
+    }
+
+    /// <summary>사수가 아닌 기기: 사수 기기에 남은 여분 총알 수에 맞춰 넣은 만큼 치운다.</summary>
+    public void SyncSpareBulletsLeft(int left)
+    {
+        var excess = SpareBulletsLeft - left;
+        for (var i = m_SpareBullets.Count - 1; i >= 0 && excess > 0; i--)
+        {
+            var bullet = m_SpareBullets[i];
+            if (bullet == null || bullet.IsConsumed)
+                continue;
+            bullet.Consume();
+            excess--;
+        }
+    }
+
+    void SpawnSpareBullets(Transform spawn, bool grabbable)
+    {
+        ClearSpareBullets();
+        if (m_SpareBulletPrefab == null)
+            return;
+
+        // 총 지급 위치에서 테이블 바깥쪽(단말기 반대쪽)으로 한 줄로 세워 둔다
+        var outward = spawn.right;
+        for (var i = 0; i < m_Config.SpareBullets; i++)
+        {
+            var position = spawn.position + outward * (m_SpareBulletOffset + i * m_SpareBulletSpacing) + Vector3.up * 0.03f;
+            var bullet = Instantiate(m_SpareBulletPrefab, position, Quaternion.identity);
+            bullet.SetGun(m_Gun);
+            bullet.SetGrabbable(grabbable);
+            m_SpareBullets.Add(bullet);
+        }
+    }
+
+    void ClearSpareBullets()
+    {
+        foreach (var bullet in m_SpareBullets)
+            if (bullet != null && !bullet.IsConsumed)
+                Destroy(bullet.gameObject);
+        m_SpareBullets.Clear();
+    }
+
+    // 넣은 총알이 있는 채로 실린더를 닫으면 쏘지 않고 턴이 끝난다
+    void OnCylinderClosed(int inserted)
+    {
+        if (!DrivesGame || m_StateMachine.Current != GameState.ShooterTurn || inserted == 0)
+            return;
+
+        Debug.Log($"[Flow] 좌석 {m_ShooterSeat}: 총알 {inserted}발을 넣고 돌렸다 → 턴 종료 (총알 {m_Gun.BulletCount}발)", this);
+        m_ShotReaction = "cylinder_spun";
+        EndShooterTurn();
+    }
 
     IEnumerator ShooterTimeout()
     {
@@ -415,7 +497,8 @@ public class GameFlowController : MonoBehaviour
 
     void OnGunFired(Gun.ShotResult shot)
     {
-        if (m_StateMachine.Current != GameState.ShooterTurn)
+        // 클라이언트는 호스트가 보낸 결과로 이펙트만 보여 준다. 턴 진행은 호스트가 한다
+        if (!DrivesGame || m_StateMachine.Current != GameState.ShooterTurn)
             return;
 
         // 자기 몸을 겨눴으면 자신 쏘기, 상대 몸이나 아무 데도 아니면 상대 쏘기
@@ -459,7 +542,7 @@ public class GameFlowController : MonoBehaviour
         WithdrawGun();
         GunWithdrawn?.Invoke();
 
-        // 결과 브리핑: 사격 결과(또는 시간 초과)에 반응하고, 진행자가 장전했으면 바뀐 총알 수를 알려 준다
+        // 결과 브리핑: 사격 결과(또는 총알 넣기·시간 초과)에 반응하고, 진행자가 장전했으면 바뀐 총알 수를 알려 준다
         GoTo(GameState.HostReaction);
         var reaction = m_ShotReaction;
         var bullets = m_Gun.BulletCount;

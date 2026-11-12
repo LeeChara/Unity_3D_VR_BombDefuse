@@ -632,7 +632,13 @@ MonoBehaviour:
   - {fileID: 835194047485494143}
   - {fileID: 279498450}
   m_Gun: {fileID: 403089422}
-  m_GunSpawnPoint: {fileID: 1752014481}
+  m_GunSpawnPoints:
+  - {fileID: 1752014481}
+  - {fileID: 1191785106}
+  m_SpareBulletPrefab: {fileID: 5538158391092789043, guid: b13eed1ae59dae44ab0e08620f2a4ed7,
+    type: 3}
+  m_SpareBulletOffset: 0.2
+  m_SpareBulletSpacing: 0.05
   m_Bodies:
   - {fileID: 1685855669}
   - {fileID: 280342469}
@@ -2352,6 +2358,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1752014481}
+  - {fileID: 1191785106}
   m_Father: {fileID: 1514741897}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1084985209
@@ -3047,6 +3054,37 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1191785105
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1191785106}
+  m_Layer: 0
+  m_Name: GunSpawn_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1191785106
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1191785105}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.000000030908623, y: 0.7071068, z: -0.7071068, w: -0.000000030908623}
+  m_LocalPosition: {x: -0.4, y: 0.85, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1046809355}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1259272851
 GameObject:
   m_ObjectHideFlags: 0
@@ -4450,7 +4488,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1752014481}
   m_Layer: 0
-  m_Name: GunSpawn_Center
+  m_Name: GunSpawn_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4464,8 +4502,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752014480}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0.85, z: 0}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0.4, y: 0.85, z: -0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

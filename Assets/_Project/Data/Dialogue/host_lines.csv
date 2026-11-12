@@ -36,7 +36,7 @@ quiz_timeout,qt02,아무도 못 맞혔다.,cold
 
 # ===== 총 지급과 사수 턴 =====
 # gun_handover: 정답자 앞에 총이 나타날 때. {bullets} = 총에 든 총알 수
-gun_handover,gh01,총알은 {bullets}발. 누구에게 쓸지는 네가 정해라.,calm
+gun_handover,gh01,총알은 {bullets}발. 더 넣고 싶으면 넣어도 좋다.,calm
 gun_handover,gh02,총이다. 들어 있는 건 {bullets}발.,calm
 # shot_blank_self: 사수가 자신을 쐈는데 공포탄일 때 바로. 한 번 더 쏠 수 있다는 것을 알려 준다
 shot_blank_self,sbs01,살았군. 한 발 더 쏴라.,delighted
@@ -55,6 +55,9 @@ shot_miss,sm02,허공을 쐈군.,mocking
 # shot_hit_self: 자신을 쐈는데 실탄일 때
 shot_hit_self,shs01,제 몸에 쏘다니.,delighted
 shot_hit_self,shs02,어리석은 선택이었다.,cold
+# cylinder_spun: 여분 총알을 넣고 실린더를 돌려 턴을 넘겼을 때. {bullets} = 넣은 뒤 총알 수
+cylinder_spun,cs01,배짱이 있군. 이제 {bullets}발이다.,delighted
+cylinder_spun,cs02,총알을 더 넣었다. {bullets}발.,calm
 # shooter_timeout: 사수가 20초 동안 아무것도 하지 않아 총이 반납될 때
 shooter_timeout,st01,망설이다 기회를 날렸군.,mocking
 # reload: 결과 브리핑 대사 다음에. 총알이 0발이 되어 진행자가 다시 장전했을 때만. {bullets} = 새로 넣은 총알 수

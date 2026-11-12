@@ -87,7 +87,7 @@ Assets/_Project/
   Scripts/
     Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel, HostLinePool   ← 순수 C#, 네트워크 모름
     Net/         LanSession, LanDiscovery, NetworkPlayer, NetworkGameController, RPC 정의   ← NGO 의존
-    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, SpareBullet, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, RevolverModel, HostDialogue, HostSubtitle, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        CsvReader, QuizQuestion, QuizCsvParser, HostLine, HostLineCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
     Editor/      RoomNetworkSetup (씬 구성 메뉴)
@@ -110,7 +110,7 @@ Assets/_Project/
 | 좌석 배정 | 호스트가 접속 순서대로 빈 좌석 번호(`SeatRegistry`, 0 = 좌석 1)를 `NetworkVariable`로 준다. 주인은 그 의자 뒤로 옮겨지고 그 의자에만 앉을 수 있다 |
 | `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE / START 버튼과 상태 문구. 지금 누를 수 없는 버튼은 글자가 흐리다. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
 | 퀴즈 동기화 | `LanQuizSync`가 호스트의 출제·퀴즈 종료·버튼 판정 색을 Named Message로 보낸다. 클라이언트는 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 클라이언트가 자기 좌석 단말기를 누르면 답과 **누른 순간의 네트워크 시간**(`ServerTime`)을 호스트에 보내고, 호스트는 그 시각을 자기 시계로 바꿔 판정한다(4절 "먼저 누르기 판정") |
-| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 테이블 가운데에 총을 꺼내거나 치우면 클라이언트도 똑같이 한다. 사수 기기의 총만 잡을 수 있고, 사수 기기가 총 위치를 초당 30번 보내 다른 기기의 총이 따라간다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
+| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 사수 앞에 총과 여분 총알을 꺼내거나 치우면 클라이언트도 똑같이 한다. 사수 기기의 총과 여분 총알만 잡을 수 있고, 사수 기기가 총 위치와 테이블에 남은 여분 총알 수를 초당 30번 보내 다른 기기가 따라간다. 클라이언트 사수가 총알을 넣고 실린더를 닫으면 넣은 수만 보내고 호스트가 약실에 넣고 돌린다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
 | 좌석의 몸 | START 때 `LanGameStarter`가 마네킹을 숨기고, 진행 컨트롤러의 좌석 몸을 실제 플레이어로 바꾼다. 이 기기 사람은 XR Origin의 `PlayerBody`, 상대는 아바타(`NetworkPlayer` 프리팹)의 `AvatarBody`가 맞는다. 자기 아바타의 히트박스는 끈다 |
 | 상태 동기화 | `GameStateSync`(GameFlow의 NetworkObject). 호스트 상태를 `NetworkVariable<GameState>`로 두고, 상태가 바뀔 때마다 RPC로도 보내 한 틱 안에 여러 번 바뀌어도 클라이언트 상태 머신이 같은 순서로 지나간다. 클라이언트의 `GameFlowController`는 `DrivesGame = false`로 상태만 비추고 진행은 하지 않는다. 조명·사운드는 양쪽 모두 `StateMachine.StateChanged`를 구독하면 된다 |
 | 게임 시작 | 정원 2명이 차면 호스트의 START가 켜진다. 누르면 `LanSession`이 클라이언트에게 시작 메시지(Named Message `BombDefuse.StartGame`)를 보내고, 호스트의 `LanGameStarter`만 `GameFlowController.StartGame()`을 부른다. 게임 진행은 호스트에서만 돈다. RoomScene의 `GameFlowController`는 `Start On Play`를 꺼 둔다(혼자 테스트할 때는 켠다) |
