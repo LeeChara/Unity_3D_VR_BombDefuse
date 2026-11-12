@@ -606,6 +606,9 @@ GameObject:
   - component: {fileID: 294580884}
   - component: {fileID: 294580885}
   - component: {fileID: 294580886}
+  - component: {fileID: 294580889}
+  - component: {fileID: 294580888}
+  - component: {fileID: 294580887}
   m_Layer: 0
   m_Name: GameFlow
   m_TagString: Untagged
@@ -632,7 +635,13 @@ MonoBehaviour:
   - {fileID: 835194047485494143}
   - {fileID: 279498450}
   m_Gun: {fileID: 403089422}
-  m_GunSpawnPoint: {fileID: 1752014481}
+  m_GunSpawnPoints:
+  - {fileID: 1752014481}
+  - {fileID: 1191785106}
+  m_SpareBulletPrefab: {fileID: 5538158391092789043, guid: b13eed1ae59dae44ab0e08620f2a4ed7,
+    type: 3}
+  m_SpareBulletOffset: 0.2
+  m_SpareBulletSpacing: 0.05
   m_Bodies:
   - {fileID: 1685855669}
   - {fileID: 280342469}
@@ -764,6 +773,46 @@ MonoBehaviour:
   m_BaseDuration: 0.8
   m_SecondsPerCharacter: 0.08
   m_MinDuration: 1.5
+--- !u!114 &294580887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa77bb16e20b69a448d546290cb3cf94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanDamageSync
+  m_Flow: {fileID: 294580879}
+--- !u!114 &294580888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2badf3c097f6c1a4d867cfd81e613cbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanSeatingSync
+  m_Flow: {fileID: 294580879}
+  m_Player: {fileID: 1685855662}
+--- !u!114 &294580889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c22d35e9f1a3cab43ace0886f9989038, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanDialogueSync
+  m_Host: {fileID: 294580886}
 --- !u!114 &403089422 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 275335624999359671, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
@@ -2352,6 +2401,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1752014481}
+  - {fileID: 1191785106}
   m_Father: {fileID: 1514741897}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1084985209
@@ -3047,6 +3097,37 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &1191785105
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1191785106}
+  m_Layer: 0
+  m_Name: GunSpawn_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1191785106
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1191785105}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.000000030908623, y: 0.7071068, z: -0.7071068, w: -0.000000030908623}
+  m_LocalPosition: {x: -0.4, y: 0.85, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1046809355}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1259272851
 GameObject:
   m_ObjectHideFlags: 0
@@ -4450,7 +4531,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1752014481}
   m_Layer: 0
-  m_Name: GunSpawn_Center
+  m_Name: GunSpawn_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4464,8 +4545,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752014480}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0.85, z: 0}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0.4, y: 0.85, z: -0.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

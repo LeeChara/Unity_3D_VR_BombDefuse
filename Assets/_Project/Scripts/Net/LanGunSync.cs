@@ -5,12 +5,13 @@ using UnityEngine;
 
 /// <summary>
 /// 총을 두 기기에서 맞춘다. 약실과 판정은 호스트의 <see cref="Gun"/>만 믿는다.
-/// - 꺼내기·치우기: 호스트의 진행 컨트롤러가 테이블 가운데에 총을 꺼내거나 치우면 클라이언트도 똑같이 한다.
-/// - 잡기: 사수 기기의 총만 잡을 수 있다(진행 컨트롤러가 <see cref="GameFlowController.IsLocalSeat"/>로 정한다).
-/// - 위치: 사수 기기가 총 위치와 실린더 모습(열림, 돈 각도, 보이는 총알 수)을 보내고, 다른 기기의 총은 그대로 따라간다.
+/// - 꺼내기·치우기: 호스트의 진행 컨트롤러가 사수 앞에 총과 여분 총알을 꺼내거나 치우면 클라이언트도 똑같이 한다.
+/// - 잡기: 사수 기기의 총과 여분 총알만 잡을 수 있다(진행 컨트롤러가 <see cref="GameFlowController.IsLocalSeat"/>로 정한다).
+/// - 위치: 사수 기기가 총 위치, 실린더 모습(열림, 돈 각도, 보이는 총알 수), 테이블에 남은 여분 총알 수를 보내고, 다른 기기는 그대로 따라간다.
+///   사수가 손에 든 여분 총알의 위치는 보내지 않는다 (상대 화면에서는 넣는 순간 테이블에서 사라진다).
 /// - 발사: 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 호스트에 보내고, 호스트가 약실을 당겨 판정한다.
 ///   호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다.
-/// 아직 없는 것: 클라이언트 화면의 사망·게임 종료 표시.
+/// - 총알 넣기: 클라이언트 사수가 총알을 넣고 실린더를 닫으면 넣은 수만 호스트에 보내고, 호스트가 약실에 넣고 돌린다.
 /// </summary>
 public class LanGunSync : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class LanGunSync : MonoBehaviour
     const string k_PoseMessage = "BombDefuse.GunPose";
     const string k_ShotRequestMessage = "BombDefuse.GunShotRequest";
     const string k_ShotMessage = "BombDefuse.GunShot";
+    const string k_LoadMessage = "BombDefuse.GunLoad";
 
     [SerializeField] GameFlowController m_Flow;
     [SerializeField] Gun m_Gun;
@@ -47,6 +49,7 @@ public class LanGunSync : MonoBehaviour
         m_Flow.GunWithdrawn += OnGunWithdrawn;
         m_Gun.Fired += OnGunFired;
         m_Gun.ShotRequested += OnShotRequested;
+        m_Gun.CylinderClosed += OnCylinderClosed;
     }
 
     void OnDestroy()
@@ -65,6 +68,7 @@ public class LanGunSync : MonoBehaviour
         {
             m_Gun.Fired -= OnGunFired;
             m_Gun.ShotRequested -= OnShotRequested;
+            m_Gun.CylinderClosed -= OnCylinderClosed;
         }
     }
 
@@ -76,6 +80,7 @@ public class LanGunSync : MonoBehaviour
         if (m_NetworkManager.IsServer)
         {
             messaging.RegisterNamedMessageHandler(k_ShotRequestMessage, ReceiveShotRequest);
+            messaging.RegisterNamedMessageHandler(k_LoadMessage, ReceiveLoad);
             m_Gun.ResolvesShotsRemotely = false;
             return;
         }
@@ -100,6 +105,7 @@ public class LanGunSync : MonoBehaviour
             writer.WriteValueSafe(m_Gun.IsCylinderOpen);
             writer.WriteValueSafe(m_Gun.CylinderSpinAngle);
             writer.WriteValueSafe((byte)m_Gun.DisplayedBulletCount);
+            writer.WriteValueSafe((byte)m_Flow.SpareBulletsLeft);
             // 위치는 자주 보내고 최신 것만 쓰면 되므로 순서만 지키고 재전송은 하지 않는다
             SendToOthers(k_PoseMessage, writer, NetworkDelivery.UnreliableSequenced);
         }
@@ -162,12 +168,43 @@ public class LanGunSync : MonoBehaviour
         reader.ReadValueSafe(out bool cylinderOpen);
         reader.ReadValueSafe(out float spinAngle);
         reader.ReadValueSafe(out byte shellCount);
+        reader.ReadValueSafe(out byte spareBulletsLeft);
 
         // 사수가 아닌 기기가 보낸 위치는 받지 않는다
         if (IsLocalShooter || !IsSenderShooter(senderClientId))
             return;
 
         m_Gun.FollowRemotePose(position, rotation, cylinderOpen, spinAngle, shellCount);
+        m_Flow.SyncSpareBulletsLeft(spareBulletsLeft);
+    }
+
+    // ── 총알 넣기 (클라이언트 사수 → 호스트) ──
+
+    // 클라이언트: 총알을 넣고 실린더를 닫았다. 넣은 수를 호스트에 보낸다
+    void OnCylinderClosed(int inserted)
+    {
+        if (inserted <= 0 || !IsConnected || m_NetworkManager.IsServer || !IsLocalShooter)
+            return;
+
+        using (var writer = new FastBufferWriter(1, Allocator.Temp))
+        {
+            writer.WriteValueSafe((byte)inserted);
+            m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_LoadMessage, NetworkManager.ServerClientId, writer, NetworkDelivery.ReliableSequenced);
+        }
+    }
+
+    // 호스트: 클라이언트 사수가 넣은 수만큼 약실에 넣고 돌린다. 진행 컨트롤러가 턴을 끝낸다
+    void ReceiveLoad(ulong senderClientId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out byte inserted);
+
+        if (!IsSenderShooter(senderClientId) || m_Flow.StateMachine.Current != GameState.ShooterTurn || m_Gun.IsTriggerLocked)
+        {
+            Debug.Log($"[LanGunSync] Ignored load from client {senderClientId} (not its turn)", this);
+            return;
+        }
+
+        m_Gun.LoadRemote(inserted);
     }
 
     bool IsSenderShooter(ulong senderClientId)

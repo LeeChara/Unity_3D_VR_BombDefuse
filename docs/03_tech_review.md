@@ -87,7 +87,7 @@ Assets/_Project/
   Scripts/
     Core/        GameStateMachine, QuizDeck, QuizRound, Revolver, DamageModel, HostLinePool   ← 순수 C#, 네트워크 모름
     Net/         LanSession, LanDiscovery, NetworkPlayer, NetworkGameController, RPC 정의   ← NGO 의존
-    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
+    Gameplay/    GameFlowController, QuizButton, QuizTerminal, Gun, SpareBullet, Seat, SeatedPlayer, SeatRegistry, Hitbox, Damageable, PlayerBody   ← MonoBehaviour
     Presentation/ QuizBoard, QuizScreen, InteractionPrompt, GunEffects, RevolverModel, HostDialogue, HostSubtitle, HostCharacter, DreadLevelController, VoiceLinePlayer
     Data/        CsvReader, QuizQuestion, QuizCsvParser, HostLine, HostLineCsvParser, VoiceLineData, TuningConfig (ScriptableObject)
     Editor/      RoomNetworkSetup (씬 구성 메뉴)
@@ -110,14 +110,17 @@ Assets/_Project/
 | 좌석 배정 | 호스트가 접속 순서대로 빈 좌석 번호(`SeatRegistry`, 0 = 좌석 1)를 `NetworkVariable`로 준다. 주인은 그 의자 뒤로 옮겨지고 그 의자에만 앉을 수 있다 |
 | `LanSessionPanel` | 시작 위치 오른쪽 앞의 임시 HOST / JOIN / LEAVE / START 버튼과 상태 문구. 지금 누를 수 없는 버튼은 글자가 흐리다. 에디터·개발 빌드에서는 화면 왼쪽 위에도 같은 버튼이 뜬다 |
 | 퀴즈 동기화 | `LanQuizSync`가 호스트의 출제·퀴즈 종료·버튼 판정 색을 Named Message로 보낸다. 클라이언트는 받은 문제를 퀴즈 화면에 띄우고 남은 시간 줄을 자기 시계로 줄인다. 클라이언트가 자기 좌석 단말기를 누르면 답과 **누른 순간의 네트워크 시간**(`ServerTime`)을 호스트에 보내고, 호스트는 그 시각을 자기 시계로 바꿔 판정한다(4절 "먼저 누르기 판정") |
-| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 테이블 가운데에 총을 꺼내거나 치우면 클라이언트도 똑같이 한다. 사수 기기의 총만 잡을 수 있고, 사수 기기가 총 위치를 초당 30번 보내 다른 기기의 총이 따라간다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
+| 총 동기화 | `LanGunSync`. 약실과 판정은 호스트의 `Gun`만 믿는다. 호스트가 사수 앞에 총과 여분 총알을 꺼내거나 치우면 클라이언트도 똑같이 한다. 사수 기기의 총과 여분 총알만 잡을 수 있고, 사수 기기가 총 위치와 테이블에 남은 여분 총알 수를 초당 30번 보내 다른 기기가 따라간다. 클라이언트 사수가 총알을 넣고 실린더를 닫으면 넣은 수만 보내고 호스트가 약실에 넣고 돌린다. 클라이언트 사수가 쏘면 레이(총구 위치·방향)만 보내고 호스트가 약실을 당겨 판정한다. 호스트는 모든 발사 결과를 클라이언트에 보내 이펙트를 보여 준다 |
+| 대사 동기화 | `LanDialogueSync`. 대사는 호스트의 `HostDialogue`가 고르고, 고른 대사(id, 글, 표시 시간)를 클라이언트에 보낸다. 클라이언트는 받은 그대로 자막에 띄운다 |
+| 착석 동기화 | `LanSeatingSync`. 클라이언트는 자기 의자에 앉았는지가 바뀔 때마다 호스트에 알리고, 호스트는 **두 좌석이 모두 앉아야** 규칙 설명으로 넘어간다. 강제 착석할 때는 호스트가 그 좌석 기기에 알려 앉힌다. 클라이언트는 받은 상태로 의자 뒤에 서기(`Seating`), 고정(`Intro`), 풀기(`GameOver`)를 스스로 한다 |
+| 피해 동기화 | `LanDamageSync`. 맞았는지는 호스트만 판정한다. 좌석의 몸이 맞으면 좌석과 부위를 보내고, 클라이언트는 같은 좌석의 몸(자기 좌석이면 XR Origin의 몸, 상대면 아바타의 몸)에 똑같이 적용한다. 새 게임에서 몸을 되돌릴 때도 알린다. 그래서 양쪽의 중상·사망 상태가 같다 |
 | 좌석의 몸 | START 때 `LanGameStarter`가 마네킹을 숨기고, 진행 컨트롤러의 좌석 몸을 실제 플레이어로 바꾼다. 이 기기 사람은 XR Origin의 `PlayerBody`, 상대는 아바타(`NetworkPlayer` 프리팹)의 `AvatarBody`가 맞는다. 자기 아바타의 히트박스는 끈다 |
 | 상태 동기화 | `GameStateSync`(GameFlow의 NetworkObject). 호스트 상태를 `NetworkVariable<GameState>`로 두고, 상태가 바뀔 때마다 RPC로도 보내 한 틱 안에 여러 번 바뀌어도 클라이언트 상태 머신이 같은 순서로 지나간다. 클라이언트의 `GameFlowController`는 `DrivesGame = false`로 상태만 비추고 진행은 하지 않는다. 조명·사운드는 양쪽 모두 `StateMachine.StateChanged`를 구독하면 된다 |
 | 게임 시작 | 정원 2명이 차면 호스트의 START가 켜진다. 누르면 `LanSession`이 클라이언트에게 시작 메시지(Named Message `BombDefuse.StartGame`)를 보내고, 호스트의 `LanGameStarter`만 `GameFlowController.StartGame()`을 부른다. 게임 진행은 호스트에서만 돈다. RoomScene의 `GameFlowController`는 `Start On Play`를 꺼 둔다(혼자 테스트할 때는 켠다) |
 
 - 보이스챗(Vivox)은 2주차에 붙인다. 템플릿의 `VoiceChatManager`를 그대로 쓸 수 있는지는 그때 정한다.
 - 게임 진행은 호스트에서만 돈다. 클라이언트는 상태 머신을 호스트에 맞추고, 퀴즈 화면과 총도 호스트에 맞춰 보여 준다. 총은 NGO의 소유권 이전 대신 Named Message로 맞췄다(총을 껐다 켜는 방식이라 NetworkObject로 만들기 어렵다).
-- 아직 맞추지 않은 것: 클라이언트 화면의 피해·사망·게임 종료 표시, 상대 손에 들린 총이 손을 따라 움직이는 모습(위치만 따라간다).
+- 아직 맞추지 않은 것: 상대 손에 들린 총이 손을 따라 움직이는 모습(위치만 따라간다).
 - 게임 중에 한 명이 나가도 진행은 멈추지 않는다. 다시 접속하면 START가 다시 켜지지만, 이미 시작한 쪽은 새로 시작하지 않는다.
 
 - **asmdef와 단위 테스트는 지금 두지 않는다.** 스크립트는 전부 기본 묶음(Assembly-CSharp)으로 컴파일한다. "`Core`는 다른 폴더의 코드를 모른다"는 원칙은 코드 리뷰로 지킨다.
@@ -126,7 +129,7 @@ Assets/_Project/
 - `Gameplay/GameFlowController`가 `GameStateMachine`으로 한 판을 진행한다. 착석 → 규칙 설명 → (퀴즈 → 총 지급 → 사수 턴 → 사격 결과 → 결과 브리핑 → 사망 확인)을 반복한다. 진행자 대사가 있는 단계는 대사를 다 읽을 시간만큼 기다린다. 총은 이 컨트롤러가 `Gun.Present`로 꺼내고 `Gun.Withdraw`로 치운다.
 - 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통 히트박스를 만든다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
-- 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 이 기기의 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다. 멀티에서는 `IsLocalSeat`가 정한 좌석을 쓴다.
+- 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 이 기기의 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다. 멀티에서는 `IsLocalSeat`가 정한 좌석을 쓰고, 두 좌석이 모두 앉을 때까지 기다린다(경고·강제 착석은 안 앉은 좌석에만).
 - 진행자 대사: `HostDialogue`가 대사 CSV를 불러와 `HostLinePool`로 이벤트별 대사를 고르고(직전 대사 제외), `HostSubtitle`(Main Camera 아래 자막)에 띄운다. 표시 시간은 글자 수로 정하고, `{bullets}`는 총알 개수로 바꾼다. 자막은 깊이 검사를 끈 재질(`Project/UI Overlay` 셰이더, TMP Overlay 재질)이라 벽·의자에 가려지지 않는다. 녹음이 오면 같은 이벤트 이름으로 음성을 붙인다.
 - `Gun`이 `Revolver`를 직접 들고 있다. 멀티에서는 호스트의 총만 약실을 쓰고, 클라이언트의 총은 `ResolvesShotsRemotely`로 판정을 호스트에 맡긴다(약실 상태는 호스트만 안다).
 - `Presentation/GunEffects`(발사음·딸깍·공이치기 소리, 진동, 반동, 발사 궤적·총구 섬광·명중 표시, 공포탄 연기 표시)와 버튼 눌림·색 표시는 임시 이펙트다. 소리는 코드로 만든 파형이고, 클립 칸에 효과음을 넣으면 그것을 쓴다. 반동은 총 모델을 흔든다. 효과음이 오면 바꾼다.

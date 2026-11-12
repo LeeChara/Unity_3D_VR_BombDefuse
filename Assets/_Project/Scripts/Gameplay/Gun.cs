@@ -11,9 +11,10 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// 리볼버. 그립을 쥐고 있는 동안 손에 들리고, 놓으면 떨어진다.
 /// 쥔 채로 트리거를 당기면 공이치기 연출 시간(0.6초) 뒤에 약실(<see cref="Revolver"/>)을 한 칸 쏜다.
 /// 실탄·공포탄 모두 총구 방향으로 레이캐스트해서 어느 <see cref="Hitbox"/>를 겨눴는지 알린다. 실탄이면 그 부위에 피해를 준다.
-/// 총알은 진행자가 넣어 두고(약실은 <see cref="Revolver"/>), 사수는 넣거나 돌릴 수 없다. 어떻게 쏠지만 고른다.
 /// 실린더: 총을 쥔 채 손목을 왼쪽으로 빠르게 꺾으면(스냅) 실린더가 옆으로 열리고(쏠 수 없음), 오른쪽으로 꺾거나 총을 내려놓으면 닫힌다.
-/// 열린 동안 반대 손으로 실린더를 잡고(그립) 손을 돌리면 실린더가 따라 돈다. 열기·돌리기는 모습만 바뀌는 연출이고 약실(어느 칸에 총알이 있는지)은 바뀌지 않는다.
+/// 열린 동안 반대 손으로 실린더를 잡고(그립) 손을 돌리면 실린더가 따라 돈다. 손으로 돌리기는 모습만 바뀌는 연출이고 약실(어느 칸에 총알이 있는지)은 바뀌지 않는다.
+/// 총알 넣기: 실린더가 열려 있을 때 여분 총알(<see cref="SpareBullet"/>)을 쥔 손을 총을 쥔 손에 가까이 가져가거나, 총알이 실린더나 총을 쥔 손에 닿으면(던져도) 들어간다.
+/// 넣은 총알이 있는 채로 실린더를 닫으면 약실이 무작위로 돈다(<see cref="CylinderClosed"/>로 넣은 수를 알린다. 진행 컨트롤러가 턴을 끝낸다).
 /// 모습은 <see cref="RevolverModel"/>이 맡는다.
 /// 게임 진행 컨트롤러가 <see cref="Present"/>로 지급 위치에 꺼내고 <see cref="Withdraw"/>로 치운다. 꺼내 둔 동안 떨어뜨리면 잠시 뒤 지급 위치로 돌아온다.
 /// 멀티: 약실은 호스트의 총만 믿는다. 클라이언트의 총은 <see cref="ResolvesShotsRemotely"/>를 켜서 쏠 때 <see cref="ShotRequested"/>로 호스트에 맡기고,
@@ -61,6 +62,13 @@ public class Gun : MonoBehaviour
     [SerializeField, Tooltip("열린 실린더를 잡는 손잡이 (실린더 뼈의 자식). 잡은 손이 실린더 축을 도는 만큼 실린더가 돈다")] XRSimpleInteractable m_CylinderHandle;
     [SerializeField] string m_SpinPrompt = "Press Grip to hold the cylinder";
 
+    [Header("Loading")]
+    [SerializeField, Tooltip("총알을 쥔 손이 총을 쥔 손에 이 거리(m) 안으로 오면 넣는다")] float m_HandLoadDistance = 0.15f;
+    [SerializeField, Tooltip("놓인 총알(던진 총알 포함)이 총을 쥔 손에 이 거리(m) 안으로 오면 넣는다")] float m_HandTouchDistance = 0.08f;
+    [SerializeField, Tooltip("총알이 실린더 중심에서 이 거리(m) 안으로 오면 넣는다")] float m_CylinderLoadDistance = 0.06f;
+    [SerializeField, Tooltip("던진 총알이 지나간 길을 이 간격(m)으로 나눠서 본다")] float m_LoadCheckStep = 0.02f;
+    [SerializeField] string m_OpenCylinderPrompt = "Flick your wrist left to open the cylinder";
+
     [Header("Prompt")]
     [SerializeField] string m_PickUpPrompt = "Press Grip to pick up";
 
@@ -76,8 +84,11 @@ public class Gun : MonoBehaviour
     /// <summary>실린더가 열렸을 때.</summary>
     public event Action CylinderOpened;
 
-    /// <summary>실린더를 닫았을 때.</summary>
-    public event Action CylinderClosed;
+    /// <summary>총알 한 발이 들어갔을 때 (이 기기에 보이는 총알 수).</summary>
+    public event Action<int> BulletInserted;
+
+    /// <summary>실린더를 닫았을 때 (연 동안 넣은 총알 수). 넣은 총알이 있으면 약실이 돌았다(원격 판정이면 호스트가 돌린다).</summary>
+    public event Action<int> CylinderClosed;
 
     /// <summary><see cref="ResolvesShotsRemotely"/>일 때 공이치기가 내려간 순간 (레이 시작점, 방향). 결과는 호스트가 정한다.</summary>
     public event Action<Vector3, Vector3> ShotRequested;
@@ -106,6 +117,9 @@ public class Gun : MonoBehaviour
     bool m_IsFollowingRemote;
     Vector3 m_RemotePosition;
     Quaternion m_RemoteRotation;
+    int m_InsertedSinceOpen;
+    readonly Dictionary<SpareBullet, Vector3> m_LastBulletPositions = new Dictionary<SpareBullet, Vector3>();
+    readonly List<SpareBullet> m_BulletBuffer = new List<SpareBullet>();
 
     public bool IsEquipped => m_Holder != null;
 
@@ -179,6 +193,7 @@ public class Gun : MonoBehaviour
         m_CylinderHolder = null;
         m_HoveringInteractors.Clear();
         InteractionPrompt.Hide(this);
+        InteractionPrompt.Hide(m_Muzzle);
         m_IsCocking = false;   // 꺼지면 공이치기·복귀 코루틴도 멈춘다
         m_ReturnRoutine = null;
     }
@@ -242,6 +257,7 @@ public class Gun : MonoBehaviour
         m_Holder = null;
         m_OtherHands.Clear();
         SetHandleEnabled(false);
+        InteractionPrompt.Hide(m_Muzzle);
 
         // 내려놓으면 실린더를 닫는다
         if (IsCylinderOpen)
@@ -275,7 +291,10 @@ public class Gun : MonoBehaviour
             CheckFlick();
             if (m_CylinderHolder != null)
                 SpinByHandle();
+            if (IsCylinderOpen)
+                CheckBulletLoading();
             m_LastRotation = transform.rotation;
+            UpdateOpenPrompt();
         }
 
         if (m_Model != null)
@@ -373,6 +392,8 @@ public class Gun : MonoBehaviour
         IsTriggerLocked = false;
         gameObject.SetActive(true);
         SetCylinderOpen(false);
+        m_InsertedSinceOpen = 0;
+        m_LastBulletPositions.Clear();
         if (m_Model != null)
             m_Model.ResetPose();
         m_FollowedShellCount = -1;
@@ -433,8 +454,112 @@ public class Gun : MonoBehaviour
 
         SetCylinderOpen(true);
         SetHandleEnabled(true);
+        m_InsertedSinceOpen = 0;
+        m_LastBulletPositions.Clear();
         Debug.Log("[Gun] 실린더가 열렸다 (쏠 수 없음)", this);
         CylinderOpened?.Invoke();
+    }
+
+    // 여분 총알을 쥐고 있는데 실린더가 닫혀 있으면 여는 방법을 알려 준다
+    void UpdateOpenPrompt()
+    {
+        var holdingBullet = false;
+        if (!IsCylinderOpen && !IsTriggerLocked)
+        {
+            foreach (var bullet in SpareBullet.Active)
+                if (bullet != null && !bullet.IsConsumed && bullet.Gun == this && bullet.IsHeld)
+                    holdingBullet = true;
+        }
+
+        if (holdingBullet)
+            InteractionPrompt.Show(m_Muzzle, m_OpenCylinderPrompt);
+        else
+            InteractionPrompt.Hide(m_Muzzle);
+    }
+
+    int ChamberCount => m_Config != null ? m_Config.ChamberCount : 6;
+
+    /// <summary>실린더가 열려 있고 총을 쥐고 있을 때 총알을 넣는다. 손에 들린 총알이면 손에서 빼낸다. 넣었으면 true.</summary>
+    public bool TryInsert(SpareBullet bullet)
+    {
+        if (bullet == null || bullet.IsConsumed || !IsEquipped || !IsCylinderOpen || IsTriggerLocked || m_IsCocking)
+            return false;
+        if (DisplayedBulletCount >= ChamberCount)
+        {
+            Debug.Log("[Gun] 약실이 꽉 차서 더 넣을 수 없다", this);
+            return false;
+        }
+
+        // 원격 판정이면 약실은 호스트가 바꾼다. 여기서는 보이는 수만 늘리고, 닫을 때 넣은 수를 알린다
+        if (ResolvesShotsRemotely)
+            m_RemoteBulletCount++;
+        else if (m_Revolver != null)
+            m_Revolver.Insert();
+        m_InsertedSinceOpen++;
+        m_LastBulletPositions.Remove(bullet);
+        bullet.Consume();
+        Debug.Log($"[Gun] 총알을 넣었다 (총알 {DisplayedBulletCount}발)", this);
+        BulletInserted?.Invoke(DisplayedBulletCount);
+        return true;
+    }
+
+    // 이 총에 넣을 수 있는 총알 중 총을 쥔 손이나 실린더에 닿은 것을 넣는다
+    void CheckBulletLoading()
+    {
+        if (IsTriggerLocked || m_IsCocking || m_Model == null || DisplayedBulletCount >= ChamberCount)
+            return;
+
+        var hand = m_Holder.transform.position;
+        var cylinder = m_Model.CylinderCenter;
+        m_BulletBuffer.Clear();
+        m_BulletBuffer.AddRange(SpareBullet.Active);
+        foreach (var bullet in m_BulletBuffer)
+        {
+            if (bullet == null || bullet.IsConsumed || bullet.Gun != this)
+                continue;
+
+            var position = bullet.transform.position;
+            if (!m_LastBulletPositions.TryGetValue(bullet, out var lastPosition))
+                lastPosition = position;
+            m_LastBulletPositions[bullet] = position;
+
+            if (ShouldLoad(bullet, lastPosition, position, hand, cylinder) && TryInsert(bullet) && DisplayedBulletCount >= ChamberCount)
+                return;
+        }
+    }
+
+    bool ShouldLoad(SpareBullet bullet, Vector3 from, Vector3 to, Vector3 gunHand, Vector3 cylinder)
+    {
+        // 총알을 쥔 손이 총을 쥔 손에 가까워졌다
+        if (bullet.IsHeld && Vector3.Distance(bullet.HoldingHandPosition, gunHand) <= m_HandLoadDistance)
+            return true;
+
+        // 총알이 실린더나 총을 쥔 손에 닿았다. 던진 총알은 한 프레임에 멀리 가므로 지나간 길을 나눠서 본다
+        var steps = Mathf.Clamp(Mathf.CeilToInt(Vector3.Distance(from, to) / Mathf.Max(0.005f, m_LoadCheckStep)), 1, 50);
+        for (var i = 0; i <= steps; i++)
+        {
+            var point = Vector3.Lerp(from, to, (float)i / steps);
+            if (Vector3.Distance(point, gunHand) <= m_HandTouchDistance || Vector3.Distance(point, cylinder) <= m_CylinderLoadDistance)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 호스트: 상대 기기의 사수가 총알을 넣고 실린더를 닫았다. 같은 수를 약실에 넣고 돌린 뒤 <see cref="CylinderClosed"/>로 알린다.
+    /// </summary>
+    public void LoadRemote(int inserted)
+    {
+        if (m_Revolver == null || inserted <= 0)
+            return;
+
+        var loaded = 0;
+        while (loaded < inserted && m_Revolver.Insert())
+            loaded++;
+        m_Revolver.Spin();
+        Debug.Log($"[Gun] 상대 사수가 총알 {loaded}발을 넣고 돌렸다 (총알 {m_Revolver.BulletCount}발)", this);
+        CylinderClosed?.Invoke(loaded);
     }
 
     // 손목 스냅: 총열 축으로 빠르게 도는 프레임이 두 번 이어지면 스냅으로 본다 (한 프레임 튐은 무시).
@@ -555,8 +680,19 @@ public class Gun : MonoBehaviour
 
         SetCylinderOpen(false);
         SetHandleEnabled(false);
-        Debug.Log($"[Gun] 실린더를 닫았다 ({reason})", this);
-        CylinderClosed?.Invoke();
+        var inserted = m_InsertedSinceOpen;
+        m_InsertedSinceOpen = 0;
+        if (inserted > 0 && !ResolvesShotsRemotely && m_Revolver != null)
+        {
+            m_Revolver.Spin();
+            Debug.Log($"[Gun] 실린더를 닫고 돌렸다 ({reason}, 넣은 총알 {inserted}발, 총알 {m_Revolver.BulletCount}발)", this);
+        }
+        else
+        {
+            Debug.Log($"[Gun] 실린더를 닫았다 ({reason}, 넣은 총알 {inserted}발)", this);
+        }
+
+        CylinderClosed?.Invoke(inserted);
     }
 
     void SetCylinderOpen(bool open)
@@ -662,7 +798,7 @@ public class Gun : MonoBehaviour
         {
             var hit = m_Hits[i];
             var hitTransform = hit.collider.transform;
-            if (hitTransform.IsChildOf(transform))
+            if (hitTransform.IsChildOf(transform) || hit.collider.GetComponentInParent<SpareBullet>() != null)
                 continue;
             var hitbox = hit.collider.GetComponent<Hitbox>();
             if (shooterRig != null && hitTransform.IsChildOf(shooterRig.transform) && hitbox == null)

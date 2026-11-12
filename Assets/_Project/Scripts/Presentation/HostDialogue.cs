@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// 진행자 대사. 대사 CSV(event,id,text,emotion)를 불러와 이벤트 이름으로 대사를 고르고 자막으로 띄운다.
 /// 이벤트 이름은 docs/07_event_list.md와 같다. 녹음이 오면 같은 이벤트에 음성을 붙인다.
+/// 멀티: 대사는 호스트가 고른다. 고른 대사를 <see cref="LineShown"/>으로 알리면 네트워크 쪽이 클라이언트에 보내고, 클라이언트는 <see cref="ShowLine"/>으로 똑같이 띄운다.
 /// </summary>
 public class HostDialogue : MonoBehaviour
 {
@@ -16,6 +18,9 @@ public class HostDialogue : MonoBehaviour
     [SerializeField, Min(0f)] float m_MinDuration = 1.5f;
 
     HostLinePool m_Pool;
+
+    /// <summary>대사를 띄웠을 때 (대사 id, 화면에 띄운 글, 표시 시간 초).</summary>
+    public event Action<string, string, float> LineShown;
 
     void Awake()
     {
@@ -54,9 +59,16 @@ public class HostDialogue : MonoBehaviour
             text = text.Replace("{bullets}", bullets.ToString());
 
         var duration = Mathf.Max(m_MinDuration, m_BaseDuration + text.Length * m_SecondsPerCharacter);
+        Debug.Log($"[Host] {text} ({eventName}/{line.Id})", this);
+        ShowLine(line.Id, text, duration);
+        return duration;
+    }
+
+    /// <summary>고른 대사를 띄운다. 멀티의 클라이언트는 호스트가 고른 대사를 이것으로 받는다.</summary>
+    public void ShowLine(string lineId, string text, float duration)
+    {
         if (m_Subtitle != null)
             m_Subtitle.Show(text, duration);
-        Debug.Log($"[Host] {text} ({eventName}/{line.Id})", this);
-        return duration;
+        LineShown?.Invoke(lineId, text, duration);
     }
 }
