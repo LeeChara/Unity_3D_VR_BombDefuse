@@ -9,6 +9,7 @@ using UnityEngine;
 /// 사수 턴: 상대 쏘기(턴 끝), 자신 쏘기(공포탄이면 한 번 더), 여분 총알 넣고 돌리기(쏘지 않고 턴 끝). 상대·자신은 겨눈 몸으로 구분한다.
 /// 총은 정답자 앞에 여분 총알과 함께 나타난다.
 /// 착석 단계: 이 기기의 플레이어를 자기 의자 뒤에 세우고, 앉을 때까지 기다린다. 안내 → 경고 → 강제 착석. 앉으면 게임이 끝날 때까지 일어날 수 없다.
+/// 멀티에서는 두 좌석이 모두 앉아야 넘어간다(상대 좌석은 <see cref="SetRemoteSeated"/>로 받는다). 클라이언트는 받은 상태로 자기 플레이어의 착석만 맞춘다.
 /// 진행자 대사는 <see cref="HostDialogue"/>가 이벤트 이름(docs/07_event_list.md)으로 골라 자막으로 띄운다. 대사가 끝날 때까지 기다린 뒤 다음으로 넘어간다.
 /// 아직 없는 것: 양측 패널티(정답자가 없으면 다음 문제), 공포 단계.
 /// 멀티: 호스트에서만 돈다. 네트워크 쪽(Net/)이 이벤트를 받아 클라이언트에 보내고, <see cref="IsLocalSeat"/>, <see cref="SubmitAnswer"/>, <see cref="SetBody"/>로 상대 입력과 몸을 넣는다.
@@ -55,6 +56,8 @@ public class GameFlowController : MonoBehaviour
     string m_ShotReaction;
     bool m_ReloadedThisTurn;
     readonly List<SpareBullet> m_SpareBullets = new List<SpareBullet>();
+    // 호스트: 상대 기기가 앉았다고 알려 온 좌석
+    readonly HashSet<int> m_RemoteSeated = new HashSet<int>();
 
     /// <summary>상태 변경을 구독하려는 쪽(조명·사운드 등)이 쓴다.</summary>
     public GameStateMachine StateMachine => m_StateMachine;
@@ -76,6 +79,15 @@ public class GameFlowController : MonoBehaviour
 
     /// <summary>총을 치웠을 때.</summary>
     public event Action GunWithdrawn;
+
+    /// <summary>호스트: 상대 기기 좌석을 강제로 앉혀야 할 때 (좌석). 네트워크 쪽이 그 기기에 보내 <see cref="ForceLocalSeat"/>를 부르게 한다.</summary>
+    public event Action<int> SeatForced;
+
+    /// <summary>좌석의 몸이 맞았을 때 (좌석, 부위). 네트워크 쪽이 클라이언트의 같은 몸에 똑같이 적용한다.</summary>
+    public event Action<int, BodyPart> SeatHit;
+
+    /// <summary>새 게임을 위해 모든 몸을 처음 상태로 되돌렸을 때.</summary>
+    public event Action BodiesRevived;
 
     /// <summary>
     /// 이 기기에서 직접 플레이하는 좌석인지. 비워 두면(null) 모든 좌석을 이 기기에서 쓴다 (혼자 테스트).
@@ -143,6 +155,9 @@ public class GameFlowController : MonoBehaviour
             m_Gun.Fired += OnGunFired;
             m_Gun.CylinderClosed += OnCylinderClosed;
         }
+        if (m_Bodies != null)
+            foreach (var body in m_Bodies)
+                Watch(body);
     }
 
     void OnDisable()
@@ -155,6 +170,8 @@ public class GameFlowController : MonoBehaviour
             m_Gun.Fired -= OnGunFired;
             m_Gun.CylinderClosed -= OnCylinderClosed;
         }
+        foreach (var body in new List<Damageable>(m_BodyHandlers.Keys))
+            Unwatch(body);
     }
 
     void Update()
@@ -186,9 +203,12 @@ public class GameFlowController : MonoBehaviour
     {
         Debug.Log($"[Flow] {previous} → {next}", this);
 
-        // 클라이언트는 호스트의 상태를 따라갈 뿐 진행을 돌리지 않는다
+        // 클라이언트는 호스트의 상태를 따라갈 뿐 진행을 돌리지 않는다. 자기 플레이어의 착석만 상태에 맞춘다
         if (!DrivesGame)
+        {
+            MirrorSeating(next);
             return;
+        }
 
         switch (next)
         {
@@ -204,11 +224,35 @@ public class GameFlowController : MonoBehaviour
         }
     }
 
+    // 클라이언트: 착석 단계면 자기 의자 뒤에 서고, 규칙 설명부터는 의자에 고정되고, 게임이 끝나면 풀린다
+    void MirrorSeating(GameState next)
+    {
+        if (m_Player == null)
+            return;
+
+        switch (next)
+        {
+            case GameState.Seating:
+                m_Player.UnlockSeat();
+                PlaceLocalPlayerBehindSeat();
+                break;
+            case GameState.Intro:
+                if (m_Player.CurrentSeat != null)
+                    m_Player.LockSeat();
+                break;
+            case GameState.GameOver:
+                m_Player.UnlockSeat();
+                break;
+        }
+    }
+
     void BeginGame()
     {
+        // 중상만 입은 몸도 처음 상태로 되돌린다
         foreach (var body in m_Bodies)
-            if (body != null && body.IsDead)
+            if (body != null && (body.IsDead || body.IsWounded))
                 body.Revive();
+        BodiesRevived?.Invoke();
         m_Gun.ResetRevolver();
 
         GoTo(GameState.Seating);
@@ -230,37 +274,112 @@ public class GameFlowController : MonoBehaviour
         }
     }
 
+    Seat SeatAt(int seatNumber) => m_Seats != null && seatNumber >= 1 && seatNumber <= m_Seats.Length ? m_Seats[seatNumber - 1] : null;
+
+    // 착석을 기다릴 좌석. 혼자면 이 기기의 좌석만, 멀티면 모든 좌석 (상대 좌석은 상대 기기가 알려 준다)
+    List<int> SeatsToWaitFor()
+    {
+        var seats = new List<int>();
+        if (IsLocalSeat == null)
+        {
+            seats.Add(LocalSeatNumber);
+            return seats;
+        }
+
+        for (var seat = 1; seat <= m_Seats.Length; seat++)
+            seats.Add(seat);
+        return seats;
+    }
+
+    bool IsSeated(int seatNumber)
+    {
+        if (IsLocalSeat == null || IsLocalSeat(seatNumber))
+            return m_Player.CurrentSeat != null && m_Player.CurrentSeat == SeatAt(seatNumber);
+        return m_RemoteSeated.Contains(seatNumber);
+    }
+
+    /// <summary>호스트: 상대 기기의 플레이어가 자기 의자에 앉았는지 (네트워크 쪽이 알려 준다).</summary>
+    public void SetRemoteSeated(int seatNumber, bool seated)
+    {
+        if (seated)
+            m_RemoteSeated.Add(seatNumber);
+        else
+            m_RemoteSeated.Remove(seatNumber);
+    }
+
+    // 이 기기의 플레이어를 자기 의자 뒤에 세운다. 다른 좌석의 의자는 앉을 수 없다
+    void PlaceLocalPlayerBehindSeat()
+    {
+        var seat = SeatAt(LocalSeatNumber);
+        if (m_Player == null || seat == null)
+            return;
+
+        for (var i = 0; i < m_Seats.Length; i++)
+            if (m_Seats[i] != null)
+                m_Seats[i].enabled = m_Seats[i] == seat;
+        m_Player.PlaceBehind(seat);
+    }
+
+    /// <summary>이 기기의 플레이어를 자기 의자에 강제로 앉히고 고정한다. 멀티의 클라이언트는 호스트가 시킬 때 부른다.</summary>
+    public void ForceLocalSeat()
+    {
+        var seat = SeatAt(LocalSeatNumber);
+        if (m_Player == null || seat == null)
+            return;
+
+        if (m_Player.CurrentSeat != seat)
+            m_Player.SitOn(seat);
+        m_Player.LockSeat();
+    }
+
     IEnumerator Seating()
     {
-        var seatNumber = LocalSeatNumber;
-        var seat = m_Seats != null && seatNumber - 1 < m_Seats.Length ? m_Seats[seatNumber - 1] : null;
-        if (m_Player == null || seat == null)
+        m_RemoteSeated.Clear();
+        if (m_Player == null || SeatAt(LocalSeatNumber) == null)
         {
             Debug.LogWarning("[Flow] 플레이어나 의자가 연결되지 않아 착석 단계를 건너뛴다", this);
         }
         else
         {
-            // 다른 좌석의 의자는 앉을 수 없게 하고, 자기 의자 뒤에 세운다
-            for (var i = 0; i < m_Seats.Length; i++)
-                if (m_Seats[i] != null)
-                    m_Seats[i].enabled = i == seatNumber - 1;
-            m_Player.PlaceBehind(seat);
+            PlaceLocalPlayerBehindSeat();
             Say("seat_prompt");
 
+            // 모두 앉을 때까지 기다린다. 안내 → 경고 → 강제 착석
+            var waiting = SeatsToWaitFor();
             var warned = false;
             var start = Time.time;
-            while (m_Player.CurrentSeat != seat)
+            while (waiting.Count > 0)
             {
+                for (var i = waiting.Count - 1; i >= 0; i--)
+                {
+                    if (!IsSeated(waiting[i]))
+                        continue;
+                    Debug.Log($"[Flow] 좌석 {waiting[i]} 착석 (player_seated)", this);
+                    if (waiting[i] == LocalSeatNumber)
+                        m_Player.LockSeat();
+                    waiting.RemoveAt(i);
+                }
+                if (waiting.Count == 0)
+                    break;
+
                 var elapsed = Time.time - start;
                 if (!warned && elapsed >= m_Config.SeatingWarningDelay)
                 {
                     warned = true;
+                    Debug.Log($"[Flow] 착석 경고 (seat_warning): 좌석 {string.Join(", ", waiting)}", this);
                     Say("seat_warning");
                 }
                 else if (warned && elapsed >= m_Config.SeatingWarningDelay + m_Config.ForceSeatDelay)
                 {
-                    m_Player.SitOn(seat);
-                    m_Player.LockSeat();
+                    foreach (var seatNumber in waiting)
+                    {
+                        Debug.Log($"[Flow] 좌석 {seatNumber} 강제 착석 (seat_forced)", this);
+                        if (IsLocalSeat == null || IsLocalSeat(seatNumber))
+                            ForceLocalSeat();
+                        else
+                            SeatForced?.Invoke(seatNumber);
+                    }
+                    waiting.Clear();
                     yield return new WaitForSeconds(Say("seat_forced"));
                     break;
                 }
@@ -268,9 +387,8 @@ public class GameFlowController : MonoBehaviour
                 yield return null;
             }
 
-            // 앉으면 게임이 끝날 때까지 일어날 수 없다
+            // 앉으면 게임이 끝날 때까지 일어날 수 없다 (상대 기기는 Intro 상태를 받으면 스스로 고정한다)
             m_Player.LockSeat();
-            Debug.Log($"[Flow] 좌석 {seatNumber} 착석 (player_seated)", this);
         }
 
         m_SeatingRoutine = null;
@@ -580,7 +698,38 @@ public class GameFlowController : MonoBehaviour
             return;
         if (m_Bodies == null || m_Bodies.Length < seat)
             Array.Resize(ref m_Bodies, seat);
+        if (isActiveAndEnabled)
+            Unwatch(m_Bodies[seat - 1]);
         m_Bodies[seat - 1] = body;
+        if (isActiveAndEnabled)
+            Watch(body);
+    }
+
+    // 몸이 맞으면 좌석 번호와 함께 알린다 (네트워크 쪽이 클라이언트에 보낸다)
+    readonly Dictionary<Damageable, Action<BodyPart, DamageOutcome>> m_BodyHandlers = new Dictionary<Damageable, Action<BodyPart, DamageOutcome>>();
+
+    void Watch(Damageable body)
+    {
+        if (body == null || m_BodyHandlers.ContainsKey(body))
+            return;
+
+        Action<BodyPart, DamageOutcome> handler = (part, outcome) =>
+        {
+            var seat = Array.IndexOf(m_Bodies, body) + 1;
+            if (seat >= 1 && DrivesGame)
+                SeatHit?.Invoke(seat, part);
+        };
+        m_BodyHandlers[body] = handler;
+        body.Damaged += handler;
+    }
+
+    void Unwatch(Damageable body)
+    {
+        if (body == null || !m_BodyHandlers.TryGetValue(body, out var handler))
+            return;
+
+        body.Damaged -= handler;
+        m_BodyHandlers.Remove(body);
     }
 
     int FindDeadSeat()

@@ -606,6 +606,9 @@ GameObject:
   - component: {fileID: 294580884}
   - component: {fileID: 294580885}
   - component: {fileID: 294580886}
+  - component: {fileID: 294580889}
+  - component: {fileID: 294580888}
+  - component: {fileID: 294580887}
   m_Layer: 0
   m_Name: GameFlow
   m_TagString: Untagged
@@ -770,6 +773,46 @@ MonoBehaviour:
   m_BaseDuration: 0.8
   m_SecondsPerCharacter: 0.08
   m_MinDuration: 1.5
+--- !u!114 &294580887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa77bb16e20b69a448d546290cb3cf94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanDamageSync
+  m_Flow: {fileID: 294580879}
+--- !u!114 &294580888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2badf3c097f6c1a4d867cfd81e613cbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanSeatingSync
+  m_Flow: {fileID: 294580879}
+  m_Player: {fileID: 1685855662}
+--- !u!114 &294580889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 294580878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c22d35e9f1a3cab43ace0886f9989038, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanDialogueSync
+  m_Host: {fileID: 294580886}
 --- !u!114 &403089422 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 275335624999359671, guid: 7171622e8545ee54eaf18f7aa4dfbb08,
