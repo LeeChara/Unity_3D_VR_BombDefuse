@@ -155,7 +155,9 @@ Assets/_Project/
 - **씬 충돌 방지**: Unity 씬 파일은 병합이 거의 불가능하다. 메인 씬은 메인 개발자만 수정하고, 다른 사람은 **프리팹이나 개인 테스트 씬**에서 작업한다.
 - **UnityYAMLMerge**: `.gitattributes`에 설정은 되어 있지만, **각자 로컬 git config에 merge 드라이버를 등록해야** 동작한다. 1주차에 전원 설정한다.
 - **Git LFS**: `.gitattributes`에 모델·오디오·이미지가 LFS로 설정되어 있다. 전원 `git lfs install`을 해야 한다. 안 하면 파일이 깨진다.
-- **브랜치**: 기능별 브랜치 → main 병합. main은 항상 빌드가 되는 상태를 유지한다.
+- **브랜치**: main에서 기능별 브랜치를 따서 작업하고 main에 병합한다. main은 항상 빌드가 되는 상태를 유지한다. 두 가지를 자주 한다.
+  1. **작업 전에 main을 가져온다.** GitHub Desktop에서 `Fetch origin` → `Branch > Update from main`.
+  2. **작업한 내용은 자주 main에 병합한다.** 기능이 작게라도 동작하면 Pull Request를 올려 합친다. 오래 쌓아 두면 충돌이 커진다.
 - **모델 규격**: 1 unit = 1m, Y-up, 피벗 위치 사전 합의 (총은 손잡이, 버튼은 바닥면).
 
 ## 6. 위험 요소 순위
