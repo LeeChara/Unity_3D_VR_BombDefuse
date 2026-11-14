@@ -55,6 +55,9 @@ public class LanSession : MonoBehaviour
     /// <summary>호스트가 게임을 시작했다. 호스트와 클라이언트 모두에서 한 번씩 불린다.</summary>
     public event Action GameStarted;
 
+    /// <summary>게임 중에 상대가 나갔다 (호스트: 클라이언트가 나감, 클라이언트: 호스트가 끊김). 남은 쪽이 이긴다.</summary>
+    public event Action OpponentLeft;
+
     void Awake()
     {
         s_Instance = this;
@@ -247,12 +250,16 @@ public class LanSession : MonoBehaviour
 
             // 자리가 났으니 다시 알린다
             m_Discovery.StartAnnouncing(m_DiscoveryPort);
+            if (IsGameStarted)
+                OpponentLeft?.Invoke();
             IsGameStarted = false;
             SetStatus("Player 2 left\nWaiting for player 2");
             return;
         }
 
         // 클라이언트: 호스트가 끊었거나, 정원이 찼거나, 접속에 실패했다
+        if (IsGameStarted)
+            OpponentLeft?.Invoke();
         IsGameStarted = false;
         var reason = m_NetworkManager.DisconnectReason;
         SetStatus(string.IsNullOrEmpty(reason) ? "Disconnected" : $"Disconnected: {reason}");

@@ -1,10 +1,13 @@
 using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Inputs;
 
 /// <summary>
 /// 플레이어의 맞을 수 있는 몸. XR Origin에 붙이면 시작할 때 히트박스를 만든다.
 /// 머리(구)는 카메라를 따라가고, 몸통(캡슐)은 카메라 아래에 붙어 고개 방향(수평)만 따라 돈다.
-/// 자신 쏘기 판정과 피해에 쓴다. 팔 히트박스와 아바타 연결은 멀티 아바타가 생기면 한다.
+/// 팔(캡슐)은 어깨에서 손(손 추적 중이면 손, 아니면 컨트롤러)까지 이어진다 (<see cref="ArmHitboxes"/>).
+/// 자신 쏘기 판정과 피해에 쓴다. 상대 기기에서는 아바타의 <see cref="AvatarBody"/>가 같은 모양으로 맞는다.
+/// 몸통과 팔은 히트박스와 같은 크기의 캡슐로 그려서, 내려다보면 내 몸이 보인다 (머리는 시야를 가리므로 그리지 않는다).
 /// </summary>
 [RequireComponent(typeof(XROrigin), typeof(Damageable))]
 public class PlayerBody : MonoBehaviour
@@ -14,9 +17,12 @@ public class PlayerBody : MonoBehaviour
     [SerializeField, Tooltip("몸통 중심을 눈보다 뒤로(m)")] float m_TorsoBack = 0.06f;
     [SerializeField] float m_TorsoRadius = 0.16f;
     [SerializeField] float m_TorsoHeight = 0.55f;
+    [SerializeField] ArmHitboxes m_Arms = new ArmHitboxes();
+    [SerializeField, Tooltip("내 몸통·팔 캡슐의 재질 (상대 아바타와 같은 것)")] Material m_ShapeMaterial;
 
     XROrigin m_Origin;
     Transform m_Torso;
+    XRInputModalityManager m_InputModality;
 
     public Damageable Damageable { get; private set; }
 
@@ -41,12 +47,20 @@ public class PlayerBody : MonoBehaviour
         torsoCollider.height = m_TorsoHeight;
         torso.AddComponent<Hitbox>().SetPart(BodyPart.Torso);
         m_Torso = torso.transform;
+        AvatarBody.CreateShape(m_Torso, new Vector3(m_TorsoRadius * 2f, m_TorsoHeight * 0.5f, m_TorsoRadius * 2f), m_ShapeMaterial);
+
+        m_Arms.Create(camera, transform);
+        AvatarBody.CreateShape(m_Arms.GetArm(0), Vector3.one * m_Arms.Radius * 2f, m_ShapeMaterial);
+        AvatarBody.CreateShape(m_Arms.GetArm(1), Vector3.one * m_Arms.Radius * 2f, m_ShapeMaterial);
+        m_InputModality = GetComponentInChildren<XRInputModalityManager>(true);
 
         // 리그의 이동용 캡슐(CharacterController)이 자기 히트박스에 걸리지 않게 한다
         if (TryGetComponent<CharacterController>(out var controller))
         {
             Physics.IgnoreCollision(controller, headCollider);
             Physics.IgnoreCollision(controller, torsoCollider);
+            foreach (var arm in m_Arms.Colliders)
+                Physics.IgnoreCollision(controller, arm);
         }
     }
 
@@ -61,5 +75,19 @@ public class PlayerBody : MonoBehaviour
         m_Torso.SetPositionAndRotation(
             camera.position + Vector3.down * m_TorsoDrop - forward * m_TorsoBack,
             Quaternion.LookRotation(forward, Vector3.up));
+        m_Arms.Update(GetHand(true), GetHand(false));
+    }
+
+    // 손 추적 중이면 손, 아니면 컨트롤러 (NetworkPlayer가 아바타 손으로 보내는 것과 같다)
+    Transform GetHand(bool left)
+    {
+        if (m_InputModality == null)
+            return null;
+
+        var hand = left ? m_InputModality.leftHand : m_InputModality.rightHand;
+        var controller = left ? m_InputModality.leftController : m_InputModality.rightController;
+        if (hand != null && hand.activeInHierarchy)
+            return hand.transform;
+        return controller != null && controller.activeInHierarchy ? controller.transform : null;
     }
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// 진행자 대사를 클라이언트 화면에도 띄운다. 대사는 호스트의 <see cref="HostDialogue"/>가 고르고(진행 컨트롤러는 호스트에서만 돈다),
-/// 고른 대사(id, 글, 표시 시간)를 Named Message로 보낸다. 클라이언트는 받은 그대로 자막에 띄운다.
+/// 고른 대사(id, 글, 표시 시간, 총알 개수)를 Named Message로 보낸다. 클라이언트는 받은 그대로 자막에 띄우고 같은 녹음을 재생한다.
 /// </summary>
 public class LanDialogueSync : MonoBehaviour
 {
@@ -44,7 +44,7 @@ public class LanDialogueSync : MonoBehaviour
     }
 
     // 호스트: 고른 대사를 클라이언트에 보낸다
-    void OnLineShown(string lineId, string text, float duration)
+    void OnLineShown(string lineId, string text, float duration, int bullets)
     {
         if (m_NetworkManager == null || !m_NetworkManager.IsServer || m_NetworkManager.ConnectedClientsIds.Count < 2)
             return;
@@ -58,6 +58,7 @@ public class LanDialogueSync : MonoBehaviour
             writer.WriteValueSafe(lineId ?? string.Empty);
             writer.WriteValueSafe(text ?? string.Empty);
             writer.WriteValueSafe(duration);
+            writer.WriteValueSafe(bullets);
             m_NetworkManager.CustomMessagingManager.SendNamedMessage(k_LineMessage, clients, writer, NetworkDelivery.ReliableSequenced);
         }
     }
@@ -71,7 +72,8 @@ public class LanDialogueSync : MonoBehaviour
         reader.ReadValueSafe(out string lineId);
         reader.ReadValueSafe(out string text);
         reader.ReadValueSafe(out float duration);
+        reader.ReadValueSafe(out int bullets);
         Debug.Log($"[LanDialogueSync] {text} ({lineId})", this);
-        m_Host.ShowLine(lineId, text, duration);
+        m_Host.ShowLine(lineId, text, duration, bullets);
     }
 }

@@ -75,6 +75,15 @@ public class Gun : MonoBehaviour
     [Header("Network")]
     [SerializeField, Tooltip("상대가 든 총의 위치를 따라갈 때 부드럽게 하는 정도 (클수록 빨리 따라감)")] float m_RemoteFollowSharpness = 20f;
 
+    /// <summary>손으로 잡았을 때.</summary>
+    public event Action Grabbed;
+
+    /// <summary>쥐고 있던 손에서 놓쳤을 때 (치울 때는 나지 않는다).</summary>
+    public event Action Dropped;
+
+    /// <summary>떨어뜨린 총이 지급 위치로 돌아왔을 때.</summary>
+    public event Action ReturnedHome;
+
     /// <summary>방아쇠를 당겨 공이치기가 젖혀질 때. 결과는 공이치기 연출 시간 뒤 <see cref="Fired"/>로 온다.</summary>
     public event Action HammerCocked;
 
@@ -247,6 +256,7 @@ public class Gun : MonoBehaviour
         m_LastRotation = transform.rotation;
         m_FlickFrames = 0;
         m_GestureEnableTime = Time.time + m_GestureGrace;
+        Grabbed?.Invoke();
     }
 
     void OnSelectExited(SelectExitEventArgs args)
@@ -268,6 +278,7 @@ public class Gun : MonoBehaviour
         {
             m_Rigidbody.isKinematic = false;
             m_ReturnRoutine = StartCoroutine(ReturnHomeAfterDelay());
+            Dropped?.Invoke();
         }
     }
 
@@ -404,10 +415,11 @@ public class Gun : MonoBehaviour
     public void Withdraw()
     {
         IsTriggerLocked = true;
+        // 지급 위치를 먼저 지워서, 손에서 빼는 것을 떨어뜨림으로 치지 않는다
+        m_HomePoint = null;
         Drop();
         if (IsCylinderOpen)
             CloseCylinder("치움");
-        m_HomePoint = null;
         m_IsFollowingRemote = false;
         gameObject.SetActive(false);
     }
@@ -441,6 +453,7 @@ public class Gun : MonoBehaviour
         {
             MoveHome();
             Debug.Log("[Gun] 떨어뜨린 총이 지급 위치로 돌아왔다", this);
+            ReturnedHome?.Invoke();
         }
     }
 

@@ -10,6 +10,24 @@ public class QuizBoard : MonoBehaviour
     // Start가 아니라 Awake에서 비워야 다른 스크립트가 Start에서 띄운 문제를 지우지 않는다
     void Awake() => Clear();
 
+    /// <summary>화면들의 가운데 (퀴즈 효과음이 나는 곳). 화면이 없으면 이 오브젝트 위치.</summary>
+    public Vector3 Center
+    {
+        get
+        {
+            var sum = Vector3.zero;
+            var count = 0;
+            foreach (var screen in m_Screens)
+            {
+                if (screen == null)
+                    continue;
+                sum += screen.transform.position;
+                count++;
+            }
+            return count > 0 ? sum / count : transform.position;
+        }
+    }
+
     public void Show(QuizQuestion question)
     {
         foreach (var screen in m_Screens)

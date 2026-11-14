@@ -11,6 +11,7 @@ using UnityEngine;
 /// 착석 단계: 이 기기의 플레이어를 자기 의자 뒤에 세우고, 앉을 때까지 기다린다. 안내 → 경고 → 강제 착석. 앉으면 게임이 끝날 때까지 일어날 수 없다.
 /// 멀티에서는 두 좌석이 모두 앉아야 넘어간다(상대 좌석은 <see cref="SetRemoteSeated"/>로 받는다). 클라이언트는 받은 상태로 자기 플레이어의 착석만 맞춘다.
 /// 진행자 대사는 <see cref="HostDialogue"/>가 이벤트 이름(docs/07_event_list.md)으로 골라 자막으로 띄운다. 대사가 끝날 때까지 기다린 뒤 다음으로 넘어간다.
+/// 게임 이벤트는 <see cref="GameEvents"/>로 낸다 (효과음 등이 구독). 진행 이벤트는 호스트만, 총을 직접 만지는 이벤트는 사수 기기에서 낸다.
 /// 아직 없는 것: 양측 패널티(정답자가 없으면 다음 문제), 공포 단계.
 /// 멀티: 호스트에서만 돈다. 네트워크 쪽(Net/)이 이벤트를 받아 클라이언트에 보내고, <see cref="IsLocalSeat"/>, <see cref="SubmitAnswer"/>, <see cref="SetBody"/>로 상대 입력과 몸을 넣는다.
 /// </summary>
@@ -49,6 +50,8 @@ public class GameFlowController : MonoBehaviour
     QuizDeck m_Deck;
     QuizRound m_Round;
     int m_ShooterSeat;
+    // 총이 지금 놓인 좌석 (클라이언트도 안다). 총을 직접 만지는 이벤트를 낼 기기를 정한다
+    int m_PresentedSeat;
     Coroutine m_ShooterTimer;
     Coroutine m_SeatingRoutine;
     double m_NextPressureTime;
@@ -104,6 +107,21 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool DrivesGame { get; set; } = true;
 
+    // ── 소리 위치 (EventSoundPlayer가 쓴다) ──
+
+    /// <summary>좌석의 의자. 없으면 null.</summary>
+    public Transform SeatTransform(int seat) => SeatAt(seat) != null ? SeatAt(seat).transform : null;
+
+    /// <summary>좌석의 단말기. 없으면 null.</summary>
+    public Transform TerminalTransform(int seat) =>
+        m_Terminals != null && seat >= 1 && seat <= m_Terminals.Length && m_Terminals[seat - 1] != null ? m_Terminals[seat - 1].transform : null;
+
+    /// <summary>퀴즈 화면들의 가운데. 화면이 없으면 null.</summary>
+    public Vector3? QuizScreenPosition => m_Board != null ? m_Board.Center : (Vector3?)null;
+
+    public Transform GunTransform => m_Gun != null ? m_Gun.transform : null;
+    public Transform HostTransform => m_Host != null ? m_Host.Speaker : null;
+
     static double Now => Time.timeAsDouble;
 
     void Awake() => m_StateMachine.StateChanged += OnStateChanged;
@@ -154,6 +172,12 @@ public class GameFlowController : MonoBehaviour
         {
             m_Gun.Fired += OnGunFired;
             m_Gun.CylinderClosed += OnCylinderClosed;
+            m_Gun.Grabbed += OnGunGrabbed;
+            m_Gun.Dropped += OnGunDropped;
+            m_Gun.ReturnedHome += OnGunReturned;
+            m_Gun.CylinderOpened += OnCylinderOpened;
+            m_Gun.BulletInserted += OnBulletInserted;
+            m_Gun.HammerCocked += OnHammerCocked;
         }
         if (m_Bodies != null)
             foreach (var body in m_Bodies)
@@ -169,6 +193,12 @@ public class GameFlowController : MonoBehaviour
         {
             m_Gun.Fired -= OnGunFired;
             m_Gun.CylinderClosed -= OnCylinderClosed;
+            m_Gun.Grabbed -= OnGunGrabbed;
+            m_Gun.Dropped -= OnGunDropped;
+            m_Gun.ReturnedHome -= OnGunReturned;
+            m_Gun.CylinderOpened -= OnCylinderOpened;
+            m_Gun.BulletInserted -= OnBulletInserted;
+            m_Gun.HammerCocked -= OnHammerCocked;
         }
         foreach (var body in new List<Damageable>(m_BodyHandlers.Keys))
             Unwatch(body);
@@ -187,6 +217,7 @@ public class GameFlowController : MonoBehaviour
         if (m_Config.PressureLineInterval > 0f && Now >= m_NextPressureTime)
         {
             m_NextPressureTime = Now + m_Config.PressureLineInterval;
+            GameEvents.Raise("quiz_pressure", count: Mathf.CeilToInt(m_Round.GetRemainingRatio(Now) * m_Round.TimeLimit));
             Say("quiz_pressure");
         }
     }
@@ -261,7 +292,9 @@ public class GameFlowController : MonoBehaviour
 
     // ── 착석 ──
 
-    // 이 기기의 플레이어 좌석. 멀티면 네트워크 쪽이 정한 좌석, 혼자면 m_PlayerSeat
+    /// <summary>이 기기의 플레이어 좌석. 멀티면 네트워크 쪽이 정한 좌석, 혼자면 Player Seat 칸의 좌석.</summary>
+    public int LocalSeat => LocalSeatNumber;
+
     int LocalSeatNumber
     {
         get
@@ -342,6 +375,7 @@ public class GameFlowController : MonoBehaviour
         else
         {
             PlaceLocalPlayerBehindSeat();
+            GameEvents.Raise("seat_prompt");
             Say("seat_prompt");
 
             // 모두 앉을 때까지 기다린다. 안내 → 경고 → 강제 착석
@@ -354,7 +388,7 @@ public class GameFlowController : MonoBehaviour
                 {
                     if (!IsSeated(waiting[i]))
                         continue;
-                    Debug.Log($"[Flow] 좌석 {waiting[i]} 착석 (player_seated)", this);
+                    GameEvents.Raise("player_seated", waiting[i]);
                     if (waiting[i] == LocalSeatNumber)
                         m_Player.LockSeat();
                     waiting.RemoveAt(i);
@@ -366,14 +400,14 @@ public class GameFlowController : MonoBehaviour
                 if (!warned && elapsed >= m_Config.SeatingWarningDelay)
                 {
                     warned = true;
-                    Debug.Log($"[Flow] 착석 경고 (seat_warning): 좌석 {string.Join(", ", waiting)}", this);
+                    GameEvents.Raise("seat_warning", waiting[0], count: waiting.Count);
                     Say("seat_warning");
                 }
                 else if (warned && elapsed >= m_Config.SeatingWarningDelay + m_Config.ForceSeatDelay)
                 {
                     foreach (var seatNumber in waiting)
                     {
-                        Debug.Log($"[Flow] 좌석 {seatNumber} 강제 착석 (seat_forced)", this);
+                        GameEvents.Raise("seat_forced", seatNumber);
                         if (IsLocalSeat == null || IsLocalSeat(seatNumber))
                             ForceLocalSeat();
                         else
@@ -396,6 +430,7 @@ public class GameFlowController : MonoBehaviour
 
         // 규칙 설명: 진행자가 세 문장으로 말하고, 끝나면 첫 문제를 낸다
         GoTo(GameState.Intro);
+        GameEvents.Raise("rules_intro");
         yield return new WaitForSeconds(Say("rules_intro"));
         GoTo(GameState.QuizActive);
     }
@@ -423,6 +458,7 @@ public class GameFlowController : MonoBehaviour
 
         m_Board.Show(question);
         QuizShown?.Invoke(question, timeLimit);
+        GameEvents.Raise("quiz_start", count: Mathf.RoundToInt(timeLimit));
         Say("quiz_start");
         m_NextPressureTime = Now + m_Config.PressureLineInterval;
         Debug.Log($"[Flow] {question.Id} 출제: {question.Question} (정답 {Letter(question.AnswerIndex)}, {timeLimit}초)", this);
@@ -433,6 +469,8 @@ public class GameFlowController : MonoBehaviour
     {
         if (IsLocalSeat != null && !IsLocalSeat(seat))
             return;
+
+        GameEvents.Raise(new GameEvent("button_pressed", seat, count: choiceIndex) { LocalOnly = true });
 
         SubmitAnswer(seat, choiceIndex);
     }
@@ -454,6 +492,7 @@ public class GameFlowController : MonoBehaviour
     {
         Debug.Log($"[Flow] 좌석 {seat} 오답 {Letter(choiceIndex)} → 이 문제에서 잠김", this);
         ShowButtonResult(seat, choiceIndex, false);
+        GameEvents.Raise("answer_wrong", seat, count: choiceIndex);
         Say("answer_wrong");
     }
 
@@ -466,10 +505,12 @@ public class GameFlowController : MonoBehaviour
             case QuizOutcome.Correct:
                 Debug.Log($"[Flow] 좌석 {result.WinnerSeat} 정답", this);
                 ShowButtonResult(result.WinnerSeat, m_Round.Question.AnswerIndex, true);
+                GameEvents.Raise("answer_correct", result.WinnerSeat);
                 lineDuration = Say("answer_correct");
                 break;
             case QuizOutcome.Timeout:
                 Debug.Log("[Flow] 시간 초과 → 정답자 없음", this);
+                GameEvents.Raise("quiz_timeout");
                 lineDuration = Say("quiz_timeout");
                 break;
             case QuizOutcome.AllWrong:
@@ -507,6 +548,7 @@ public class GameFlowController : MonoBehaviour
 
         m_ShotReaction = null;
         m_ReloadedThisTurn = false;
+        GameEvents.Raise("gun_handover", m_ShooterSeat, 3 - m_ShooterSeat, m_Gun.BulletCount);
         Say("gun_handover", m_Gun.BulletCount);
         Debug.Log($"[Flow] 좌석 {m_ShooterSeat}에게 총 지급 (총알 {m_Gun.BulletCount}발, 여분 {m_SpareBullets.Count}발)", this);
         GunPresented?.Invoke(m_ShooterSeat);
@@ -527,6 +569,7 @@ public class GameFlowController : MonoBehaviour
         }
 
         var grabbable = IsLocalSeat == null || IsLocalSeat(seat);
+        m_PresentedSeat = seat;
         m_Gun.Present(spawn);
         m_Gun.SetGrabbable(grabbable);
         SpawnSpareBullets(spawn, grabbable);
@@ -596,6 +639,7 @@ public class GameFlowController : MonoBehaviour
     // 넣은 총알이 있는 채로 실린더를 닫으면 쏘지 않고 턴이 끝난다
     void OnCylinderClosed(int inserted)
     {
+        RaiseFromShooter("cylinder_spun", inserted);
         if (!DrivesGame || m_StateMachine.Current != GameState.ShooterTurn || inserted == 0)
             return;
 
@@ -610,6 +654,7 @@ public class GameFlowController : MonoBehaviour
         m_ShooterTimer = null;
         Debug.Log($"[Flow] 사수 턴 {m_Config.ShooterTurnTimeLimit}초가 지나 총을 반납한다", this);
         m_ShotReaction = "shooter_timeout";
+        GameEvents.Raise("shooter_timeout", m_ShooterSeat);
         StartCoroutine(ResolveShot());
     }
 
@@ -628,6 +673,8 @@ public class GameFlowController : MonoBehaviour
         {
             // 한 번 더 쏘기 때문에 결과 브리핑을 기다리지 않고 바로 말한다
             Debug.Log("[Flow] 자신을 쐈는데 공포탄 → 한 번 더 쏜다", this);
+            GameEvents.Raise("shot_blank_self", m_ShooterSeat);
+            GameEvents.Raise("shoot_again", m_ShooterSeat);
             Say("shot_blank_self");
             return;
         }
@@ -636,6 +683,7 @@ public class GameFlowController : MonoBehaviour
             m_ShotReaction = self ? "shot_hit_self" : shot.HitBox != null ? "shot_hit_opponent" : "shot_miss";
         else
             m_ShotReaction = "shot_blank_opponent";
+        RaiseShot(m_ShotReaction, shot);
         m_ReloadedThisTurn = shot.Reloaded;
         EndShooterTurn();
     }
@@ -660,33 +708,116 @@ public class GameFlowController : MonoBehaviour
         WithdrawGun();
         GunWithdrawn?.Invoke();
 
-        // 결과 브리핑: 사격 결과(또는 총알 넣기·시간 초과)에 반응하고, 진행자가 장전했으면 바뀐 총알 수를 알려 준다
+        // 결과 브리핑: 사격 결과(또는 총알 넣기·시간 초과)에 반응하고, 진행자가 장전했으면 바뀐 총알 수를 알려 준다.
+        // 누가 죽었으면 장전 안내는 건너뛰고 바로 사망으로 넘어간다 (게임이 끝나므로 총알 수는 의미가 없다)
         GoTo(GameState.HostReaction);
         var reaction = m_ShotReaction;
         var bullets = m_Gun.BulletCount;
         var lineDuration = reaction != null ? Say(reaction, bullets) : 0f;
         yield return new WaitForSeconds(Mathf.Max(m_HostReactionDuration, lineDuration));
-        if (m_ReloadedThisTurn)
+        var deadSeat = FindDeadSeat();
+        if (m_ReloadedThisTurn && deadSeat == 0)
+        {
+            GameEvents.Raise("reload", count: bullets);
             yield return new WaitForSeconds(Say("reload", bullets));
+        }
 
         GoTo(GameState.DeathCheck);
-        var deadSeat = FindDeadSeat();
         if (deadSeat == 0)
         {
             GoTo(GameState.QuizActive);
             yield break;
         }
 
+        GameEvents.Raise("player_died", deadSeat);
         yield return new WaitForSeconds(Say("player_died"));
 
         GoTo(GameState.GameOver);
         if (m_Player != null)
             m_Player.UnlockSeat();
         Debug.Log($"[Flow] 좌석 {deadSeat} 사망 → 좌석 {3 - deadSeat} 승리. 잠시 뒤 다시 시작", this);
+        GameEvents.Raise("player_won", 3 - deadSeat);
         yield return new WaitForSeconds(Mathf.Max(m_RestartDelay, Say("player_won")));
 
         GoTo(GameState.Lobby);
         BeginGame();
+    }
+
+    // 사격 결과 이벤트. 대사는 결과 브리핑에서 나오지만 소리는 바로 난다
+    void RaiseShot(string name, Gun.ShotResult shot)
+    {
+        var target = name == "shot_hit_self" ? 0 : 3 - m_ShooterSeat;
+        var gameEvent = new GameEvent(name, m_ShooterSeat, target);
+        if (shot.HitBox != null)
+            gameEvent = gameEvent.WithPart(shot.HitBox.Part);
+        if (shot.IsLive && shot.DidHit)
+            gameEvent = gameEvent.WithPosition(shot.EndPoint);
+        GameEvents.Raise(gameEvent);
+    }
+
+    // ── 총을 직접 만지는 이벤트: 총을 쥔 기기(사수 기기)에서만 낸다. 네트워크 쪽이 상대 기기에 전달한다 ──
+
+    bool ShooterIsHere => IsLocalSeat == null || IsLocalSeat(m_PresentedSeat);
+
+    void RaiseFromShooter(string name, int count = -1)
+    {
+        if (ShooterIsHere)
+            GameEvents.Raise(name, m_PresentedSeat, count: count);
+    }
+
+    void OnGunGrabbed()
+    {
+        if (ShooterIsHere)
+            GameEvents.Raise(new GameEvent("gun_grabbed", m_PresentedSeat) { LocalOnly = true });
+    }
+
+    void OnGunDropped() => RaiseFromShooter("gun_dropped");
+    void OnGunReturned() => RaiseFromShooter("gun_returned");
+    void OnCylinderOpened() => RaiseFromShooter("cylinder_opened");
+    void OnBulletInserted(int bullets) => RaiseFromShooter("bullet_inserted", bullets);
+    void OnHammerCocked() => RaiseFromShooter("hammer_cock");
+
+    // ── 상대 이탈 ──
+
+    /// <summary>
+    /// 게임 중에 상대가 나갔을 때 부른다(네트워크 쪽). 하던 진행을 멈추고 남은 쪽의 승리로 끝낸 뒤 로비로 돌아간다.
+    /// 다시 START를 받을 수 있게 <see cref="HasStarted"/>를 되돌린다. 이 기기가 진행하도록(<see cref="DrivesGame"/>) 바꾼 뒤 부른다.
+    /// </summary>
+    public void EndByOpponentLeft(int leftSeat)
+    {
+        if (m_StateMachine.Current == GameState.Lobby || m_StateMachine.Current == GameState.GameOver)
+        {
+            HasStarted = false;
+            return;
+        }
+
+        StopAllCoroutines();
+        m_SeatingRoutine = null;
+        m_ShooterTimer = null;
+        if (m_Round != null)
+        {
+            m_Round.AnswerWrong -= OnAnswerWrong;
+            m_Round.Resolved -= OnQuizResolved;
+            m_Round = null;
+        }
+        m_Board.Clear();
+        QuizEnded?.Invoke();
+        WithdrawGun();
+
+        var winner = leftSeat == 1 ? 2 : 1;
+        GameEvents.Raise(new GameEvent("opponent_disconnected", leftSeat) { LocalOnly = true });
+        GameEvents.Raise(new GameEvent("player_won", winner) { LocalOnly = true });
+        GoTo(GameState.GameOver);
+        if (m_Player != null)
+            m_Player.UnlockSeat();
+        StartCoroutine(ReturnToLobbyAfterOpponentLeft());
+    }
+
+    IEnumerator ReturnToLobbyAfterOpponentLeft()
+    {
+        yield return new WaitForSeconds(Mathf.Max(m_RestartDelay, Say("player_won")));
+        GoTo(GameState.Lobby);
+        HasStarted = false;
     }
 
     Damageable BodyOf(int seat) => seat >= 1 && seat <= m_Bodies.Length ? m_Bodies[seat - 1] : null;
@@ -717,7 +848,11 @@ public class GameFlowController : MonoBehaviour
         {
             var seat = Array.IndexOf(m_Bodies, body) + 1;
             if (seat >= 1 && DrivesGame)
+            {
                 SeatHit?.Invoke(seat, part);
+                if (outcome == DamageOutcome.Wounded)
+                    GameEvents.Raise("player_wounded", seat);
+            }
         };
         m_BodyHandlers[body] = handler;
         body.Damaged += handler;

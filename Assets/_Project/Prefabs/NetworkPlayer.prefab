@@ -402,9 +402,9 @@ MonoBehaviour:
   RotationInterpolationType: 0
   ScaleInterpolationType: 0
   PositionLerpSmoothing: 1
-  PositionMaxInterpolationTime: 0.1
+  PositionMaxInterpolationTime: 0.05
   RotationLerpSmoothing: 1
-  RotationMaxInterpolationTime: 0.1
+  RotationMaxInterpolationTime: 0.05
   ScaleLerpSmoothing: 1
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 1
@@ -619,6 +619,14 @@ MonoBehaviour:
   m_TorsoBack: 0.06
   m_TorsoRadius: 0.16
   m_TorsoHeight: 0.55
+  m_TorsoMaterial: {fileID: 2100000, guid: 8a4161f6362945d4b9248c5398fde798, type: 2}
+  m_LeftHand: {fileID: 5581957464898280385}
+  m_RightHand: {fileID: 8317332812428528259}
+  m_Arms:
+    ShoulderDrop: 0.22
+    ShoulderWidth: 0.18
+    ShoulderBack: 0.06
+    Radius: 0.05
 --- !u!1 &7558333426619838773
 GameObject:
   m_ObjectHideFlags: 0
