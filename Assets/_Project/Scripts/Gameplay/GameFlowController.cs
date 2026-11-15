@@ -453,11 +453,10 @@ public class GameFlowController : MonoBehaviour
             if (terminal != null)
                 terminal.ClearResults();
 
-        // 공포 단계에 맞는 난이도에서 고르고, 제한시간도 공포 단계를 따른다
-        var difficulty = m_Config.GetQuizDifficulty(m_DreadLevel);
-        var question = m_Deck.Draw(difficulty.x, difficulty.y, out var reshuffled);
-        if (reshuffled)
-            Debug.Log($"[Flow] 난이도 {difficulty.x}~{difficulty.y} 문제를 다 써서 처음부터 다시 낸다", this);
+        // 공포 단계의 비율대로 난이도를 뽑아 그 난이도에서 고르고, 제한시간도 공포 단계를 따른다
+        var question = m_Deck.DrawWeighted(m_Config.GetQuizDifficultyWeights(m_DreadLevel), out var reshuffled);
+        if (reshuffled && question != null)
+            Debug.Log($"[Flow] 난이도 {question.Difficulty} 문제를 다 써서 그 난이도를 처음부터 다시 낸다", this);
 
         var timeLimit = m_Config.GetQuizTimeLimit(m_DreadLevel);
         m_Round = new QuizRound(question, Now, timeLimit);

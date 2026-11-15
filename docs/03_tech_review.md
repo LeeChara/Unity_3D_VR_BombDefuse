@@ -71,7 +71,7 @@ Lobby → Seating → Intro
 | DeathCheck | 사망자 확인 | 있음 → GameOver / 없음 → QuizActive |
 | GameOver | 승리·사망 연출 | → Lobby |
 
-- 양측 패널티: BothFailPenalty에서 공포 단계를 1 올리고(최대 3, 최대면 그대로) `dread_changed`를 낸다. DeathCheck는 바로 지나 다음 문제(QuizActive)로 간다. 퀴즈 제한시간과 문제 난이도는 `TuningConfig`의 단계별 값(`Quiz Time Limits`, `Quiz Difficulties`)을 쓴다. 공포 단계는 새 게임에서 0이 된다.
+- 양측 패널티: BothFailPenalty에서 공포 단계를 1 올리고(최대 3, 최대면 그대로) `dread_changed`를 낸다. DeathCheck는 바로 지나 다음 문제(QuizActive)로 간다. 퀴즈 제한시간과 문제 난이도는 `TuningConfig`의 단계별 값(`Quiz Time Limits`, `Quiz Difficulty Weights`)을 쓴다. 난이도는 `QuizDeck.DrawWeighted`가 단계의 비율(하·중·상)로 먼저 뽑고 그 난이도에서 아직 안 낸 문제를 꺼낸다. 문제가 없는 난이도는 비율에서 빠진다. 공포 단계는 새 게임에서 0이 된다.
 - 분위기 연출: `DreadAtmosphere`(GameFlow 오브젝트)가 `dread_changed`를 받아 천장 조명 색·밝기·깜빡임, 환경광, 진행자만 비추는 조명(`HostLight`, 3단계), 단계별 배경음(반복, 겹쳐 넘어감)을 바꾼다. 단계가 오르면 조명이 0.8초 완전히 꺼졌다가 새 단계로 켜진다. 총 지급·사수 턴 동안 `GunLight`가 위에서 총을 비추고 총을 따라간다. 사수 턴에는 긴장 레이어를 배경음 위에 겹치고, 방아쇠(`hammer_cock`)와 사망(`player_died`) 때는 배경음을 잠깐 죽인다(정적). 이벤트가 네트워크로 전달되므로 클라이언트도 같이 바뀐다. 깜빡임은 라이트 세기만 바꾼다(아래 위험 표). 단계별 값과 배경음 칸은 Inspector에서 고친다.
 - 상대가 접속을 끊으면 어느 상태에서든(Lobby 제외) GameOver로 간다. `LanSession.OpponentLeft` → `LanGameStarter`가 이 기기를 혼자 진행으로 돌리고 `GameFlowController.EndByOpponentLeft`를 부른다. 남은 쪽 승리를 보여 준 뒤 Lobby로 가고, 호스트는 다시 START를 받을 수 있다.
 - `GameStateMachine`(순수 C#, `Core/`)은 현재 상태와 허용된 전이만 관리한다. 타이머와 판정은 하지 않는다.
