@@ -16,7 +16,7 @@ public sealed class GameStateMachine
         { GameState.Intro, new[] { GameState.QuizActive } },
         { GameState.QuizActive, new[] { GameState.QuizResolve } },
         // QuizActive는 임시 경로: 양측 패널티를 만들기 전까지 정답자가 없으면 바로 다음 문제로 간다
-        { GameState.QuizResolve, new[] { GameState.GunHandover, GameState.BothFailPenalty, GameState.QuizActive } },
+        { GameState.QuizResolve, new[] { GameState.GunHandover, GameState.BothFailPenalty } },
         { GameState.GunHandover, new[] { GameState.ShooterTurn } },
         { GameState.ShooterTurn, new[] { GameState.ShotResolve } },
         { GameState.ShotResolve, new[] { GameState.HostReaction } },

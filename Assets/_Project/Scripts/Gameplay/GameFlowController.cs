@@ -24,7 +24,7 @@ public class GameFlowController : MonoBehaviour
     [SerializeField] Gun m_Gun;
     [SerializeField, Tooltip("좌석 1, 2 순서. 정답자 앞에 총이 나타나는 위치")] Transform[] m_GunSpawnPoints;
     [SerializeField, Tooltip("총과 함께 사수 앞에 놓을 여분 총알")] SpareBullet m_SpareBulletPrefab;
-    [SerializeField, Tooltip("총 지급 위치에서 테이블 바깥쪽으로 첫 여분 총알까지(m)")] float m_SpareBulletOffset = 0.2f;
+    [SerializeField, Tooltip("좌석 1, 2 순서. 여분 총알을 놓는 위치 (앉은 사람 기준 단말기 왼쪽). 첫 총알이 여기, 나머지는 Transform의 -X(앉은 사람의 왼쪽)로 한 줄")] Transform[] m_BulletSpawnPoints;
     [SerializeField, Tooltip("여분 총알 사이 간격(m)")] float m_SpareBulletSpacing = 0.05f;
     [SerializeField, Tooltip("좌석 1, 2 순서. 비워 두면 그 좌석은 죽지 않는다 (지금은 좌석 1이 플레이어 몸, 좌석 2가 마네킹)")]
     Damageable[] m_Bodies;
@@ -40,6 +40,7 @@ public class GameFlowController : MonoBehaviour
     [SerializeField, Min(0f), Tooltip("퀴즈가 끝나고 버튼 색을 보여 주는 최소 시간(초)")] float m_QuizResultDelay = 1.5f;
     [SerializeField, Min(0f), Tooltip("쏜 뒤 총을 치우기까지(초)")] float m_ShotResultDelay = 1f;
     [SerializeField, Min(0f), Tooltip("결과 브리핑 최소 시간(초)")] float m_HostReactionDuration = 1.5f;
+    [SerializeField, Min(0f), Tooltip("양측 패널티(공포 단계가 오르는 연출) 최소 시간(초)")] float m_PenaltyDuration = 2.5f;
     [SerializeField, Min(0f), Tooltip("게임이 끝나고 처음부터 다시 시작하기까지 최소 시간(초)")] float m_RestartDelay = 3f;
 
     [Header("Start")]
@@ -58,12 +59,17 @@ public class GameFlowController : MonoBehaviour
     // 사수 턴이 어떻게 끝났는지. 결과 브리핑에서 이 이벤트의 대사를 말한다
     string m_ShotReaction;
     bool m_ReloadedThisTurn;
+    // 공포 단계 (0 ~ 최대). 아무도 못 맞히면 오르고, 새 게임에서 0으로 돌아간다
+    int m_DreadLevel;
     readonly List<SpareBullet> m_SpareBullets = new List<SpareBullet>();
     // 호스트: 상대 기기가 앉았다고 알려 온 좌석
     readonly HashSet<int> m_RemoteSeated = new HashSet<int>();
 
     /// <summary>상태 변경을 구독하려는 쪽(조명·사운드 등)이 쓴다.</summary>
     public GameStateMachine StateMachine => m_StateMachine;
+
+    /// <summary>지금 공포 단계 (진행하는 기기 기준). 바뀌면 <c>dread_changed</c> 이벤트가 난다.</summary>
+    public int DreadLevel => m_DreadLevel;
 
     /// <summary>첫 게임을 시작했는지. 시작한 뒤에는 게임이 끝나도 자동으로 다시 시작한다.</summary>
     public bool HasStarted { get; private set; }
@@ -285,6 +291,7 @@ public class GameFlowController : MonoBehaviour
                 body.Revive();
         BodiesRevived?.Invoke();
         m_Gun.ResetRevolver();
+        m_DreadLevel = 0;
 
         GoTo(GameState.Seating);
         m_SeatingRoutine = StartCoroutine(Seating());
@@ -446,12 +453,13 @@ public class GameFlowController : MonoBehaviour
             if (terminal != null)
                 terminal.ClearResults();
 
-        var question = m_Deck.Draw(out var reshuffled);
+        // 공포 단계에 맞는 난이도에서 고르고, 제한시간도 공포 단계를 따른다
+        var difficulty = m_Config.GetQuizDifficulty(m_DreadLevel);
+        var question = m_Deck.Draw(difficulty.x, difficulty.y, out var reshuffled);
         if (reshuffled)
-            Debug.Log("[Flow] 문제를 다 써서 처음부터 다시 낸다", this);
+            Debug.Log($"[Flow] 난이도 {difficulty.x}~{difficulty.y} 문제를 다 써서 처음부터 다시 낸다", this);
 
-        // 공포 단계는 아직 없어서 단계 0의 제한시간을 쓴다
-        var timeLimit = m_Config.GetQuizTimeLimit(0);
+        var timeLimit = m_Config.GetQuizTimeLimit(m_DreadLevel);
         m_Round = new QuizRound(question, Now, timeLimit);
         m_Round.AnswerWrong += OnAnswerWrong;
         m_Round.Resolved += OnQuizResolved;
@@ -461,7 +469,7 @@ public class GameFlowController : MonoBehaviour
         GameEvents.Raise("quiz_start", count: Mathf.RoundToInt(timeLimit));
         Say("quiz_start");
         m_NextPressureTime = Now + m_Config.PressureLineInterval;
-        Debug.Log($"[Flow] {question.Id} 출제: {question.Question} (정답 {Letter(question.AnswerIndex)}, {timeLimit}초)", this);
+        Debug.Log($"[Flow] {question.Id} 출제: {question.Question} (정답 {Letter(question.AnswerIndex)}, {timeLimit}초, 난이도 {question.Difficulty}, 공포 단계 {m_DreadLevel})", this);
     }
 
     // 이 기기의 단말기 입력
@@ -534,9 +542,24 @@ public class GameFlowController : MonoBehaviour
         }
         else
         {
-            // 양측 패널티를 만들기 전까지는 바로 다음 문제로 간다 (임시 경로)
-            GoTo(GameState.QuizActive);
+            yield return BothFailPenalty();
         }
+    }
+
+    // 양측 패널티: 아무도 못 맞히면 공포 단계가 하나 오른다(최대에서는 그대로). 조명·배경음·제한시간·난이도가 이 단계를 따른다
+    IEnumerator BothFailPenalty()
+    {
+        GoTo(GameState.BothFailPenalty);
+        if (m_DreadLevel < m_Config.MaxDreadLevel)
+        {
+            m_DreadLevel++;
+            Debug.Log($"[Flow] 아무도 못 맞힘 → 공포 단계 {m_DreadLevel}", this);
+            GameEvents.Raise("dread_changed", count: m_DreadLevel);
+            yield return new WaitForSeconds(Mathf.Max(m_PenaltyDuration, Say("dread_changed")));
+        }
+
+        GoTo(GameState.DeathCheck);
+        GoTo(GameState.QuizActive);
     }
 
     // ── 총 ──
@@ -572,7 +595,11 @@ public class GameFlowController : MonoBehaviour
         m_PresentedSeat = seat;
         m_Gun.Present(spawn);
         m_Gun.SetGrabbable(grabbable);
-        SpawnSpareBullets(spawn, grabbable);
+        var bulletSpawn = m_BulletSpawnPoints != null && seat <= m_BulletSpawnPoints.Length ? m_BulletSpawnPoints[seat - 1] : null;
+        if (bulletSpawn == null)
+            Debug.LogError($"[Flow] 좌석 {seat}의 여분 총알 위치가 없다", this);
+        else
+            SpawnSpareBullets(bulletSpawn, grabbable);
         return true;
     }
 
@@ -616,11 +643,11 @@ public class GameFlowController : MonoBehaviour
         if (m_SpareBulletPrefab == null)
             return;
 
-        // 총 지급 위치에서 테이블 바깥쪽(단말기 반대쪽)으로 한 줄로 세워 둔다
-        var outward = spawn.right;
+        // 여분 총알 위치에서 테이블 바깥쪽(위치의 -X, 앉은 사람의 왼쪽)으로 한 줄로 세워 둔다
+        var outward = -spawn.right;
         for (var i = 0; i < m_Config.SpareBullets; i++)
         {
-            var position = spawn.position + outward * (m_SpareBulletOffset + i * m_SpareBulletSpacing) + Vector3.up * 0.03f;
+            var position = spawn.position + outward * (i * m_SpareBulletSpacing) + Vector3.up * 0.03f;
             var bullet = Instantiate(m_SpareBulletPrefab, position, Quaternion.identity);
             bullet.SetGun(m_Gun);
             bullet.SetGrabbable(grabbable);

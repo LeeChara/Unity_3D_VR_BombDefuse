@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 출제할 문제 묶음. 한 번 낸 문제는 모든 문제를 다 낼 때까지 다시 내지 않는다.
-/// 다 쓰면 다시 섞어서 처음부터 쓴다. 공포 단계별 난이도 고르기는 공포 단계 작업에서 더한다.
+/// 다 쓰면 다시 섞어서 처음부터 쓴다. 난이도 범위를 주면 그 범위 안에서만 고르고, 그 범위를 다 쓰면 그 범위만 다시 채운다.
 /// </summary>
 public sealed class QuizDeck
 {
@@ -52,4 +52,50 @@ public sealed class QuizDeck
     }
 
     public QuizQuestion Draw() => Draw(out _);
+
+    /// <summary>
+    /// 난이도가 min~max인 문제 하나를 꺼낸다 (공포 단계용). 그 난이도 문제가 하나도 없으면 아무 문제나 꺼낸다.
+    /// 그 범위의 문제를 다 낸 뒤 그 범위만 다시 채우게 되면 <paramref name="reshuffled"/>가 true다.
+    /// </summary>
+    public QuizQuestion Draw(int minDifficulty, int maxDifficulty, out bool reshuffled)
+    {
+        reshuffled = false;
+        if (m_Questions.Count == 0)
+            return null;
+
+        var candidates = new List<int>();
+        foreach (var index in m_Remaining)
+            if (InRange(index, minDifficulty, maxDifficulty))
+                candidates.Add(index);
+
+        if (candidates.Count == 0)
+        {
+            for (var i = 0; i < m_Questions.Count; i++)
+                if (InRange(i, minDifficulty, maxDifficulty))
+                {
+                    candidates.Add(i);
+                    if (!m_Remaining.Contains(i))
+                        m_Remaining.Add(i);
+                }
+
+            if (candidates.Count == 0)
+                return Draw(out reshuffled);
+            reshuffled = m_LastIndex >= 0;
+        }
+
+        var pick = m_Random.Next(candidates.Count);
+        if (candidates.Count > 1 && candidates[pick] == m_LastIndex)
+            pick = (pick + 1) % candidates.Count;
+
+        var chosen = candidates[pick];
+        m_Remaining.Remove(chosen);
+        m_LastIndex = chosen;
+        return m_Questions[chosen];
+    }
+
+    bool InRange(int index, int min, int max)
+    {
+        var difficulty = m_Questions[index].Difficulty;
+        return difficulty >= min && difficulty <= max;
+    }
 }

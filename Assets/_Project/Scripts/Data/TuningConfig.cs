@@ -20,6 +20,8 @@ public class TuningConfig : ScriptableObject
 
     [Header("Quiz")]
     [SerializeField, Tooltip("공포 단계 0~최대의 퀴즈 제한시간(초). 칸 수는 공포 단계 최대 + 1")] float[] m_QuizTimeLimits = { 15f, 12f, 10f, 7f };
+    [SerializeField, Tooltip("공포 단계 0~최대의 문제 난이도 범위. X = 가장 쉬운, Y = 가장 어려운 (1 하, 2 중, 3 상)")]
+    Vector2Int[] m_QuizDifficulties = { new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(2, 2), new Vector2Int(3, 3) };
     [SerializeField, Min(0f), Tooltip("퀴즈 중 진행자 압박 대사 간격(초)")] float m_PressureLineInterval = 5f;
 
     [Header("Shooter Turn")]
@@ -53,6 +55,14 @@ public class TuningConfig : ScriptableObject
         return m_QuizTimeLimits[index];
     }
 
+    /// <summary>공포 단계에 맞는 문제 난이도 범위 (x = 최저, y = 최고). 범위를 벗어나면 가장 가까운 단계 값을 쓴다.</summary>
+    public Vector2Int GetQuizDifficulty(int dreadLevel)
+    {
+        if (m_QuizDifficulties == null || m_QuizDifficulties.Length == 0)
+            return new Vector2Int(1, 3);
+        return m_QuizDifficulties[Mathf.Clamp(dreadLevel, 0, m_QuizDifficulties.Length - 1)];
+    }
+
     void OnValidate()
     {
         m_StartingBullets = Mathf.Clamp(m_StartingBullets, 1, m_ChamberCount);
@@ -72,5 +82,23 @@ public class TuningConfig : ScriptableObject
 
         for (var i = 0; i < m_QuizTimeLimits.Length; i++)
             m_QuizTimeLimits[i] = Mathf.Max(0f, m_QuizTimeLimits[i]);
+
+        // 난이도 범위도 공포 단계마다 하나씩
+        if (m_QuizDifficulties == null || m_QuizDifficulties.Length == 0)
+            m_QuizDifficulties = new[] { new Vector2Int(1, 3) };
+        if (m_QuizDifficulties.Length != count)
+        {
+            var last = m_QuizDifficulties[m_QuizDifficulties.Length - 1];
+            var oldLength = m_QuizDifficulties.Length;
+            System.Array.Resize(ref m_QuizDifficulties, count);
+            for (var i = oldLength; i < count; i++)
+                m_QuizDifficulties[i] = last;
+        }
+
+        for (var i = 0; i < m_QuizDifficulties.Length; i++)
+        {
+            var min = Mathf.Clamp(m_QuizDifficulties[i].x, 1, 3);
+            m_QuizDifficulties[i] = new Vector2Int(min, Mathf.Clamp(m_QuizDifficulties[i].y, min, 3));
+        }
     }
 }

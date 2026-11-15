@@ -71,7 +71,8 @@ Lobby → Seating → Intro
 | DeathCheck | 사망자 확인 | 있음 → GameOver / 없음 → QuizActive |
 | GameOver | 승리·사망 연출 | → Lobby |
 
-- **구현 순서:** BothFailPenalty는 나중에 만든다. 그 전까지는 QuizResolve에서 정답자가 없으면 바로 QuizActive(다음 문제)로 간다. 이 임시 경로는 BothFailPenalty를 만들 때 지운다.
+- 양측 패널티: BothFailPenalty에서 공포 단계를 1 올리고(최대 3, 최대면 그대로) `dread_changed`를 낸다. DeathCheck는 바로 지나 다음 문제(QuizActive)로 간다. 퀴즈 제한시간과 문제 난이도는 `TuningConfig`의 단계별 값(`Quiz Time Limits`, `Quiz Difficulties`)을 쓴다. 공포 단계는 새 게임에서 0이 된다.
+- 분위기 연출: `DreadAtmosphere`(GameFlow 오브젝트)가 `dread_changed`를 받아 천장 조명 색·밝기·깜빡임, 환경광, 진행자만 비추는 조명(`HostLight`, 3단계), 단계별 배경음(반복, 겹쳐 넘어감)을 바꾼다. 단계가 오르면 조명이 0.8초 완전히 꺼졌다가 새 단계로 켜진다. 총 지급·사수 턴 동안 `GunLight`가 위에서 총을 비추고 총을 따라간다. 사수 턴에는 긴장 레이어를 배경음 위에 겹치고, 방아쇠(`hammer_cock`)와 사망(`player_died`) 때는 배경음을 잠깐 죽인다(정적). 이벤트가 네트워크로 전달되므로 클라이언트도 같이 바뀐다. 깜빡임은 라이트 세기만 바꾼다(아래 위험 표). 단계별 값과 배경음 칸은 Inspector에서 고친다.
 - 상대가 접속을 끊으면 어느 상태에서든(Lobby 제외) GameOver로 간다. `LanSession.OpponentLeft` → `LanGameStarter`가 이 기기를 혼자 진행으로 돌리고 `GameFlowController.EndByOpponentLeft`를 부른다. 남은 쪽 승리를 보여 준 뒤 Lobby로 가고, 호스트는 다시 START를 받을 수 있다.
 - `GameStateMachine`(순수 C#, `Core/`)은 현재 상태와 허용된 전이만 관리한다. 타이머와 판정은 하지 않는다.
   - **허용되지 않은 전이**를 요청하면 `false`를 돌려주고 상태는 그대로 둔다. 예외를 던지지 않는다. 시간 초과와 정답이 거의 동시에 들어오는 것처럼 늦게 도착한 요청은 정상적으로 생기기 때문이다. 실패하면 안 되는 곳에서는 부른 쪽이 에러 로그를 남긴다.
@@ -131,7 +132,8 @@ Assets/_Project/
 - 자신 쏘기 판정: `Gun`은 실탄·공포탄 모두 레이캐스트해서 맞은 `Hitbox`를 알리고, 진행 컨트롤러가 그 몸이 사수의 몸(`PlayerBody`의 `Damageable`)인지로 구분한다. 레이는 총구보다 조금 뒤에서 쏴서, 총구를 머리에 댔을 때도 맞는다. 쏜 사람 리그의 히트박스가 아닌 콜라이더(이동용 캡슐 등)는 건너뛴다.
 - `PlayerBody`는 XR Origin에 붙어 시작할 때 머리(카메라를 따라감)·몸통·양팔 히트박스를 만든다. 팔(`ArmHitboxes`)은 머리 위치와 고개 방향으로 어림한 어깨에서 손(손 추적 중이면 손, 아니면 컨트롤러)까지의 캡슐이다. 상대 기기의 `AvatarBody`도 같은 방식으로 아바타 손까지 잇는다.
 - 내 몸: `PlayerBody`가 몸통·팔 캡슐을 상대 아바타와 같은 재질로 그린다. 머리는 시야를 가려서 그리지 않고, 팔은 손 모델을 가리지 않게 손보다 10cm 짧게 그린다(`ShapeHandGap`, 히트박스 길이는 그대로). 상대 기기의 내 아바타는 `NetworkPlayer`가 내 화면에서만 숨긴다.
-- 단말기 버튼(`QuizButton`): 레이로 가리키고 트리거, 또는 손가락 끝(컨트롤러의 `Poke Point`)으로 직접 누른다. 직접 누르기는 손가락이 버튼 위에서 내려와 윗면을 0.5cm 지나면 인정하고, 다시 1cm 위로 올라와야 다음 누르기가 된다. 옆에서 스치면 눌리지 않는다. 누르면 그 손에 짧은 진동.
+- 단말기 버튼(`QuizButton`): 레이로 가리키고 트리거, 또는 손가락 끝(컨트롤러의 `Poke Point`)으로 직접 누른다. 단말기 판은 60×25cm, 버튼은 지름 7.5cm에 중심 간격 15cm다. 총 지급 위치(`GunSpawn_1/2`)는 단말기 오른쪽, 여분 총알 위치(`BulletSpawn_1/2`)는 왼쪽이다. 직접 누르기는 손가락이 버튼 위에서 내려와 윗면을 0.5cm 지나면 인정하고, 다시 1cm 위로 올라와야 다음 누르기가 된다. 옆에서 스치면 눌리지 않는다. 누르면 그 손에 짧은 진동.
+- 템포 기록: `TempoLog`(GameFlow 오브젝트)가 문제 한 바퀴마다 상태별로 걸린 시간을 `[Tempo]` 로그로 남기고, 게임이 끝나면 한 판 전체 시간을 남긴다. 기다리는 시간은 `GameFlowController`의 Timing 칸, 대사 표시 시간은 `HostDialogue`(기본 0.8초 + 글자당 0.08초, 최소 1.5초, 녹음이 있으면 녹음 길이)에서 정한다.
 - 화면 효과: `ScreenEffects`가 시야에 붙인 캔버스(깊이 검사를 끈 `UIOverlay` 재질)로 그린다. 중상 비네팅(자기 좌석 `player_wounded`), 사망 어두워짐(`player_died`), 결과 글자(`player_won`, 상대 이탈 표시), 새 게임 페이드 인(`Seating`). 카메라는 움직이지 않는다(6절 멀미). 자막보다 뒤에 그려서 자막은 항상 보인다.
 - 착석 단계는 `GameFlowController`가 진행한다. 시작할 때 이 기기의 플레이어(`SeatedPlayer`)를 자기 의자 뒤에 세우고, 다른 좌석의 의자는 앉을 수 없게 막는다. 앉으면 `LockSeat`로 게임이 끝날 때까지 일어날 수 없게 하고, 게임 종료 때 푼다. 멀티에서는 `IsLocalSeat`가 정한 좌석을 쓰고, 두 좌석이 모두 앉을 때까지 기다린다(경고·강제 착석은 안 앉은 좌석에만).
 - 진행자 대사: `HostDialogue`가 대사 CSV를 불러와 `HostLinePool`로 이벤트별 대사를 고르고(직전 대사 제외), `HostSubtitle`(Main Camera 아래 자막)에 띄운다. 표시 시간은 글자 수로 정하고, `{bullets}`는 총알 개수로 바꾼다. 자막은 깊이 검사를 끈 재질(`Project/UI Overlay` 셰이더, TMP Overlay 재질)이라 벽·의자에 가려지지 않는다. 대사 id에 녹음(`VoiceBank`, `{bullets}` 대사는 `id_숫자` 녹음을 먼저 찾음)이 있으면 진행자 모델 위치의 AudioSource로 재생하고, 녹음이 자막보다 길면 녹음 길이만큼 기다린다.

@@ -33,6 +33,9 @@ answer_correct,ac02,맞혔군. 기회를 주지.,calm
 # quiz_timeout: 제한시간 안에 아무도 못 맞혔을 때 (둘 다 오답이면 나오지 않고 오답 대사만 나온다)
 quiz_timeout,qt01,시간 끝. 둘 다 아무것도 아니군.,cold
 quiz_timeout,qt02,아무도 못 맞혔다.,cold
+# dread_changed: 아무도 못 맞혀 공포 단계가 오를 때 (시간 초과·오답 대사 다음에). 조명이 바뀌는 동안 나온다
+dread_changed,dc01,둘 다 틀렸으니 대가를 치러야지. 방이 조금 더 어두워진다.,cold
+dread_changed,dc02,벌이다. 시간은 줄고 문제는 어려워진다.,cold
 
 # ===== 총 지급과 사수 턴 =====
 # gun_handover: 정답자 앞에 총이 나타날 때. {bullets} = 총에 든 총알 수

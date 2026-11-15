@@ -31,6 +31,7 @@
 | | 버튼 잠김 | `answer_wrong` | 단말기 | 필요 |
 | | 정답음 | `answer_correct` | 퀴즈 화면 | 필요 |
 | | 타이머 종료음 | `quiz_timeout` | 퀴즈 화면 | 필요 |
+| | 공포 단계 상승 (낮은 울림) | `dread_changed` | 전체 | 필요 |
 | 총 | 총 놓이는 소리 | `gun_handover` | 총 위치 | 필요 |
 | | 총 잡기 | `gun_grabbed` | 잡은 사람 기기에서 바로 | 필요 |
 | | 실린더 열림 | `cylinder_opened` | 총 | 필요 |
@@ -45,7 +46,7 @@
 | | 장전 + 실린더 회전 | `reload` | 진행자 위치 | 필요 |
 | 상태 | 심장박동, 숨소리 | `player_wounded` | 맞은 사람 기기에서만 | 필요 |
 | | 쓰러지는 소리 | `player_died` | 죽은 사람 위치 | 필요 |
-| | 정적 (모든 소리를 잠깐 끊음) | `player_died` | 전체 | 필요 |
+| | 정적 (배경음을 잠깐 죽임) | `player_died`, 방아쇠(`hammer_cock`) | 전체 | 코드로 처리 (파일 필요 없음) |
 
 - `임시` 소리 3개는 `GunEffects`가 코드로 만든 파형이다. 연결 창의 "총 소리" 탭에서 효과음을 넣으면 그것을 쓴다.
 
@@ -54,8 +55,8 @@
 | 소리 | 재생 시점 (상태) | 상태 |
 |---|---|---|
 | 로비 대기 음악 | `Lobby` | 필요 |
-| 긴장 레이어 | `ShooterTurn` 동안 겹쳐 재생 | 필요 |
-| 공포 단계별 배경음 (단계 0~3) | 공포 단계가 바뀔 때 | 필요 |
+| 긴장 레이어 (반복) | `ShooterTurn` 동안 겹쳐 재생. GameFlow의 `DreadAtmosphere` → `Tension Layer` 칸에 넣는다 | 필요 |
+| 공포 단계별 배경음 (단계 0~3, 반복) | 공포 단계가 바뀔 때 겹쳐 넘어감. GameFlow의 `DreadAtmosphere` → Levels의 `Music` 칸에 넣는다 | 필요 |
 | 엔딩 음악 | `player_won` | 필요 |
 
 ### 진행자 목소리
@@ -85,6 +86,7 @@
 | `answer_wrong` | 오답 | 3 | 5 이상 | 임시 |
 | `answer_correct` | 정답 | 2 | 5 이상 | 임시 |
 | `quiz_timeout` | 아무도 못 맞힘 | 2 | 3 이상 | 임시 |
+| `dread_changed` | 아무도 못 맞혀 공포 단계가 오름 | 2 | 3 이상 | 임시 |
 | `gun_handover` | 정답자 앞에 총이 나타남 (`{bullets}`) | 2 | 3 이상 | 임시 |
 | `cylinder_spun` | 여분 총알을 넣고 돌려 턴을 넘김 (`{bullets}`) | 2 | 2~3 | 임시 |
 | `shooter_timeout` | 사수가 20초 동안 아무것도 안 함 | 1 | 2~3 | 임시 |

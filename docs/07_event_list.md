@@ -32,7 +32,7 @@
 | `ShooterTurn` | 긴장 BGM 레이어 |
 | `ShotResolve` | (결과는 3절 게임 이벤트로 온다) |
 | `HostReaction` | 진행자가 사격 결과에 반응 (대사는 3절 사격 이벤트의 대사를 이때 재생) |
-| `BothFailPenalty` | 공포 단계 연출 (나중에 구현) |
+| `BothFailPenalty` | 공포 단계 연출 (`dread_changed`) |
 | `DeathCheck` | (결과는 3절 게임 이벤트로 온다) |
 | `GameOver` | 엔딩 연출, 페이드아웃 |
 
@@ -64,6 +64,7 @@
 | `answer_wrong` | 오답을 눌렀을 때 (그 사람은 이 문제에서 잠긴다) | `player`, 고른 번호 | 오답 | 버튼 잠김 |
 | `answer_correct` | 정답자가 정해졌을 때 | `player` | 정답 | 정답음 |
 | `quiz_timeout` | 제한시간 안에 아무도 정답을 못 맞혔을 때 | – | 시간 초과 | 타이머 종료음 |
+| `dread_changed` | 아무도 못 맞혀 공포 단계가 올랐을 때 (시간 초과·오답 다음. 최대 단계에서는 나지 않는다) | 새 공포 단계 (1~3) | 공포 단계 상승 | 낮은 울림 |
 | `button_pressed` | 단말기 버튼을 누른 순간 (**누른 기기에서만**, 보내지 않음) | `player`, 고른 번호 | – | 버튼 클릭 |
 
 - 둘 다 오답으로 잠긴 경우에는 각자 `answer_wrong`만 나가고 다음으로 넘어간다 (`quiz_timeout` 없음).
@@ -116,7 +117,6 @@
 | 이벤트 (가칭) | 관련 규칙 | 함께 올 정보 |
 |---|---|---|
 | `answer_simultaneous` | [E10 동시 판정](02_rules_extended.md#e10-동시-판정-). 나가면 `answer_correct`는 나가지 않는다 | 뽑힌 `player` |
-| `dread_changed` | 양측 패널티 ([필수 7절](01_rules_essential.md#7-양측-패널티와-공포-단계)) | 새 공포 단계 |
 | `shot_self_reward` | [E4 자신 쏘기 보상](02_rules_extended.md#e4-자신-쏘기-보상-) | 사수, 보상 |
 | `shot_host_blocked` | [E9 진행자 쏘기](02_rules_extended.md#e9-진행자-쏘기-) | 사수 |
 | `arm_severed` | [E1 팔 절단](02_rules_extended.md#e1-팔-절단-) | `player`, 왼팔/오른팔 |
