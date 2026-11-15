@@ -23,32 +23,35 @@
 
 | 분류 | 소리 | 재생 시점 (이벤트) | 어디서 들리나 | 상태 |
 |---|---|---|---|---|
-| 착석 | 의자 삐걱 | `player_seated` | 공간 음향 (의자 위치) | 필요 |
-| | 끌려가는 소리 | `seat_forced` | 공간 음향 (의자 위치) | 필요 |
-| 퀴즈 | 화면 켜짐 | `quiz_start` | 퀴즈 화면 | 필요 |
-| | 타이머 째깍 | 퀴즈 진행 중 (`quiz_start`의 제한시간으로 각자 재생) | 퀴즈 화면 | 필요 |
-| | 버튼 클릭 | `button_pressed` | 누른 사람 기기에서 바로 | 필요 |
-| | 버튼 잠김 | `answer_wrong` | 단말기 | 필요 |
-| | 정답음 | `answer_correct` | 퀴즈 화면 | 필요 |
-| | 타이머 종료음 | `quiz_timeout` | 퀴즈 화면 | 필요 |
-| | 공포 단계 상승 (낮은 울림) | `dread_changed` | 전체 | 필요 |
-| 총 | 총 놓이는 소리 | `gun_handover` | 총 위치 | 필요 |
-| | 총 잡기 | `gun_grabbed` | 잡은 사람 기기에서 바로 | 필요 |
-| | 실린더 열림 | `cylinder_opened` | 총 | 필요 |
-| | 총알 끼우는 소리 | `bullet_inserted` | 총 | 필요 |
-| | 실린더 닫힘·회전 | `cylinder_spun` | 총 | 필요 |
-| | 총 떨어지는 소리 | `gun_dropped` | 총 | 필요 |
+| 착석 | 의자 삐걱 | `player_seated` | 공간 음향 (의자 위치) | 임시 |
+| | 끌려가는 소리 | `seat_forced` | 공간 음향 (의자 위치) | 임시 |
+| | 착석 경고음 | `seat_warning` | 전체 | 임시 |
+| 퀴즈 | 화면 켜짐 | `quiz_start` | 퀴즈 화면 | 임시 |
+| | 타이머 째깍 | `quiz_pressure` (출제 후 5초마다) | 퀴즈 화면 | 임시 |
+| | 버튼 클릭 | `button_pressed` | 누른 사람 기기에서 바로 | 임시 |
+| | 버튼 잠김 | `answer_wrong` | 단말기 | 임시 |
+| | 정답음 | `answer_correct` | 퀴즈 화면 | 임시 |
+| | 타이머 종료음 | `quiz_timeout` | 퀴즈 화면 | 임시 |
+| | 공포 단계 상승 (낮은 울림) | `dread_changed` | 전체 | 임시 |
+| 총 | 총 놓이는 소리 | `gun_handover` | 총 위치 | 임시 |
+| | 총 잡기 | `gun_grabbed` | 잡은 사람 기기에서 바로 | 임시 |
+| | 실린더 열림 | `cylinder_opened` | 총 | 임시 |
+| | 총알 끼우는 소리 | `bullet_inserted` | 총 | 임시 |
+| | 실린더 닫힘·회전 | `cylinder_spun` | 총 | 임시 |
+| | 총 떨어지는 소리 | `gun_dropped` | 총 | 임시 |
 | | 공이치기 | `hammer_cock` (파일 이름 `gun_hammer`) | 총 | 임시 |
 | | 발사 | 실탄 (`shot_hit_*`, `shot_miss`) (파일 이름 `gun_fire`) | 총 | 임시 |
 | | 딸깍 | 공포탄 (`shot_blank_*`) (파일 이름 `gun_blank`) | 총 | 임시 |
-| | 피격 | `shot_hit_opponent`, `shot_hit_self` | 맞은 몸 | 필요 |
-| | 탄 튀는 소리 | `shot_miss` | 맞은 벽 | 필요 |
-| | 장전 + 실린더 회전 | `reload` | 진행자 위치 | 필요 |
-| 상태 | 심장박동, 숨소리 | `player_wounded` | 맞은 사람 기기에서만 | 필요 |
-| | 쓰러지는 소리 | `player_died` | 죽은 사람 위치 | 필요 |
+| | 피격 | `shot_hit_opponent`, `shot_hit_self` | 맞은 몸 | 임시 |
+| | 탄 튀는 소리 | `shot_miss` | 맞은 벽 | 임시 |
+| | 장전 + 실린더 회전 | `reload` | 진행자 위치 | 임시 |
+| 상태 | 심장박동, 숨소리 | `player_wounded` | 맞은 사람 기기에서만 | 임시 |
+| | 쓰러지는 소리 | `player_died` | 죽은 사람 위치 | 임시 |
 | | 정적 (배경음을 잠깐 죽임) | `player_died`, 방아쇠(`hammer_cock`) | 전체 | 코드로 처리 (파일 필요 없음) |
 
-- `임시` 소리 3개는 `GunEffects`가 코드로 만든 파형이다. 연결 창의 "총 소리" 탭에서 효과음을 넣으면 그것을 쓴다.
+- 총 소리 3개(공이치기·발사·딸깍)는 `GunEffects`가 코드로 만든 파형이다. 연결 창의 "총 소리" 탭에서 효과음을 넣으면 그것을 쓴다.
+- 나머지 `임시` 소리는 코드로 만든 삑·딸깍 소리로, `Audio/SFX/Temp/`에 이벤트 이름으로 들어 있다. `player_won`도 임시 효과음이 연결돼 있다.
+- 실제 소리를 넣을 때는 `Audio/SFX/Temp/`의 같은 이름 파일을 지우고 **폴더에서 자동 연결**을 다시 누른다 (안 지우면 두 소리가 번갈아 난다).
 
 ### 배경음
 
@@ -61,6 +64,7 @@
 
 ### 진행자 목소리
 
+- 녹음이 없는 대사는 자막과 함께 웅얼거리는 임시 소리(`Audio/HostTalk_Temp.wav`, GameFlow의 `HostDialogue` → `Talk Cue`)가 난다. 녹음이 있는 대사는 녹음만 난다.
 - 2절의 진행자 대사를 **대사 id별로 한 파일씩** 녹음해 `Assets/_Project/Audio/Voice/`에 넣는다 (예: `gh01.wav`). 저음 + 변조 목소리.
 - `{bullets}`가 들어간 대사는 숫자(1~6)마다 따로 녹음해 `gh01_1.wav` ~ `gh01_6.wav`로 넣는다. 숫자별 녹음이 없으면 `gh01.wav`를 쓴다.
 - 연결 창(**BombDefuse > Sound Hookup**)의 "진행자 목소리" 탭 → **녹음 목록 내보내기**를 누르면 녹음할 대사와 파일 이름이 `Audio/Voice/recording_list.csv`로 나온다. 넣은 뒤 **폴더에서 자동 연결**.

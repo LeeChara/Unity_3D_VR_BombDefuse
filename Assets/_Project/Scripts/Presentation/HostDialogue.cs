@@ -14,6 +14,8 @@ public class HostDialogue : MonoBehaviour
     [SerializeField, Tooltip("대사 녹음 (비워 두면 자막만)")] VoiceBank m_Voice;
     [SerializeField, Tooltip("진행자 목소리를 낼 곳 (진행자 위치의 AudioSource). 비워 두면 이 오브젝트에 만든다")] AudioSource m_VoiceSource;
     [SerializeField, Min(0f), Tooltip("녹음이 끝나고 다음으로 넘어가기 전 쉬는 시간(초)")] float m_VoiceTail = 0.3f;
+    [SerializeField, Tooltip("녹음이 없는 대사를 띄울 때 대신 낼 임시 소리 (비워 두면 소리 없음)")] AudioClip m_TalkCue;
+    [SerializeField, Range(0f, 1f)] float m_TalkCueVolume = 0.6f;
 
     [Header("표시 시간 = 기본 + 글자 수 × 글자당 시간 (최소값 이상)")]
     [SerializeField, Min(0f)] float m_BaseDuration = 0.8f;
@@ -94,14 +96,18 @@ public class HostDialogue : MonoBehaviour
         LineShown?.Invoke(lineId, text, duration, bullets);
     }
 
-    // 앞 대사의 녹음이 남아 있으면 끊고 새 대사를 말한다
+    // 앞 대사의 녹음이 남아 있으면 끊고 새 대사를 말한다. 녹음이 없으면 임시 소리를 낸다
     void PlayVoice(AudioClip clip)
     {
         if (m_VoiceSource == null)
             return;
         m_VoiceSource.Stop();
         if (clip == null)
+        {
+            if (m_TalkCue != null)
+                m_VoiceSource.PlayOneShot(m_TalkCue, m_TalkCueVolume);
             return;
+        }
         m_VoiceSource.clip = clip;
         m_VoiceSource.Play();
     }

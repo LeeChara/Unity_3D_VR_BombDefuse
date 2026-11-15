@@ -1028,6 +1028,8 @@ MonoBehaviour:
   m_Voice: {fileID: 11400000, guid: c929906f96340ab42ac82300f0439a78, type: 2}
   m_VoiceSource: {fileID: 2085399056}
   m_VoiceTail: 0.3
+  m_TalkCue: {fileID: 8300000, guid: 7d23d485d882ec747b31353ec2e5e28c, type: 3}
+  m_TalkCueVolume: 0.6
   m_BaseDuration: 0.8
   m_SecondsPerCharacter: 0.08
   m_MinDuration: 1.5

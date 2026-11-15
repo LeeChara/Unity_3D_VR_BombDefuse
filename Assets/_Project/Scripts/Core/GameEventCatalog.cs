@@ -35,13 +35,13 @@ public static class GameEventCatalog
         // 착석
         New("seat_prompt", "착석 단계에 들어갈 때", "–", null),
         New("player_seated", "한 사람이 스스로 앉을 때", "Player", SoundLocation.Seat),
-        New("seat_warning", "15초 동안 누군가 안 앉았을 때", "Player = 안 앉은 첫 좌석, Count = 안 앉은 사람 수", null),
+        New("seat_warning", "15초 동안 누군가 안 앉았을 때", "Player = 안 앉은 첫 좌석, Count = 안 앉은 사람 수", SoundLocation.Listener),
         New("seat_forced", "경고 후 10초가 지나 강제로 앉힐 때 (좌석마다)", "Player", SoundLocation.Seat),
         New("rules_intro", "규칙 설명 단계에 들어갈 때", "–", null),
 
         // 퀴즈
         New("quiz_start", "문제를 낼 때", "Count = 제한시간(초)", SoundLocation.QuizScreen),
-        New("quiz_pressure", "출제 후 5초마다", "Count = 남은 시간(초)", null),
+        New("quiz_pressure", "출제 후 5초마다", "Count = 남은 시간(초)", SoundLocation.QuizScreen),
         New("answer_wrong", "오답을 눌렀을 때", "Player, Count = 고른 번호 (0 = A)", SoundLocation.Terminal),
         New("answer_correct", "정답자가 정해졌을 때", "Player", SoundLocation.QuizScreen),
         New("quiz_timeout", "아무도 못 맞히고 시간이 끝났을 때", "–", SoundLocation.QuizScreen),

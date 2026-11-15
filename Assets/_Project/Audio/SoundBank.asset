@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SoundBank
   m_Entries:
   - EventName: player_seated
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 267aac571bec29a4ab98b5e1d1e94253, type: 3}
     Location: 1
     Audience: 0
     Volume: 1
@@ -22,8 +23,19 @@ MonoBehaviour:
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
+  - EventName: seat_warning
+    Clips:
+    - {fileID: 8300000, guid: 557597c075fe16a49bd3847a439d90e5, type: 3}
+    Location: 0
+    Audience: 0
+    Volume: 1
+    PitchJitter: 0.05
+    Delay: 0
+    MinDistance: 0.5
+    MaxDistance: 15
   - EventName: seat_forced
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 8bc293b7732999d4bb8c4f296a423f24, type: 3}
     Location: 1
     Audience: 0
     Volume: 1
@@ -32,7 +44,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: quiz_start
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: c5b39893be0e50b4a8daeab91d3b079e, type: 3}
     Location: 4
     Audience: 0
     Volume: 1
@@ -40,8 +53,19 @@ MonoBehaviour:
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
+  - EventName: quiz_pressure
+    Clips:
+    - {fileID: 8300000, guid: 1b667e062aec1924094d3deb6049a502, type: 3}
+    Location: 4
+    Audience: 0
+    Volume: 0.5
+    PitchJitter: 0.05
+    Delay: 0
+    MinDistance: 0.5
+    MaxDistance: 15
   - EventName: answer_wrong
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 29d8868076639ab4ba1641cafefbfa94, type: 3}
     Location: 3
     Audience: 0
     Volume: 1
@@ -50,7 +74,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: answer_correct
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 26ddec78554e7d24289c96136f15b935, type: 3}
     Location: 4
     Audience: 0
     Volume: 1
@@ -59,7 +84,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: quiz_timeout
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: b6a122d744914a84eb6308680a768120, type: 3}
     Location: 4
     Audience: 0
     Volume: 1
@@ -67,17 +93,29 @@ MonoBehaviour:
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
+  - EventName: dread_changed
+    Clips:
+    - {fileID: 8300000, guid: c4e257339934ca84391ad66bb5f60339, type: 3}
+    Location: 0
+    Audience: 0
+    Volume: 0.9
+    PitchJitter: 0.05
+    Delay: 0
+    MinDistance: 0.5
+    MaxDistance: 15
   - EventName: button_pressed
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 9ed24d136e869cb489ac736b15689e10, type: 3}
     Location: 3
     Audience: 0
-    Volume: 1
+    Volume: 0.7
     PitchJitter: 0.05
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: gun_handover
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 222e1619d7b14734b971deb3e46f0da9, type: 3}
     Location: 5
     Audience: 0
     Volume: 1
@@ -86,7 +124,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: gun_grabbed
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 14dfc775b9f6d194faf5b708c1d9df14, type: 3}
     Location: 5
     Audience: 0
     Volume: 1
@@ -95,7 +134,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: cylinder_opened
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: abae5e6d45c0daf48a8acef2451f62cd, type: 3}
     Location: 5
     Audience: 0
     Volume: 1
@@ -104,25 +144,28 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: bullet_inserted
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: be9f2395890cc1f4e8f3e8c64fc3deae, type: 3}
     Location: 5
     Audience: 0
-    Volume: 1
+    Volume: 0.8
     PitchJitter: 0.05
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: cylinder_spun
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: d0cfdcb022cb7b04688c26866db47509, type: 3}
     Location: 5
     Audience: 0
-    Volume: 1
+    Volume: 0.8
     PitchJitter: 0.05
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: gun_dropped
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 55ad7015fb95df748a2e88361c11e132, type: 3}
     Location: 5
     Audience: 0
     Volume: 1
@@ -131,7 +174,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: shot_hit_opponent
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 0fffc929ee0a82e47b462d2f296991e9, type: 3}
     Location: 7
     Audience: 0
     Volume: 1
@@ -140,7 +184,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: shot_miss
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 47757944ec3ab3e4491b5f78088ace40, type: 3}
     Location: 7
     Audience: 0
     Volume: 1
@@ -149,7 +194,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: shot_hit_self
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 5a4c48e2010bd6340bc291464313c44d, type: 3}
     Location: 7
     Audience: 0
     Volume: 1
@@ -158,7 +204,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: player_wounded
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 649ac5faf5134b94788638c1a1c62631, type: 3}
     Location: 0
     Audience: 1
     Volume: 1
@@ -167,7 +214,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: reload
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 0557da553dce2f94983f725d0838b353, type: 3}
     Location: 6
     Audience: 0
     Volume: 1
@@ -176,7 +224,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: player_died
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 4252c5b59e570bd41832749cbb340b4a, type: 3}
     Location: 2
     Audience: 0
     Volume: 1
@@ -185,7 +234,8 @@ MonoBehaviour:
     MinDistance: 0.5
     MaxDistance: 15
   - EventName: player_won
-    Clips: []
+    Clips:
+    - {fileID: 8300000, guid: 71a79b315e322c548b94e697cce16daa, type: 3}
     Location: 0
     Audience: 0
     Volume: 1
