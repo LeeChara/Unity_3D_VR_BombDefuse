@@ -7,6 +7,7 @@ using UnityEngine.UI;
 /// <summary>
 /// 시야에 붙는 화면 효과. 이 기기 사람의 눈 앞에만 그린다.
 /// - 중상: 시야 가장자리가 붉게 어두워지고 심장박동처럼 뛴다 (자기 좌석의 <c>player_wounded</c>부터 새 게임까지).
+/// - 표적: 사수 턴 동안 총을 맞을 사람(<c>gun_handover</c>의 Target)이면 시야 가장자리가 어둡게 빨리 뛴다.
 /// - 사망: 자기 좌석이 죽으면(<c>player_died</c>) 화면이 거의 검게 덮인다.
 /// - 엔딩: 승자가 정해지면(<c>player_won</c>) 가운데에 결과 글자를 띄운다. 상대가 나가면(<c>opponent_disconnected</c>) 그 사실도 적는다.
 /// - 인트로: 새 게임(<c>Seating</c>)은 검은 화면에서 서서히 밝아지며 시작한다. 로비로 돌아가면 화면을 걷는다.
@@ -25,6 +26,11 @@ public class ScreenEffects : MonoBehaviour
     [SerializeField, Tooltip("분당 심장박동 수")] float m_HeartRate = 70f;
     [SerializeField, Range(0f, 90f), Tooltip("시선에서 이 각도(도)까지는 맑다")] float m_ClearAngle = 15f;
     [SerializeField, Range(0f, 90f), Tooltip("시선에서 이 각도(도)부터 가장 진하다")] float m_FullAngle = 48f;
+
+    [Header("표적")]
+    [SerializeField, Tooltip("사수 턴 동안 총을 맞을 사람(대상) 시야 가장자리 색")] Color m_TargetColor = new Color(0f, 0f, 0f, 1f);
+    [SerializeField, Range(0f, 1f)] float m_TargetStrength = 0.7f;
+    [SerializeField, Tooltip("표적일 때 분당 박동 수")] float m_TargetHeartRate = 100f;
 
     [Header("사망·인트로")]
     [SerializeField] Color m_DeathColor = new Color(0.08f, 0f, 0f, 1f);
@@ -49,6 +55,8 @@ public class ScreenEffects : MonoBehaviour
     GameObject m_ResultPanel;
     bool m_Wounded;
     float m_WoundWeight;
+    bool m_Targeted;
+    float m_TargetWeight;
     Coroutine m_FadeRoutine;
     bool m_OpponentLeft;
 
@@ -95,6 +103,9 @@ public class ScreenEffects : MonoBehaviour
             case "player_wounded" when gameEvent.Player == LocalSeat:
                 m_Wounded = true;
                 break;
+            case "gun_handover":
+                m_Targeted = gameEvent.Target == LocalSeat;
+                break;
             case "player_died" when gameEvent.Player == LocalSeat:
                 m_Wounded = false;
                 FadeTo(m_DeathColor, m_DeathStrength, m_DeathFadeDuration);
@@ -110,6 +121,10 @@ public class ScreenEffects : MonoBehaviour
 
     void OnStateChanged(GameState previous, GameState next)
     {
+        // 표적 표시는 총이 나와 있는 동안만
+        if (next != GameState.GunHandover && next != GameState.ShooterTurn)
+            m_Targeted = false;
+
         switch (next)
         {
             case GameState.Seating:
@@ -147,11 +162,17 @@ public class ScreenEffects : MonoBehaviour
         if (m_Vignette == null)
             return;
 
-        // 중상이 되면 서서히 들어오고, 박동마다 진해졌다 옅어진다
+        // 중상이 되면 서서히 들어오고, 박동마다 진해졌다 옅어진다. 표적이 되면 가장자리가 어둡게 빨리 뛴다
         m_WoundWeight = Mathf.MoveTowards(m_WoundWeight, m_Wounded ? 1f : 0f, Time.deltaTime / 0.8f);
-        var beat = Mathf.Pow(0.5f + 0.5f * Mathf.Cos(Time.time * m_HeartRate / 60f * Mathf.PI * 2f), 4f);
-        var alpha = m_WoundWeight * m_WoundStrength * (1f - m_WoundPulse + m_WoundPulse * beat);
-        m_Vignette.color = new Color(m_WoundColor.r, m_WoundColor.g, m_WoundColor.b, alpha);
+        m_TargetWeight = Mathf.MoveTowards(m_TargetWeight, m_Targeted ? 1f : 0f, Time.deltaTime / 0.6f);
+        var rate = Mathf.Lerp(m_HeartRate, m_TargetHeartRate, m_TargetWeight);
+        var beat = Mathf.Pow(0.5f + 0.5f * Mathf.Cos(Time.time * rate / 60f * Mathf.PI * 2f), 4f);
+        var pulse = 1f - m_WoundPulse + m_WoundPulse * beat;
+        var woundAlpha = m_WoundWeight * m_WoundStrength;
+        var targetAlpha = m_TargetWeight * m_TargetStrength;
+        // 중상이면 붉게, 아니면 표적 색으로
+        var color = m_Wounded ? m_WoundColor : Color.Lerp(m_WoundColor, m_TargetColor, m_TargetWeight);
+        m_Vignette.color = new Color(color.r, color.g, color.b, Mathf.Max(woundAlpha, targetAlpha) * pulse);
     }
 
     // ── 덮개 ──

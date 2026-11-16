@@ -161,7 +161,7 @@ GameObject:
   - component: {fileID: 184343281}
   - component: {fileID: 184343280}
   m_Layer: 0
-  m_Name: GunLight
+  m_Name: TargetLight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -177,11 +177,11 @@ Light:
   m_Enabled: 0
   serializedVersion: 12
   m_Type: 0
-  m_Color: {r: 1, g: 0.92, b: 0.8, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 0
-  m_Range: 3
-  m_SpotAngle: 28
-  m_InnerSpotAngle: 12
+  m_Range: 3.5
+  m_SpotAngle: 32
+  m_InnerSpotAngle: 18
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
     m_Type: 0
@@ -905,7 +905,14 @@ MonoBehaviour:
   - {fileID: 1555471781}
   - {fileID: 1282787750}
   m_PlayerSeat: 1
-  m_QuizResultDelay: 1.5
+  m_LineGap: 0.4
+  m_IntroLeadIn: 1
+  m_IntroLeadOut: 1
+  m_QuestionDelay: 1
+  m_AnswerLineDelay: 1
+  m_GunDelay: 0.5
+  m_UrgeDelay: 5
+  m_UrgeInterval: 7
   m_ShotResultDelay: 1
   m_HostReactionDuration: 1.5
   m_PenaltyDuration: 2.5
@@ -1147,40 +1154,59 @@ MonoBehaviour:
   m_MainLight: {fileID: 1616659234}
   m_HostLight: {fileID: 1995327758}
   m_Levels:
-  - LightColor: {r: 1, g: 0.5, b: 0.2, a: 1}
+  - LightColor: {r: 1, g: 0.97, b: 0.92, a: 1}
     LightIntensity: 1.8
     Flicker: 0
-    Ambient: {r: 0.13, g: 0.11, b: 0.1, a: 1}
+    Ambient: {r: 0.12, g: 0.12, b: 0.12, a: 1}
     HostLightIntensity: 0
-    Music: {fileID: 0}
-  - LightColor: {r: 1, g: 0.45, b: 0.18, a: 1}
-    LightIntensity: 1.8
-    Flicker: 0.5
-    Ambient: {r: 0.11, g: 0.09, b: 0.08, a: 1}
+    WallDistance: 3.95
+    Music: {fileID: 8300000, guid: af98482eec82e2243ac1484d6921eaa0, type: 3}
+  - LightColor: {r: 1, g: 0.97, b: 0.92, a: 1}
+    LightIntensity: 1.1
+    Flicker: 0.45
+    Ambient: {r: 0.07, g: 0.07, b: 0.07, a: 1}
     HostLightIntensity: 0
-    Music: {fileID: 0}
-  - LightColor: {r: 0.8, g: 0.1, b: 0.08, a: 1}
-    LightIntensity: 2.4
+    WallDistance: 3.3
+    Music: {fileID: 8300000, guid: 95a895c73122f9d439ac513d7dc651b7, type: 3}
+  - LightColor: {r: 0.85, g: 0.08, b: 0.06, a: 1}
+    LightIntensity: 2
     Flicker: 0.3
-    Ambient: {r: 0.12, g: 0.05, b: 0.05, a: 1}
+    Ambient: {r: 0.08, g: 0.02, b: 0.02, a: 1}
     HostLightIntensity: 0
-    Music: {fileID: 0}
-  - LightColor: {r: 0.8, g: 0.08, b: 0.06, a: 1}
-    LightIntensity: 0.6
+    WallDistance: 2.8
+    Music: {fileID: 8300000, guid: 193ccb1bac8d6e341b3b3589fb6d8e83, type: 3}
+  - LightColor: {r: 0.7, g: 0.02, b: 0.02, a: 1}
+    LightIntensity: 0.7
     Flicker: 0.4
-    Ambient: {r: 0.04, g: 0.025, b: 0.025, a: 1}
+    Ambient: {r: 0.035, g: 0.005, b: 0.005, a: 1}
     HostLightIntensity: 6
-    Music: {fileID: 0}
+    WallDistance: 2.35
+    Music: {fileID: 8300000, guid: 0f4ecb31a8746ef47a8034a0d709e3d3, type: 3}
   m_TransitionTime: 2
   m_BlackoutTime: 0.8
-  m_GunLight: {fileID: 184343280}
-  m_GunLightIntensity: 4
-  m_GunLightHeight: 1.6
-  m_GunLightFade: 0.6
+  m_ShakeRoot: {fileID: 1514741897}
+  m_ShakeAmplitude: 0.02
+  m_ShakeDuration: 0.7
+  m_Walls:
+  - {fileID: 227999040}
+  - {fileID: 755799719}
+  - {fileID: 650452371}
+  - {fileID: 2113097802}
+  m_WallSpeed: 0.15
+  m_TargetLight: {fileID: 184343280}
+  m_TargetLightIntensity: 6
+  m_TargetLightHeight: 1.4
+  m_TargetLightFade: 0.4
   m_MusicVolume: 0.6
   m_MusicFadeTime: 3
-  m_TensionLayer: {fileID: 0}
-  m_TensionVolume: 0.5
+  m_ShooterMusic: {fileID: 8300000, guid: 8a5b13f4580a6c742894aba1787321c8, type: 3}
+  m_ShooterMusicVolume: 0.6
+  m_ShooterMaxPitch: 1.3
+  m_Heartbeat: {fileID: 8300000, guid: ac6ab932fe43dac488b1d58f577ca1ff, type: 3}
+  m_HeartbeatStartVolume: 0.15
+  m_HeartbeatMaxVolume: 0.9
+  m_HeartbeatMaxPitch: 1.6
+  m_ShooterFade: 0.8
   m_TriggerSilence: 1.2
   m_DeathSilence: 4
   m_SilenceRecover: 1.5
@@ -1866,6 +1892,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4352651797856112412, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
+        type: 3}
+      propertyPath: m_Part
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 5991236366757770312, guid: 9e0e70cd03bf21a4fbc68a9d2f611d43,
         type: 3}
       propertyPath: m_Name
@@ -4083,6 +4114,12 @@ MonoBehaviour:
   m_Screens:
   - {fileID: 1789238713}
   - {fileID: 727195472}
+  m_TickClip: {fileID: 8300000, guid: 4f1606a28a23b7a41aabfc0471395faf, type: 3}
+  m_TickVolume: 0.5
+  m_TickInterval: 1
+  m_FastBelow: 5
+  m_FastInterval: 0.5
+  m_FastPitch: 1.25
 --- !u!4 &1570897676
 Transform:
   m_ObjectHideFlags: 0
@@ -4291,7 +4328,7 @@ GameObject:
   - component: {fileID: 1616659233}
   - component: {fileID: 1616659234}
   m_Layer: 0
-  m_Name: CeilingLight_Red
+  m_Name: CeilingLight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4322,7 +4359,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 0
-  m_Color: {r: 0.8, g: 0.1, b: 0.08, a: 1}
+  m_Color: {r: 1, g: 0.97, b: 0.92, a: 1}
   m_Intensity: 3
   m_Range: 6
   m_SpotAngle: 100
@@ -4683,6 +4720,7 @@ MonoBehaviour:
     ShoulderBack: 0.06
     Radius: 0.05
     ShapeHandGap: 0.1
+    LimpLength: 0.6
   m_ShapeMaterial: {fileID: 2100000, guid: 8a4161f6362945d4b9248c5398fde798, type: 2}
 --- !u!1 &1737920634
 GameObject:
@@ -5185,7 +5223,7 @@ Light:
   m_Enabled: 0
   serializedVersion: 12
   m_Type: 0
-  m_Color: {r: 0.85, g: 0.85, b: 0.8, a: 1}
+  m_Color: {r: 1, g: 0.97, b: 0.92, a: 1}
   m_Intensity: 0
   m_Range: 4
   m_SpotAngle: 35

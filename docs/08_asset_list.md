@@ -27,10 +27,10 @@
 | | 끌려가는 소리 | `seat_forced` | 공간 음향 (의자 위치) | 임시 |
 | | 착석 경고음 | `seat_warning` | 전체 | 임시 |
 | 퀴즈 | 화면 켜짐 | `quiz_start` | 퀴즈 화면 | 임시 |
-| | 타이머 째깍 | `quiz_pressure` (출제 후 5초마다) | 퀴즈 화면 | 임시 |
+| | 타이머 째깍 | 퀴즈 중 1초마다, 5초 이하면 0.5초마다 높게. `QuizBoard` → `Tick Clip` 칸 (`Audio/Temp/QuizTick.wav`) | 퀴즈 화면 | 임시 |
 | | 버튼 클릭 | `button_pressed` | 누른 사람 기기에서 바로 | 임시 |
-| | 버튼 잠김 | `answer_wrong` | 단말기 | 임시 |
-| | 정답음 | `answer_correct` | 퀴즈 화면 | 임시 |
+| | 오답 삐- | `answer_wrong` | 단말기 | 임시 |
+| | 정답 띵동 | `answer_correct` | 퀴즈 화면 | 임시 |
 | | 타이머 종료음 | `quiz_timeout` | 퀴즈 화면 | 임시 |
 | | 공포 단계 상승 (낮은 울림) | `dread_changed` | 전체 | 임시 |
 | 총 | 총 놓이는 소리 | `gun_handover` | 총 위치 | 임시 |
@@ -45,21 +45,24 @@
 | | 피격 | `shot_hit_opponent`, `shot_hit_self` | 맞은 몸 | 임시 |
 | | 탄 튀는 소리 | `shot_miss` | 맞은 벽 | 임시 |
 | | 장전 + 실린더 회전 | `reload` | 진행자 위치 | 임시 |
-| 상태 | 심장박동, 숨소리 | `player_wounded` | 맞은 사람 기기에서만 | 임시 |
+| 상태 | 비명 | `player_hurt` (몸통·팔을 맞고 살아 있을 때) | 맞은 사람 위치 | 임시 |
+| | 숨찬 소리, 심장박동 (약 7초) | `player_wounded` | 맞은 사람 기기에서만 | 임시 |
 | | 쓰러지는 소리 | `player_died` | 죽은 사람 위치 | 임시 |
 | | 정적 (배경음을 잠깐 죽임) | `player_died`, 방아쇠(`hammer_cock`) | 전체 | 코드로 처리 (파일 필요 없음) |
 
 - 총 소리 3개(공이치기·발사·딸깍)는 `GunEffects`가 코드로 만든 파형이다. 연결 창의 "총 소리" 탭에서 효과음을 넣으면 그것을 쓴다.
 - 나머지 `임시` 소리는 코드로 만든 삑·딸깍 소리로, `Audio/SFX/Temp/`에 이벤트 이름으로 들어 있다. `player_won`도 임시 효과음이 연결돼 있다.
 - 실제 소리를 넣을 때는 `Audio/SFX/Temp/`의 같은 이름 파일을 지우고 **폴더에서 자동 연결**을 다시 누른다 (안 지우면 두 소리가 번갈아 난다).
+- 이벤트가 아닌 임시 소리(째깍, 배경음, 심장박동)는 `Audio/Temp/`에 있고, 위 표에 적힌 칸에 직접 넣는다.
 
 ### 배경음
 
 | 소리 | 재생 시점 (상태) | 상태 |
 |---|---|---|
 | 로비 대기 음악 | `Lobby` | 필요 |
-| 긴장 레이어 (반복) | `ShooterTurn` 동안 겹쳐 재생. GameFlow의 `DreadAtmosphere` → `Tension Layer` 칸에 넣는다 | 필요 |
-| 공포 단계별 배경음 (단계 0~3, 반복) | 공포 단계가 바뀔 때 겹쳐 넘어감. GameFlow의 `DreadAtmosphere` → Levels의 `Music` 칸에 넣는다 | 필요 |
+| 사격 배경음 (반복) | 총 지급·사수 턴 동안 단계 배경음 대신 나오고 점점 빨라진다. GameFlow의 `DreadAtmosphere` → `Shooter Music` 칸 (`Audio/Temp/ShooterMusic.wav`) | 임시 |
+| 심장박동 (반복, 한 번 뛰는 길이) | 사수 턴 동안 점점 커지고 빨라진다. `DreadAtmosphere` → `Heartbeat` 칸 (`Audio/Temp/Heartbeat.wav`) | 임시 |
+| 공포 단계별 배경음 (단계 0~3, 반복) | 공포 단계가 바뀔 때 겹쳐 넘어감. `DreadAtmosphere` → Levels의 `Music` 칸 (`Audio/Temp/Ambient_0~3.wav`) | 임시 |
 | 엔딩 음악 | `player_won` | 필요 |
 
 ### 진행자 목소리

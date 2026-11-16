@@ -48,10 +48,7 @@ public class LanGameStarter : MonoBehaviour
         foreach (var mannequin in FindObjectsByType<TestMannequin>(FindObjectsSortMode.None))
             mannequin.gameObject.SetActive(false);
 
-        var networkManager = NetworkManager.Singleton;
-        if (networkManager == null || !networkManager.IsServer)
-            return;
-
+        // 몸은 양쪽 기기 모두 바꾼다 (클라이언트도 사수 턴에 상대 머리를 비추는 데 쓴다)
         var seatCount = SeatRegistry.Instance != null ? SeatRegistry.Instance.Count : 2;
         for (var seat = 1; seat <= seatCount; seat++)
         {
@@ -60,6 +57,10 @@ public class LanGameStarter : MonoBehaviour
                 Debug.LogWarning($"[LanGameStarter] No body for seat {seat}", this);
             m_Flow.SetBody(seat, body);
         }
+
+        var networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsServer)
+            return;
 
         m_Flow.StartGame();
     }

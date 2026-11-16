@@ -41,7 +41,7 @@ public static class GameEventCatalog
 
         // 퀴즈
         New("quiz_start", "문제를 낼 때", "Count = 제한시간(초)", SoundLocation.QuizScreen),
-        New("quiz_pressure", "출제 후 5초마다", "Count = 남은 시간(초)", SoundLocation.QuizScreen),
+        New("quiz_pressure", "출제 후 5초마다", "Count = 남은 시간(초)", null),
         New("answer_wrong", "오답을 눌렀을 때", "Player, Count = 고른 번호 (0 = A)", SoundLocation.Terminal),
         New("answer_correct", "정답자가 정해졌을 때", "Player", SoundLocation.QuizScreen),
         New("quiz_timeout", "아무도 못 맞히고 시간이 끝났을 때", "–", SoundLocation.QuizScreen),
@@ -66,6 +66,7 @@ public static class GameEventCatalog
         New("shot_miss", "실탄이 아무 몸에도 맞지 않았을 때", "Player = 사수, Position = 탄이 닿은 지점", SoundLocation.EventPosition),
         New("shot_blank_self", "자신을 쐈는데 공포탄일 때", "Player = 사수", null),
         New("shot_hit_self", "자신을 쏘아 실탄이 맞았을 때", "Player = 사수, Part, Position = 맞은 지점", SoundLocation.EventPosition),
+        New("player_hurt", "몸통이나 팔을 맞고 살아 있을 때 (비명)", "Player = 맞은 좌석", SoundLocation.Body),
         New("player_wounded", "몸통을 맞아 중상이 되었을 때", "Player = 맞은 좌석", SoundLocation.Listener, SoundAudience.EventPlayer),
         New("reload", "총알이 0발이 되어 진행자가 장전할 때 (결과 브리핑에서)", "Count = 새 총알 개수", SoundLocation.Host),
 

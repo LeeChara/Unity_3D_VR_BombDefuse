@@ -3,7 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// 양팔 히트박스. 어깨(머리 위치와 고개 방향으로 어림한 곳)에서 손까지 캡슐을 매 프레임 맞춘다.
-/// 팔은 필수 버전에서 몸통과 같이 처리한다 (<see cref="BodyPart.Arm"/>, docs/01_rules_essential.md 6절).
+/// 팔을 맞으면 그 팔을 쓸 수 없다 (<see cref="BodyPart.LeftArm"/>, <see cref="BodyPart.RightArm"/>, docs/01_rules_essential.md 6절).
+/// 못 쓰는 팔(<see cref="SetLimp"/>)은 손을 따라가지 않고 어깨에서 아래로 늘어진다.
 /// <see cref="PlayerBody"/>와 <see cref="AvatarBody"/>가 같이 쓴다. 손 위치를 모르면 그 팔은 끈다.
 /// </summary>
 [Serializable]
@@ -15,9 +16,15 @@ public class ArmHitboxes
     [Tooltip("팔 캡슐 반지름(m)")] public float Radius = 0.05f;
     [Tooltip("보이는 팔 캡슐을 손보다 이만큼 짧게(m). 히트박스 길이는 그대로다. 내 몸은 손 모델을 가리지 않게 띄운다")] public float ShapeHandGap;
 
+    [Tooltip("못 쓰는 팔이 늘어진 길이(m)")] public float LimpLength = 0.6f;
+
     Transform m_Head;
     readonly Transform[] m_Arms = new Transform[2];
     readonly CapsuleCollider[] m_Colliders = new CapsuleCollider[2];
+    readonly bool[] m_Limp = new bool[2];
+
+    /// <summary>못 쓰는 팔로 만든다(true). 손을 따라가지 않고 어깨에서 아래로 늘어진다. 0 = 왼팔, 1 = 오른팔.</summary>
+    public void SetLimp(int index, bool limp) => m_Limp[index] = limp;
 
     public Collider[] Colliders => m_Colliders;
 
@@ -35,7 +42,7 @@ public class ArmHitboxes
             var capsule = arm.AddComponent<CapsuleCollider>();
             capsule.radius = Radius;
             capsule.direction = 1;
-            arm.AddComponent<Hitbox>().SetPart(BodyPart.Arm);
+            arm.AddComponent<Hitbox>().SetPart(i == 0 ? BodyPart.LeftArm : BodyPart.RightArm);
             m_Arms[i] = arm.transform;
             m_Colliders[i] = capsule;
         }
@@ -64,13 +71,16 @@ public class ArmHitboxes
         if (arm == null)
             return;
 
-        var active = hand != null && hand.gameObject.activeInHierarchy;
+        var limp = m_Limp[index];
+        var active = limp || hand != null && hand.gameObject.activeInHierarchy;
         if (arm.gameObject.activeSelf != active)
             arm.gameObject.SetActive(active);
         if (!active)
             return;
 
-        var toHand = hand.position - shoulder;
+        // 못 쓰는 팔은 어깨에서 조금 앞으로 처져 아래로 늘어진다
+        var handPosition = limp ? shoulder + (Vector3.down * 0.95f + ProjectedForward() * 0.3f).normalized * LimpLength : hand.position;
+        var toHand = handPosition - shoulder;
         var length = toHand.magnitude;
         if (length < 0.001f)
             return;
@@ -86,6 +96,12 @@ public class ArmHitboxes
             shape.localPosition = Vector3.down * (gap * 0.5f);
             shape.localScale = new Vector3(Radius * 2f, (length - gap + Radius * 2f) * 0.5f, Radius * 2f);
         }
+    }
+
+    Vector3 ProjectedForward()
+    {
+        var forward = Vector3.ProjectOnPlane(m_Head.forward, Vector3.up);
+        return forward.sqrMagnitude < 0.0001f ? Vector3.zero : forward.normalized;
     }
 
     public void SetEnabled(bool enabled)

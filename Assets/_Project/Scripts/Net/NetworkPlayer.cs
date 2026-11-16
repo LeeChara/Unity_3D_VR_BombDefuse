@@ -159,9 +159,61 @@ public class NetworkPlayer : NetworkBehaviour
         if (!IsSpawned || !IsOwner || m_Origin == null)
             return;
 
+        // 죽으면 아바타가 쓰러진 자세로 멈춘다 (상대 화면에서 더 움직이지 않는다)
+        if (m_LocalBody == null)
+            m_LocalBody = m_Origin.GetComponent<PlayerBody>();
+        var damageable = m_LocalBody != null ? m_LocalBody.Damageable : null;
+        if (damageable != null && damageable.IsDead)
+        {
+            if (!m_Slumped)
+                Slump();
+            return;
+        }
+        m_Slumped = false;
+
         Copy(m_Origin.Camera.transform, m_Head);
-        Copy(GetHandSource(true), m_LeftHand);
-        Copy(GetHandSource(false), m_RightHand);
+        // 못 쓰는 팔은 손이 몸 옆으로 늘어진다
+        if (m_LocalBody != null && m_LocalBody.IsArmOff(0))
+            Hang(m_LeftHand, -1f);
+        else
+            Copy(GetHandSource(true), m_LeftHand);
+        if (m_LocalBody != null && m_LocalBody.IsArmOff(1))
+            Hang(m_RightHand, 1f);
+        else
+            Copy(GetHandSource(false), m_RightHand);
+    }
+
+    PlayerBody m_LocalBody;
+    bool m_Slumped;
+
+    // 고개를 앞으로 떨구고 양손을 늘어뜨린 채 멈춘다
+    void Slump()
+    {
+        m_Slumped = true;
+        var forward = Vector3.ProjectOnPlane(m_Head.forward, Vector3.up);
+        if (forward.sqrMagnitude < 0.0001f)
+            forward = Vector3.forward;
+        forward.Normalize();
+        m_Head.SetPositionAndRotation(
+            m_Head.position + Vector3.down * 0.25f + forward * 0.12f,
+            Quaternion.LookRotation(Vector3.Slerp(forward, Vector3.down, 0.75f), forward));
+        Hang(m_LeftHand, -1f);
+        Hang(m_RightHand, 1f);
+    }
+
+    // 손을 어깨 아래(side: -1 왼쪽, 1 오른쪽)로 옮긴다
+    void Hang(Transform hand, float side)
+    {
+        if (hand == null)
+            return;
+
+        var forward = Vector3.ProjectOnPlane(m_Head.forward, Vector3.up);
+        if (forward.sqrMagnitude < 0.0001f)
+            forward = Vector3.forward;
+        forward.Normalize();
+        var right = Vector3.Cross(Vector3.up, forward);
+        var position = m_Head.position + Vector3.down * 0.8f + right * (side * 0.22f) + forward * 0.12f;
+        hand.SetPositionAndRotation(position, Quaternion.LookRotation(Vector3.down, forward));
     }
 
     // 손 추적 중이면 손, 아니면 컨트롤러

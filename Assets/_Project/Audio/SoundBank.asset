@@ -53,23 +53,13 @@ MonoBehaviour:
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
-  - EventName: quiz_pressure
-    Clips:
-    - {fileID: 8300000, guid: 1b667e062aec1924094d3deb6049a502, type: 3}
-    Location: 4
-    Audience: 0
-    Volume: 0.5
-    PitchJitter: 0.05
-    Delay: 0
-    MinDistance: 0.5
-    MaxDistance: 15
   - EventName: answer_wrong
     Clips:
     - {fileID: 8300000, guid: 29d8868076639ab4ba1641cafefbfa94, type: 3}
     Location: 3
     Audience: 0
     Volume: 1
-    PitchJitter: 0.05
+    PitchJitter: 0
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
@@ -79,7 +69,7 @@ MonoBehaviour:
     Location: 4
     Audience: 0
     Volume: 1
-    PitchJitter: 0.05
+    PitchJitter: 0
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
@@ -203,13 +193,23 @@ MonoBehaviour:
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
+  - EventName: player_hurt
+    Clips:
+    - {fileID: 8300000, guid: 032b31670636b8943b6c0784f3b64d88, type: 3}
+    Location: 2
+    Audience: 0
+    Volume: 0.8
+    PitchJitter: 0.08
+    Delay: 0
+    MinDistance: 0.5
+    MaxDistance: 15
   - EventName: player_wounded
     Clips:
     - {fileID: 8300000, guid: 649ac5faf5134b94788638c1a1c62631, type: 3}
     Location: 0
     Audience: 1
     Volume: 1
-    PitchJitter: 0.05
+    PitchJitter: 0
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15

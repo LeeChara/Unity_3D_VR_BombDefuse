@@ -20,6 +20,12 @@ public class Damageable : MonoBehaviour
     public bool IsDead => Model.IsDead;
     public bool IsWounded => Model.IsWounded;
 
+    /// <summary>처음 상태가 아닌지 (죽음, 중상, 못 쓰는 팔). 새 게임에서 되돌릴지 정할 때 쓴다.</summary>
+    public bool HasInjury => Model.HasInjury;
+
+    /// <summary>이 팔(<see cref="BodyPart.LeftArm"/>, <see cref="BodyPart.RightArm"/>)을 쓸 수 없는지.</summary>
+    public bool IsArmDisabled(BodyPart arm) => Model.IsArmDisabled(arm);
+
     DamageModel Model
     {
         get
@@ -41,7 +47,8 @@ public class Damageable : MonoBehaviour
         if (outcome == DamageOutcome.Ignored)
             return outcome;
 
-        Debug.Log($"[Damageable] {name}: {part} 피격 → {(outcome == DamageOutcome.Killed ? "사망" : "중상")}", this);
+        var result = outcome == DamageOutcome.Killed ? "사망" : outcome == DamageOutcome.ArmDisabled ? "팔을 못 씀" : "중상";
+        Debug.Log($"[Damageable] {name}: {part} 피격 → {result}", this);
         Damaged?.Invoke(part, outcome);
         return outcome;
     }

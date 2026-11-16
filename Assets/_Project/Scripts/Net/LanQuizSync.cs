@@ -68,7 +68,7 @@ public class LanQuizSync : MonoBehaviour
             return;
 
         var remaining = m_TimeLimit > 0f ? (float)(1.0 - (Time.timeAsDouble - m_QuizStartTime) / m_TimeLimit) : 0f;
-        m_Board.SetRemainingTime(Mathf.Clamp01(remaining));
+        m_Board.SetRemainingTime(Mathf.Clamp01(remaining), Mathf.Max(0f, remaining) * m_TimeLimit);
     }
 
     // 메시지 관리자는 접속할 때마다 새로 만들어지므로 매번 등록한다

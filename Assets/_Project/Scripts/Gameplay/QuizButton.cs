@@ -44,6 +44,18 @@ public class QuizButton : TriggerInteraction
     static XRPokeInteractor[] s_Pokes;
     static float s_NextPokeRefresh;
 
+    // 손가락 말고도 직접 누를 수 있는 점 (양팔을 다 못 쓰면 머리로 누른다)
+    static readonly List<Transform> s_ExtraPressPoints = new List<Transform>();
+
+    /// <summary>손가락처럼 위에서 내려와 버튼을 누를 수 있는 점을 더한다 (예: 양팔을 못 쓰는 플레이어의 얼굴).</summary>
+    public static void AddPressPoint(Transform point)
+    {
+        if (point != null && !s_ExtraPressPoints.Contains(point))
+            s_ExtraPressPoints.Add(point);
+    }
+
+    public static void RemovePressPoint(Transform point) => s_ExtraPressPoints.Remove(point);
+
     string m_Prompt;
     Vector3 m_RestLocalPosition;
     Renderer[] m_Renderers;
@@ -133,24 +145,7 @@ public class QuizButton : TriggerInteraction
                 continue;
 
             var tip = poke.attachTransform != null ? poke.attachTransform.position : poke.transform.position;
-            var offset = tip - rest;
-            var height = Vector3.Dot(offset, up);
-            var inside = (offset - up * height).magnitude <= m_PokeRadius + m_PokeMargin;
-            var id = poke.GetInstanceID();
-
-            if (!inside)
-            {
-                m_ArmedPokes.Remove(id);
-                continue;
-            }
-
-            if (height > m_PokeTop + m_PokeRearmHeight)
-            {
-                m_ArmedPokes.Add(id);
-                continue;
-            }
-
-            if (height < m_PokeTop - m_PokePressDepth && m_ArmedPokes.Remove(id))
+            if (TryPokeWith(tip, poke.GetInstanceID(), rest, up))
             {
                 if (m_PokeHaptic > 0f)
                     poke.GetComponentInParent<HapticImpulsePlayer>()?.SendHapticImpulse(m_PokeHaptic, 0.05f);
@@ -158,6 +153,37 @@ public class QuizButton : TriggerInteraction
                 return;
             }
         }
+
+        foreach (var point in s_ExtraPressPoints)
+        {
+            if (point != null && TryPokeWith(point.position, point.GetInstanceID(), rest, up))
+            {
+                Press("머리");
+                return;
+            }
+        }
+    }
+
+    // 한 점이 버튼 위에서 내려와 윗면 아래로 들어갔으면 true
+    bool TryPokeWith(Vector3 tip, int id, Vector3 rest, Vector3 up)
+    {
+        var offset = tip - rest;
+        var height = Vector3.Dot(offset, up);
+        var inside = (offset - up * height).magnitude <= m_PokeRadius + m_PokeMargin;
+
+        if (!inside)
+        {
+            m_ArmedPokes.Remove(id);
+            return false;
+        }
+
+        if (height > m_PokeTop + m_PokeRearmHeight)
+        {
+            m_ArmedPokes.Add(id);
+            return false;
+        }
+
+        return height < m_PokeTop - m_PokePressDepth && m_ArmedPokes.Remove(id);
     }
 
     /// <summary>들어갔다 나오는 움직임.</summary>
