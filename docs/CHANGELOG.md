@@ -1,5 +1,35 @@
 # 변경 기록
 
+## 보이스챗 작업
+
+> `feature/core-loop` (조장 커밋 `db35377`) 위에서 한 작업입니다.
+
+### 추가·변경한 것
+
+| 파일 | 변경 |
+|---|---|
+| `Net/LanVoiceChat` (New) | Vivox 보이스챗. Unity 서비스 초기화·익명 로그인·Vivox 초기화 → LAN 접속 시 로그인·그룹 채널 `bombdefuse-room` 참가 → 나가면 퇴장. 실패해도 게임은 진행. Android 마이크 권한 요청. 에디터 가상 플레이어는 다른 인증 프로필 사용 |
+| `Net/LanSessionButton` | `ToggleMute` 명령 추가 (채널에 있을 때만 활성) |
+| `Net/LanSessionStatusText` | 보이스 상태를 둘째 줄에 표시 |
+| `Editor/RoomNetworkSetup` | NetworkManager에 `LanVoiceChat` 추가, 접속 패널에 MUTE 버튼 추가(START를 왼쪽으로 옮김) |
+| `RoomScene` | 위 구성 반영 |
+| 문서 | 03(보이스챗 구성), 05(체크), 06(Unity Cloud 권한·보이스챗 확인 절차) |
+
+### 확인한 것 / 못 한 것
+
+| 항목 | 상태 |
+|---|---|
+| 에디터 2인: 양쪽 서비스 초기화·익명 로그인(서로 다른 계정), 채널 참가, 상대 참가 로그, 음소거, 나가기 | 확인 |
+| 기기 두 대 양방향 통화, 에코 | **미확인** |
+| 인터넷 없을 때 게임이 그대로 진행되는지 | **미확인** (코드상 예외는 전부 잡음) |
+
+### 확인할 것 (푸시 전)
+
+1. **Unity Cloud 조직:** 작업 계정이 조장 조직 `radiorarian`의 멤버가 아니라서 개발 중에는 작업자 조직(`dddong1`)의 프로젝트에 임시로 연결했다. `ProjectSettings/ProjectSettings.asset`, `ProjectSettings/Packages/com.unity.services.vivox/Settings.json`, `ProjectSettings/Packages/com.unity.services.core/`는 **커밋하지 않았다.** 조장이 작업 계정을 `radiorarian`에 초대하면 이 파일들을 되돌려 원래 연결로 복귀한다. 어느 조직을 쓸지는 조장과 정한다
+2. 보이스챗은 인터넷이 필요하다. 발표장 네트워크 대책(핫스팟)은 03 문서 위험 요소와 같다
+
+---
+
 ## 멀티플레이 작업
 
 > GitHub의 `feature/vr-multiplayer-base` (마지막 커밋 `667cbdc`) 이후 로컬에서 한 작업을 정리한 문서입니다.

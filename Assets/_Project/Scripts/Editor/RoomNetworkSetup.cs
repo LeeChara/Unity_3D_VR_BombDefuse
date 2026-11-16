@@ -179,6 +179,11 @@ public static class RoomNetworkSetup
             managerObject.AddComponent<LanSession>();
             log.Add("Added LanSession");
         }
+        if (managerObject.GetComponent<LanVoiceChat>() == null)
+        {
+            managerObject.AddComponent<LanVoiceChat>();
+            log.Add("Added LanVoiceChat");
+        }
 
         networkManager.NetworkConfig ??= new NetworkConfig();
         var config = networkManager.NetworkConfig;
@@ -246,6 +251,21 @@ public static class RoomNetworkSetup
             }
             CreateButton(panel, LanSessionButton.Command.StartGame, "START", "Press Trigger to start the game", new Vector2(0f, -0.3f), 0.5f);
             log.Add("Added START button to LanSessionPanel");
+        }
+
+        var hasMuteButton = panel.GetComponentsInChildren<LanSessionButton>(true)
+            .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.ToggleMute);
+        if (!hasMuteButton)
+        {
+            // START 오른쪽에 작은 MUTE 버튼. START는 가운데 0.5 너비라 그 옆 빈자리에 둔다
+            var start = panel.Find("Button_START");
+            if (start != null)
+                start.localPosition = new Vector3(-0.08f, -0.3f, 0f);
+            var startLabel = panel.Find("Label_START");
+            if (startLabel != null)
+                startLabel.localPosition = new Vector3(-0.08f, -0.3f, -0.025f);
+            CreateButton(panel, LanSessionButton.Command.ToggleMute, "MUTE", "Press Trigger to mute / unmute", new Vector2(0.3f, -0.3f), 0.2f);
+            log.Add("Added MUTE button to LanSessionPanel");
         }
 
         LinkButtonLabels(panel);
