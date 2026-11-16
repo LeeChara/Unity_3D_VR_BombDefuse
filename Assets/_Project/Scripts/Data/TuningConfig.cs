@@ -20,7 +20,9 @@ public class TuningConfig : ScriptableObject
 
     [Header("Quiz")]
     [SerializeField, Tooltip("공포 단계 0~최대의 퀴즈 제한시간(초). 칸 수는 공포 단계 최대 + 1")] float[] m_QuizTimeLimits = { 15f, 12f, 10f, 7f };
-    [SerializeField, Min(0f), Tooltip("퀴즈 중 진행자 압박 대사 간격(초)")] float m_PressureLineInterval = 5f;
+    [SerializeField, Tooltip("공포 단계 0~최대마다 문제 난이도가 나올 비율(%). X = 하, Y = 중, Z = 상. 합이 100이 아니어도 비율로 나눈다")]
+    Vector3[] m_QuizDifficultyWeights = { new Vector3(70f, 25f, 5f), new Vector3(35f, 50f, 15f), new Vector3(10f, 50f, 40f), new Vector3(0f, 40f, 60f) };
+    [SerializeField, Min(0f), Tooltip("퀴즈의 남은 시간이 이 초가 되면 진행자가 한 번 압박한다. 0이면 압박하지 않는다")] float m_PressureLineInterval = 5f;
 
     [Header("Shooter Turn")]
     [SerializeField, Min(0f), Tooltip("사수 턴 제한시간(초)")] float m_ShooterTurnTimeLimit = 20f;
@@ -53,6 +55,15 @@ public class TuningConfig : ScriptableObject
         return m_QuizTimeLimits[index];
     }
 
+    /// <summary>공포 단계에 맞는 난이도 비율 (0 = 하, 1 = 중, 2 = 상). 범위를 벗어나면 가장 가까운 단계 값을 쓴다.</summary>
+    public float[] GetQuizDifficultyWeights(int dreadLevel)
+    {
+        if (m_QuizDifficultyWeights == null || m_QuizDifficultyWeights.Length == 0)
+            return new[] { 1f, 1f, 1f };
+        var weights = m_QuizDifficultyWeights[Mathf.Clamp(dreadLevel, 0, m_QuizDifficultyWeights.Length - 1)];
+        return new[] { weights.x, weights.y, weights.z };
+    }
+
     void OnValidate()
     {
         m_StartingBullets = Mathf.Clamp(m_StartingBullets, 1, m_ChamberCount);
@@ -72,5 +83,20 @@ public class TuningConfig : ScriptableObject
 
         for (var i = 0; i < m_QuizTimeLimits.Length; i++)
             m_QuizTimeLimits[i] = Mathf.Max(0f, m_QuizTimeLimits[i]);
+
+        // 난이도 비율도 공포 단계마다 하나씩
+        if (m_QuizDifficultyWeights == null || m_QuizDifficultyWeights.Length == 0)
+            m_QuizDifficultyWeights = new[] { new Vector3(1f, 1f, 1f) };
+        if (m_QuizDifficultyWeights.Length != count)
+        {
+            var last = m_QuizDifficultyWeights[m_QuizDifficultyWeights.Length - 1];
+            var oldLength = m_QuizDifficultyWeights.Length;
+            System.Array.Resize(ref m_QuizDifficultyWeights, count);
+            for (var i = oldLength; i < count; i++)
+                m_QuizDifficultyWeights[i] = last;
+        }
+
+        for (var i = 0; i < m_QuizDifficultyWeights.Length; i++)
+            m_QuizDifficultyWeights[i] = Vector3.Max(m_QuizDifficultyWeights[i], Vector3.zero);
     }
 }

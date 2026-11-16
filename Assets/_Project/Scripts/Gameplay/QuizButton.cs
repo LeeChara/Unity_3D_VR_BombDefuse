@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Haptics;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
@@ -13,7 +15,8 @@ public enum QuizButtonResult
 }
 
 /// <summary>
-/// 단말기의 정답 버튼. 손(레이 포함)으로 가리키고 트리거를 누르면 선택지(A~D)를 알린다.
+/// 단말기의 정답 버튼. 손(레이 포함)으로 가리키고 트리거를 누르거나, 손가락 끝(컨트롤러의 Poke Point)으로 위에서 직접 누르면 선택지(A~D)를 알린다.
+/// 직접 누르기는 손가락이 버튼 위에서 내려와 윗면을 지나 들어갔을 때만 인정한다 (옆에서 스치면 눌리지 않는다).
 /// 누르면 바로 들어갔다 나온다(판정을 기다리지 않는 즉시 반응). 판정 결과는 색으로 표시한다.
 /// 퀴즈 시스템은 <see cref="Pressed"/>를 구독해서 판정한다.
 /// </summary>
@@ -31,11 +34,37 @@ public class QuizButton : TriggerInteraction
     [SerializeField] Color m_CorrectColor = new Color(0.1f, 0.75f, 0.2f);
     [SerializeField] Color m_WrongColor = new Color(0.8f, 0.1f, 0.08f);
 
+    [Header("Direct Press")]
+    [SerializeField, Tooltip("손가락 끝으로 직접 눌러도 된다")] bool m_AllowPoke = true;
+    [SerializeField, Tooltip("손가락이 버튼 윗면보다 이만큼 들어가면 눌린 것(m)")] float m_PokePressDepth = 0.005f;
+    [SerializeField, Tooltip("버튼 가장자리 밖으로 이만큼까지 손가락을 인정(m)")] float m_PokeMargin = 0.008f;
+    [SerializeField, Tooltip("다시 누르려면 손가락이 윗면보다 이만큼 올라와야 한다(m)")] float m_PokeRearmHeight = 0.01f;
+    [SerializeField, Range(0f, 1f)] float m_PokeHaptic = 0.5f;
+
+    static XRPokeInteractor[] s_Pokes;
+    static float s_NextPokeRefresh;
+
+    // 손가락 말고도 직접 누를 수 있는 점 (양팔을 다 못 쓰면 머리로 누른다)
+    static readonly List<Transform> s_ExtraPressPoints = new List<Transform>();
+
+    /// <summary>손가락처럼 위에서 내려와 버튼을 누를 수 있는 점을 더한다 (예: 양팔을 못 쓰는 플레이어의 얼굴).</summary>
+    public static void AddPressPoint(Transform point)
+    {
+        if (point != null && !s_ExtraPressPoints.Contains(point))
+            s_ExtraPressPoints.Add(point);
+    }
+
+    public static void RemovePressPoint(Transform point) => s_ExtraPressPoints.Remove(point);
+
     string m_Prompt;
     Vector3 m_RestLocalPosition;
     Renderer[] m_Renderers;
     MaterialPropertyBlock m_Block;
     Coroutine m_PressRoutine;
+    // 버튼 위에서 내려오는 중인 손가락들 (Poke Interactor의 인스턴스 ID)
+    readonly HashSet<int> m_ArmedPokes = new HashSet<int>();
+    float m_PokeRadius;
+    float m_PokeTop;
 
     public string Choice => m_Choice;
 
@@ -51,6 +80,22 @@ public class QuizButton : TriggerInteraction
         m_RestLocalPosition = transform.localPosition;
         m_Renderers = GetComponentsInChildren<Renderer>();
         m_Block = new MaterialPropertyBlock();
+
+        // 버튼 모양(메시)의 크기로 직접 누르는 범위를 잡는다. 반지름은 가로, 윗면은 중심에서 위로
+        if (TryGetComponent<MeshFilter>(out var meshFilter) && meshFilter.sharedMesh != null)
+        {
+            var extents = meshFilter.sharedMesh.bounds.extents;
+            var scale = transform.lossyScale;
+            m_PokeRadius = Mathf.Max(extents.x * scale.x, extents.z * scale.z);
+            m_PokeTop = extents.y * scale.y;
+        }
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics()
+    {
+        s_Pokes = null;
+        s_NextPokeRefresh = 0f;
     }
 
     protected override void OnDisable()
@@ -58,6 +103,7 @@ public class QuizButton : TriggerInteraction
         base.OnDisable();
         m_PressRoutine = null;
         transform.localPosition = m_RestLocalPosition;
+        m_ArmedPokes.Clear();
     }
 
     protected override bool CanUse(XRBaseInputInteractor interactor, out string prompt)
@@ -66,11 +112,78 @@ public class QuizButton : TriggerInteraction
         return true;
     }
 
-    protected override void OnTriggerPressed(XRBaseInputInteractor interactor)
+    protected override void OnTriggerPressed(XRBaseInputInteractor interactor) => Press("트리거");
+
+    protected override void Update()
     {
-        Debug.Log($"[QuizButton] {m_Choice}", this);
+        base.Update();
+        if (m_AllowPoke && m_PokeRadius > 0f)
+            UpdatePoke();
+    }
+
+    void Press(string how)
+    {
+        Debug.Log($"[QuizButton] {m_Choice} ({how})", this);
         PlayPress();
         Pressed?.Invoke(this);
+    }
+
+    // 손가락 끝이 버튼 위에서 내려와 윗면 아래로 들어가면 누른다. 들어가는 움직임 중에도 원래 자리 기준으로 잰다
+    void UpdatePoke()
+    {
+        if (s_Pokes == null || Time.unscaledTime >= s_NextPokeRefresh)
+        {
+            s_Pokes = FindObjectsByType<XRPokeInteractor>(FindObjectsSortMode.None);
+            s_NextPokeRefresh = Time.unscaledTime + 2f;
+        }
+
+        var up = transform.up;
+        var rest = transform.parent != null ? transform.parent.TransformPoint(m_RestLocalPosition) : m_RestLocalPosition;
+        foreach (var poke in s_Pokes)
+        {
+            if (poke == null || !poke.isActiveAndEnabled)
+                continue;
+
+            var tip = poke.attachTransform != null ? poke.attachTransform.position : poke.transform.position;
+            if (TryPokeWith(tip, poke.GetInstanceID(), rest, up))
+            {
+                if (m_PokeHaptic > 0f)
+                    poke.GetComponentInParent<HapticImpulsePlayer>()?.SendHapticImpulse(m_PokeHaptic, 0.05f);
+                Press("직접");
+                return;
+            }
+        }
+
+        foreach (var point in s_ExtraPressPoints)
+        {
+            if (point != null && TryPokeWith(point.position, point.GetInstanceID(), rest, up))
+            {
+                Press("머리");
+                return;
+            }
+        }
+    }
+
+    // 한 점이 버튼 위에서 내려와 윗면 아래로 들어갔으면 true
+    bool TryPokeWith(Vector3 tip, int id, Vector3 rest, Vector3 up)
+    {
+        var offset = tip - rest;
+        var height = Vector3.Dot(offset, up);
+        var inside = (offset - up * height).magnitude <= m_PokeRadius + m_PokeMargin;
+
+        if (!inside)
+        {
+            m_ArmedPokes.Remove(id);
+            return false;
+        }
+
+        if (height > m_PokeTop + m_PokeRearmHeight)
+        {
+            m_ArmedPokes.Add(id);
+            return false;
+        }
+
+        return height < m_PokeTop - m_PokePressDepth && m_ArmedPokes.Remove(id);
     }
 
     /// <summary>들어갔다 나오는 움직임.</summary>

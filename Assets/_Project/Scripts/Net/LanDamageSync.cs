@@ -114,7 +114,7 @@ public class LanDamageSync : MonoBehaviour
         foreach (var player in NetworkPlayer.Players)
         {
             var body = NetworkPlayer.BodyAtSeat(player.SeatNumber);
-            if (body != null && (body.IsDead || body.IsWounded))
+            if (body != null && body.HasInjury)
                 body.Revive();
         }
     }

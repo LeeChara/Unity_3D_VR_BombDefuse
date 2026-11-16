@@ -23,6 +23,13 @@ public class HostLinePool
 
     public bool HasEvent(string eventName) => m_Pools.ContainsKey(eventName);
 
+    /// <summary>이 이벤트의 대사 수.</summary>
+    public int Count(string eventName) => m_Pools.TryGetValue(eventName, out var pool) ? pool.Count : 0;
+
+    /// <summary>이 이벤트의 index번째 대사 (CSV 순서). 차례로 이어 말하는 대사에 쓴다. 없으면 null.</summary>
+    public HostLine At(string eventName, int index) =>
+        m_Pools.TryGetValue(eventName, out var pool) && index >= 0 && index < pool.Count ? pool[index] : null;
+
     /// <summary>이 이벤트의 대사를 하나 고른다. 대사가 없으면 null.</summary>
     public HostLine Pick(string eventName)
     {
