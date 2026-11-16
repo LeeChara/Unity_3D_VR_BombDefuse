@@ -39,6 +39,22 @@ public class LanVoiceChat : MonoBehaviour
 
     public bool IsMuted => m_ServicesReady && VivoxService.Instance != null && VivoxService.Instance.IsInputDeviceMuted;
 
+    /// <summary>내가 지금 말하는 중인지 (Vivox의 음성 감지).</summary>
+    public bool IsSelfSpeaking => m_Self != null && m_Self.SpeechDetected;
+
+    /// <summary>그 좌석 사람이 채널에 들어와 있는지.</summary>
+    public bool IsSeatInVoice(int seat) => m_BySeat.TryGetValue(seat, out var participant) && participant.IsInAudio;
+
+    /// <summary>그 좌석 사람이 지금 말하는 중인지.</summary>
+    public bool IsSeatSpeaking(int seat) => m_BySeat.TryGetValue(seat, out var participant) && participant.SpeechDetected;
+
+    /// <summary>그 좌석 사람의 목소리 크기 (0~1). 로그인 때 정한 주기로 갱신된다.</summary>
+    public float SeatAudioEnergy(int seat) => m_BySeat.TryGetValue(seat, out var participant) ? (float)participant.AudioEnergy : 0f;
+
+    // 채널에 있는 사람들. 표시 이름 "Seat1"/"Seat2"로 좌석을 안다
+    VivoxParticipant m_Self;
+    readonly System.Collections.Generic.Dictionary<int, VivoxParticipant> m_BySeat = new System.Collections.Generic.Dictionary<int, VivoxParticipant>();
+
     void Awake()
     {
         s_Instance = this;
@@ -167,7 +183,12 @@ public class LanVoiceChat : MonoBehaviour
             if (!vivox.IsLoggedIn)
             {
                 SetStatus("Voice: logging in");
-                await vivox.LoginAsync(new LoginOptions { DisplayName = displayName });
+                // 목소리 크기(AudioEnergy)는 기본값(StateChange)이면 말을 시작·끝낼 때만 갱신된다. 소리 줄 표시용으로 초당 5번 받는다
+                await vivox.LoginAsync(new LoginOptions
+                {
+                    DisplayName = displayName,
+                    ParticipantUpdateFrequency = ParticipantPropertyUpdateFrequency.FivePerSecond,
+                });
             }
 
             // 접속이 끊겼으면 들어가지 않는다
@@ -230,16 +251,38 @@ public class LanVoiceChat : MonoBehaviour
 
     void OnParticipantAdded(VivoxParticipant participant)
     {
-        if (participant.PlayerId == AuthenticationService.Instance.PlayerId)
+        if (participant.IsSelf)
+        {
+            m_Self = participant;
             return;
+        }
+
+        var seat = SeatOf(participant);
+        if (seat > 0)
+            m_BySeat[seat] = participant;
         Debug.Log($"[LanVoiceChat] {participant.DisplayName} joined voice", this);
     }
 
     void OnParticipantRemoved(VivoxParticipant participant)
     {
-        if (participant.PlayerId == AuthenticationService.Instance.PlayerId)
+        if (participant.IsSelf)
+        {
+            m_Self = null;
+            m_BySeat.Clear();
             return;
+        }
+
+        var seat = SeatOf(participant);
+        if (seat > 0)
+            m_BySeat.Remove(seat);
         Debug.Log($"[LanVoiceChat] {participant.DisplayName} left voice", this);
+    }
+
+    // 표시 이름 "Seat2" → 2. 좌석을 모르는 이름이면 0
+    static int SeatOf(VivoxParticipant participant)
+    {
+        var name = participant.DisplayName;
+        return name != null && name.StartsWith("Seat") && int.TryParse(name.Substring(4), out var seat) ? seat : 0;
     }
 
     // Quest 단독(Android) 빌드는 마이크 권한을 물어봐야 한다. PC에서는 바로 허용된다

@@ -47,16 +47,23 @@ public class LanSessionButton : TriggerInteraction
         }
     }
 
+    // 마이크 버튼은 지금 상태의 반대를 적는다: 켜져 있으면 "MIC OFF", 꺼져 있으면 "MIC ON"
+    static bool MicIsOn => LanVoiceChat.Instance != null && !LanVoiceChat.Instance.IsMuted;
+
     protected override void Update()
     {
         base.Update();
-        if (m_Label != null)
-            m_Label.color = IsAvailable ? Color.white : k_DisabledLabelColor;
+        if (m_Label == null)
+            return;
+
+        m_Label.color = IsAvailable ? Color.white : k_DisabledLabelColor;
+        if (m_Command == Command.ToggleMute)
+            m_Label.text = MicIsOn ? "MIC OFF" : "MIC ON";
     }
 
     protected override bool CanUse(XRBaseInputInteractor interactor, out string prompt)
     {
-        prompt = m_Prompt;
+        prompt = m_Command == Command.ToggleMute ? (MicIsOn ? "Press Trigger to turn the mic off" : "Press Trigger to turn the mic on") : m_Prompt;
         return IsAvailable;
     }
 

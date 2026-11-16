@@ -184,6 +184,11 @@ public static class RoomNetworkSetup
             managerObject.AddComponent<LanVoiceChat>();
             log.Add("Added LanVoiceChat");
         }
+        if (managerObject.GetComponent<VoiceIndicatorController>() == null)
+        {
+            managerObject.AddComponent<VoiceIndicatorController>();
+            log.Add("Added VoiceIndicatorController");
+        }
 
         networkManager.NetworkConfig ??= new NetworkConfig();
         var config = networkManager.NetworkConfig;
@@ -253,19 +258,34 @@ public static class RoomNetworkSetup
             log.Add("Added START button to LanSessionPanel");
         }
 
-        var hasMuteButton = panel.GetComponentsInChildren<LanSessionButton>(true)
-            .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.ToggleMute);
-        if (!hasMuteButton)
+        // 예전 이름(MUTE)으로 만든 버튼은 이름만 바꾼다. 글자는 LanSessionButton이 상태에 맞춰 바꾼다
+        var oldMute = panel.Find("Button_MUTE");
+        if (oldMute != null)
         {
-            // START 오른쪽에 작은 MUTE 버튼. START는 가운데 0.5 너비라 그 옆 빈자리에 둔다
+            oldMute.name = "Button_MIC";
+            var oldLabel = panel.Find("Label_MUTE");
+            if (oldLabel != null)
+            {
+                oldLabel.name = "Label_MIC";
+                oldLabel.GetComponent<TextMeshPro>().text = "MIC OFF";
+            }
+            log.Add("Renamed MUTE button to MIC");
+        }
+
+        var hasMicButton = panel.GetComponentsInChildren<LanSessionButton>(true)
+            .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.ToggleMute);
+        if (!hasMicButton)
+        {
+            // START 오른쪽에 작은 마이크 버튼. START는 가운데 0.5 너비라 그 옆 빈자리에 둔다
             var start = panel.Find("Button_START");
             if (start != null)
                 start.localPosition = new Vector3(-0.08f, -0.3f, 0f);
             var startLabel = panel.Find("Label_START");
             if (startLabel != null)
                 startLabel.localPosition = new Vector3(-0.08f, -0.3f, -0.025f);
-            CreateButton(panel, LanSessionButton.Command.ToggleMute, "MUTE", "Press Trigger to mute / unmute", new Vector2(0.3f, -0.3f), 0.2f);
-            log.Add("Added MUTE button to LanSessionPanel");
+            CreateButton(panel, LanSessionButton.Command.ToggleMute, "MIC", "Press Trigger to turn the mic off", new Vector2(0.3f, -0.3f), 0.2f);
+            panel.Find("Label_MIC").GetComponent<TextMeshPro>().text = "MIC OFF";
+            log.Add("Added MIC button to LanSessionPanel");
         }
 
         LinkButtonLabels(panel);

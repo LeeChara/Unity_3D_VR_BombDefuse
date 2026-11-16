@@ -35,6 +35,9 @@ public class NetworkPlayer : NetworkBehaviour
     /// <summary>좌석 번호 (1부터). 아직 없으면 0.</summary>
     public int SeatNumber => m_SeatIndex.Value + 1;
 
+    /// <summary>아바타 머리. 머리 위에 무언가 붙일 때 쓴다.</summary>
+    public Transform Head => m_Head;
+
     /// <summary>이 기기의 플레이어 좌석 번호 (1부터). 접속 전이면 0.</summary>
     public static int LocalSeatNumber => Local != null ? Local.SeatNumber : 0;
 

@@ -1770,6 +1770,7 @@ GameObject:
   - component: {fileID: 571345083}
   - component: {fileID: 571345082}
   - component: {fileID: 571345086}
+  - component: {fileID: 571345087}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -1899,6 +1900,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LanVoiceChat
   m_ChannelName: bombdefuse-room
   m_SeatWaitTimeout: 3
+--- !u!114 &571345087
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 571345081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a6d1c9878aceb14fbdc630fb934773e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VoiceIndicatorController
+  m_HudOffset: {x: 0, y: 0.18, z: 0.6}
+  m_HudSize: 0.04
+  m_HeadOffset: {x: 0, y: 0.22, z: 0}
+  m_HeadSize: 0.1
 --- !u!1001 &616581617
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5322,7 +5339,7 @@ GameObject:
   - component: {fileID: 2039278773}
   - component: {fileID: 2039278772}
   m_Layer: 0
-  m_Name: Label_MUTE
+  m_Name: Label_MIC
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5367,7 +5384,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: MUTE
+  m_text: MIC OFF
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: db3173fce49a6dc4da530bdb47adf151, type: 2}
   m_sharedMaterial: {fileID: 9156242577246642381, guid: db3173fce49a6dc4da530bdb47adf151,
@@ -5791,7 +5808,7 @@ GameObject:
   - component: {fileID: 2128823370}
   - component: {fileID: 2128823369}
   m_Layer: 0
-  m_Name: Button_MUTE
+  m_Name: Button_MIC
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
