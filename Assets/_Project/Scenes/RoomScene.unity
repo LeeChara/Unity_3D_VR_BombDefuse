@@ -1912,10 +1912,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a6d1c9878aceb14fbdc630fb934773e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VoiceIndicatorController
-  m_HudOffset: {x: 0, y: 0.18, z: 0.6}
-  m_HudSize: 0.04
   m_HeadOffset: {x: 0, y: 0.22, z: 0}
   m_HeadSize: 0.1
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1001 &616581617
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3932,6 +3931,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1377268016}
+  - component: {fileID: 1377268017}
   m_Layer: 0
   m_Name: LanSessionPanel
   m_TagString: Untagged
@@ -3966,6 +3966,25 @@ Transform:
   - {fileID: 2039278771}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1377268017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1377268015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca1e5212be9daad45ae412e2f6904fc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LanSessionPanelFollower
+  m_Host: {fileID: 2085399060}
+  m_SideDistance: 0.9
+  m_ForwardDistance: 0.15
+  m_Height: 1.35
+  m_EyeHeight: 1.6
+  m_MoveThreshold: 0.05
+  m_TurnThreshold: 5
 --- !u!1 &1386220870 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5167925059111895691, guid: f6336ac4ac8b4d34bc5072418cdc62a0,
@@ -5412,7 +5431,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 0.6
+  m_fontSize: 0.45
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -5612,6 +5631,12 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!4 &2085399060 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7946204369600149849, guid: af6cd7b7743666e45a5ca1c30adec98a,
+    type: 3}
+  m_PrefabInstance: {fileID: 5595193570221415624}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2103891298
 PrefabInstance:
   m_ObjectHideFlags: 0

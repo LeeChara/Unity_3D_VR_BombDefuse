@@ -243,6 +243,30 @@ public static class RoomNetworkSetup
         var panelObject = GameObject.Find("LanSessionPanel");
         var panel = panelObject != null ? panelObject.transform : CreateSessionPanel(log);
 
+        // 패널은 Play 중에 이 기기 플레이어 옆(진행자 반대쪽)을 따라간다 (좌석이 배정되면 그 자리 옆으로)
+        var follower = panel.GetComponent<LanSessionPanelFollower>();
+        if (follower == null)
+        {
+            follower = Undo.AddComponent<LanSessionPanelFollower>(panel.gameObject);
+            log.Add("Added LanSessionPanelFollower");
+        }
+        var followerSerialized = new SerializedObject(follower);
+        var hostProperty = followerSerialized.FindProperty("m_Host");
+        if (hostProperty.objectReferenceValue == null)
+        {
+            var host = GameObject.Find("Host");
+            if (host != null)
+            {
+                hostProperty.objectReferenceValue = host.transform;
+                followerSerialized.ApplyModifiedProperties();
+                log.Add("Panel will stay on the side away from Host");
+            }
+            else
+            {
+                log.Add("WARNING: No 'Host' object. Panel will stay on the player's right.");
+            }
+        }
+
         var hasStartButton = panel.GetComponentsInChildren<LanSessionButton>(true)
             .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.StartGame);
         if (!hasStartButton)
