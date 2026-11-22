@@ -5,7 +5,8 @@ using UnityEngine.Serialization;
 /// <summary>
 /// 방 분위기 연출. 공포 단계(docs/01_rules_essential.md 7절) 하나로 조명·환경광·진행자 조명·배경음·벽 위치를 함께 바꾸고,
 /// 진행 상태에 따라 대상 조명·사격 배경음·심장박동·정적을 더한다.
-/// - 공포 단계: <c>dread_changed</c>(새 단계)를 받으면 방이 흔들리고, 조명이 잠깐 꺼졌다가 새 단계 조명(흰색 또는 붉은색)으로 켜지고, 벽이 조금씩 다가온다.
+/// - 공포 단계: <c>dread_changed</c>(새 단계)를 받으면 쿵 하고 방이 흔들리며 조명이 꺼진다. 어둠이 이어지다가 새 단계 조명(흰색 또는 붉은색)이 천천히 켜지고,
+///   그 뒤로 벽이 정해진 시간 동안 천천히 다가온다. 진행 쪽은 이 연출이 끝날 때까지 기다린다 (<see cref="GameFlowController"/>의 Penalty Duration).
 ///   새 게임(Seating)과 로비에서 0으로 돌아간다 (벽은 바로 제자리).
 /// - 대상 조명: 총 지급·사수 턴 동안 사수의 상대 머리 위에서 비춘다 (<c>gun_handover</c>의 Target).
 /// - 사격 배경음: 총 지급·사수 턴 동안 단계 배경음 대신 나오고, 시간이 갈수록 빨라진다. 심장박동도 점점 커지고 빨라진다 (표적 기기에서 크게, 사수 기기에서 작게). 끝나면 단계 배경음이 돌아온다.
@@ -37,14 +38,14 @@ public class DreadAtmosphere : MonoBehaviour
         new Level { LightColor = new Color(0.7f, 0.02f, 0.02f), LightIntensity = 0.7f, Flicker = 0.4f, Ambient = new Color(0.035f, 0.005f, 0.005f), HostLightIntensity = 6f, WallDistance = 2.35f },
     };
     [SerializeField, Min(0.01f), Tooltip("단계가 바뀔 때 조명이 넘어가는 시간(초)")] float m_TransitionTime = 2f;
-    [SerializeField, Min(0f), Tooltip("단계가 오를 때 조명이 완전히 꺼져 있는 시간(초)")] float m_BlackoutTime = 0.8f;
+    [SerializeField, Min(0f), Tooltip("단계가 오를 때 조명이 완전히 꺼져 있는 시간(초)")] float m_BlackoutTime = 2f;
 
     [Header("흔들림·벽")]
     [SerializeField, Tooltip("단계가 오를 때 흔들 오브젝트 (방). 벽은 이 아래에 있어야 같이 흔들린다")] Transform m_ShakeRoot;
     [SerializeField, Min(0f), Tooltip("흔들림 세기(m)")] float m_ShakeAmplitude = 0.02f;
-    [SerializeField, Min(0f), Tooltip("흔들림 시간(초)")] float m_ShakeDuration = 0.7f;
+    [SerializeField, Min(0f), Tooltip("흔들림 시간(초)")] float m_ShakeDuration = 1.5f;
     [SerializeField, Tooltip("단계가 오르면 방 가운데로 다가오는 벽들 (방 오브젝트의 자식)")] Transform[] m_Walls;
-    [SerializeField, Min(0.01f), Tooltip("벽이 다가오는 속도(m/초)")] float m_WallSpeed = 0.15f;
+    [SerializeField, Min(0.01f), Tooltip("조명이 다시 켜진 뒤 벽이 새 거리까지 다가오는 시간(초)")] float m_WallMoveTime = 4f;
 
     [Header("대상 조명")]
     [SerializeField, FormerlySerializedAs("m_GunLight"), Tooltip("총 지급·사수 턴 동안 사수의 상대 머리 위에서 비추는 조명")] Light m_TargetLight;
@@ -82,6 +83,8 @@ public class DreadAtmosphere : MonoBehaviour
     float m_ShakeUntil;
     Vector3[] m_WallBase;
     float m_WallDistance;
+    float m_WallFrom;
+    float m_WallMoveStart;
 
     float m_TargetLightLevel;
     bool m_ShooterPhase;
@@ -198,6 +201,9 @@ public class DreadAtmosphere : MonoBehaviour
         {
             m_BlackoutUntil = Time.time + m_BlackoutTime;
             m_ShakeUntil = Time.time + m_ShakeDuration;
+            // 벽은 조명이 다시 켜질 때부터 움직인다
+            m_WallFrom = m_WallDistance;
+            m_WallMoveStart = m_BlackoutUntil;
         }
         m_Level = level;
 
@@ -210,6 +216,7 @@ public class DreadAtmosphere : MonoBehaviour
             m_Ambient = target.Ambient;
             m_HostIntensity = target.HostLightIntensity;
             m_WallDistance = target.WallDistance;
+            m_WallFrom = target.WallDistance;
             m_BlackoutUntil = 0f;
             m_ShakeUntil = 0f;
         }
@@ -237,8 +244,9 @@ public class DreadAtmosphere : MonoBehaviour
             m_HostIntensity = Mathf.MoveTowards(m_HostIntensity, target.HostLightIntensity, Mathf.Max(1f, target.HostLightIntensity) * t);
         }
 
-        // 벽은 흔들림이 시작되면 바로 조금씩 다가온다
-        m_WallDistance = Mathf.MoveTowards(m_WallDistance, target.WallDistance, m_WallSpeed * Time.deltaTime);
+        // 벽은 조명이 다시 켜지면 정해진 시간 동안 천천히 출발해 천천히 멈춘다
+        var wallProgress = Mathf.Clamp01((Time.time - m_WallMoveStart) / m_WallMoveTime);
+        m_WallDistance = Mathf.Lerp(m_WallFrom, target.WallDistance, Mathf.SmoothStep(0f, 1f, wallProgress));
 
         Apply();
         ApplyWalls();

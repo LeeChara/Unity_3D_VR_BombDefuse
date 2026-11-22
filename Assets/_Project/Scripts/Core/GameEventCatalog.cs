@@ -34,9 +34,9 @@ public static class GameEventCatalog
     {
         // 착석
         New("seat_prompt", "착석 단계에 들어갈 때", "–", null),
-        New("player_seated", "한 사람이 스스로 앉을 때", "Player", SoundLocation.Seat),
-        New("seat_warning", "15초 동안 누군가 안 앉았을 때", "Player = 안 앉은 첫 좌석, Count = 안 앉은 사람 수", SoundLocation.Listener),
-        New("seat_forced", "경고 후 10초가 지나 강제로 앉힐 때 (좌석마다)", "Player", SoundLocation.Seat),
+        New("player_seated", "한 사람이 앉을 때 (강제로 앉힐 때도)", "Player", SoundLocation.Seat),
+        New("seat_warning", "15초 동안 누군가 안 앉았을 때", "Player = 안 앉은 첫 좌석, Count = 안 앉은 사람 수", null),
+        New("seat_forced", "경고 후 10초가 지나 강제로 앉힐 때 (좌석마다). 앉는 소리는 뒤따르는 player_seated가 낸다", "Player", null),
         New("rules_intro", "규칙 설명 단계에 들어갈 때", "–", null),
 
         // 퀴즈
@@ -59,7 +59,7 @@ public static class GameEventCatalog
         New("gun_returned", "떨어뜨린 총이 테이블로 돌아왔을 때", "Player = 사수", null, fromShooter: true),
         New("shooter_timeout", "사수 턴 시간이 지나 총이 반납될 때", "Player = 사수", null),
 
-        // 사격 (발사·공이치기·딸깍은 총의 GunEffects가 낸다)
+        // 사격 (공이치기·발사는 총의 GunEffects가 낸다. 빈 약실은 공이치기 소리만 난다)
         New("hammer_cock", "방아쇠를 당긴 순간", "Player = 사수", null, fromShooter: true),
         New("shot_hit_opponent", "실탄이 상대에게 맞았을 때", "Player = 사수, Target = 대상, Part, Position = 맞은 지점", SoundLocation.EventPosition),
         New("shot_blank_opponent", "상대를 쐈는데 공포탄일 때", "Player = 사수, Target = 대상", null),
@@ -71,7 +71,7 @@ public static class GameEventCatalog
         New("reload", "총알이 0발이 되어 진행자가 장전할 때 (결과 브리핑에서)", "Count = 새 총알 개수", SoundLocation.Host),
 
         // 사망과 종료
-        New("player_died", "사망자가 확인되었을 때", "Player = 죽은 좌석", SoundLocation.Body),
+        New("player_died", "사망자가 확인되었을 때", "Player = 죽은 좌석", null),
         New("player_won", "승자가 정해졌을 때", "Player = 이긴 좌석", SoundLocation.Listener),
         New("opponent_disconnected", "게임 중에 상대가 나갔을 때 (남은 기기에서만)", "Player = 나간 좌석", null, local: true),
     };

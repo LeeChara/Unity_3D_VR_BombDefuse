@@ -23,26 +23,6 @@ MonoBehaviour:
     Delay: 0
     MinDistance: 0.5
     MaxDistance: 15
-  - EventName: seat_warning
-    Clips:
-    - {fileID: 8300000, guid: 557597c075fe16a49bd3847a439d90e5, type: 3}
-    Location: 0
-    Audience: 0
-    Volume: 1
-    PitchJitter: 0.05
-    Delay: 0
-    MinDistance: 0.5
-    MaxDistance: 15
-  - EventName: seat_forced
-    Clips:
-    - {fileID: 8300000, guid: 8bc293b7732999d4bb8c4f296a423f24, type: 3}
-    Location: 1
-    Audience: 0
-    Volume: 1
-    PitchJitter: 0.05
-    Delay: 0
-    MinDistance: 0.5
-    MaxDistance: 15
   - EventName: quiz_start
     Clips:
     - {fileID: 8300000, guid: c5b39893be0e50b4a8daeab91d3b079e, type: 3}
@@ -217,16 +197,6 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 0557da553dce2f94983f725d0838b353, type: 3}
     Location: 6
-    Audience: 0
-    Volume: 1
-    PitchJitter: 0.05
-    Delay: 0
-    MinDistance: 0.5
-    MaxDistance: 15
-  - EventName: player_died
-    Clips:
-    - {fileID: 8300000, guid: 4252c5b59e570bd41832749cbb340b4a, type: 3}
-    Location: 2
     Audience: 0
     Volume: 1
     PitchJitter: 0.05

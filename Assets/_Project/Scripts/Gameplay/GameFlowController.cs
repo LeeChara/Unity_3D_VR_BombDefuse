@@ -48,7 +48,7 @@ public class GameFlowController : MonoBehaviour
     [SerializeField, Min(1f), Tooltip("그 뒤로 재촉하는 간격(초)")] float m_UrgeInterval = 7f;
     [SerializeField, Min(0f), Tooltip("쏜 뒤 총을 치우기까지(초)")] float m_ShotResultDelay = 1f;
     [SerializeField, Min(0f), Tooltip("결과 브리핑 최소 시간(초)")] float m_HostReactionDuration = 1.5f;
-    [SerializeField, Min(0f), Tooltip("양측 패널티(공포 단계가 오르는 연출) 최소 시간(초)")] float m_PenaltyDuration = 2.5f;
+    [SerializeField, Min(0f), Tooltip("양측 패널티(공포 단계가 오르는 연출) 시간(초). 쿵·암전 → 조명 → 벽이 다가옴이 끝나고 한숨 돌릴 때까지")] float m_PenaltyDuration = 8f;
     [SerializeField, Min(0f), Tooltip("게임이 끝나고 처음부터 다시 시작하기까지 최소 시간(초)")] float m_RestartDelay = 3f;
 
     [Header("Start")]
@@ -324,6 +324,7 @@ public class GameFlowController : MonoBehaviour
         {
             case GameState.Seating:
                 m_Player.UnlockSeat();
+                Debug.Log($"[Flow] 클라이언트 착석 단계: 좌석 {LocalSeatNumber}, {(IsLocalPlayerOnOwnSeat ? "이미 앉아 있어서 그대로 둔다" : "의자 뒤에 세운다")}", this);
                 if (IsLocalPlayerOnOwnSeat)
                     RestrictToOwnSeat();
                 else
@@ -367,6 +368,14 @@ public class GameFlowController : MonoBehaviour
                 for (var seat = 1; seat <= m_Seats.Length; seat++)
                     if (IsLocalSeat(seat))
                         return seat;
+
+            // 멀티의 클라이언트는 게임 시작 알림보다 상태(Seating)를 먼저 받을 수 있다. 접속할 때 배정된 의자로 좌석을 안다
+            if (m_Player != null && m_Player.AssignedSeat != null && m_Seats != null)
+            {
+                var index = Array.IndexOf(m_Seats, m_Player.AssignedSeat);
+                if (index >= 0)
+                    return index + 1;
+            }
             return m_PlayerSeat;
         }
     }
@@ -490,6 +499,8 @@ public class GameFlowController : MonoBehaviour
                     foreach (var seatNumber in waiting)
                     {
                         GameEvents.Raise("seat_forced", seatNumber);
+                        // 강제로 앉혀도 앉은 것이다. 앉는 소리도 같다
+                        GameEvents.Raise("player_seated", seatNumber);
                         if (IsLocalSeat == null || IsLocalSeat(seatNumber))
                             ForceLocalSeat();
                         else
