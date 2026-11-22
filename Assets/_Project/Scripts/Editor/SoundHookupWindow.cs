@@ -10,7 +10,7 @@ using UnityEngine;
 /// <summary>
 /// 효과음과 진행자 목소리를 연결하는 창 (메뉴 BombDefuse > Sound Hookup).
 /// 파일 이름 규칙대로 폴더에 넣고 "폴더에서 자동 연결"을 누르면 이름으로 찾아 연결하고, 빠진 소리를 목록으로 보여 준다.
-/// - 효과음: Audio/SFX/이벤트이름.wav (여러 개면 이벤트이름_1.wav, 이벤트이름_2.wav). 총 소리는 gun_hammer, gun_blank, gun_fire.
+/// - 효과음: Audio/SFX/이벤트이름.wav (여러 개면 이벤트이름_1.wav, 이벤트이름_2.wav). 총 소리는 gun_hammer, gun_fire.
 /// - 목소리: Audio/Voice/대사id.wav ({bullets} 대사의 숫자별 녹음은 대사id_숫자.wav)
 /// Play 중에는 ▶ 버튼으로 그 이벤트를 이 기기에서 내서 소리를 들어볼 수 있다.
 /// </summary>
@@ -29,7 +29,6 @@ public class SoundHookupWindow : EditorWindow
     static readonly (string file, string field, string label)[] k_GunSounds =
     {
         ("gun_hammer", "m_HammerClip", "공이치기 (방아쇠)"),
-        ("gun_blank", "m_BlankClip", "딸깍 (공포탄)"),
         ("gun_fire", "m_LiveClip", "발사 (실탄)"),
     };
 
@@ -501,7 +500,7 @@ public class SoundHookupWindow : EditorWindow
 
         EditorGUILayout.HelpBox(
             $"공이치기·딸깍·발사는 총(GunEffects)이 직접 낸다. 비워 두면 코드로 만든 임시 소리를 쓴다.\n" +
-            $"{k_SfxFolder}에 gun_hammer, gun_blank, gun_fire 이름으로 넣고 자동 연결하거나 아래 칸에 직접 넣는다.\n고치는 곳: {source}",
+            $"{k_SfxFolder}에 gun_hammer, gun_fire 이름으로 넣고 자동 연결하거나 아래 칸에 직접 넣는다.\n고치는 곳: {source}",
             MessageType.None);
 
         if (GUILayout.Button("폴더에서 자동 연결"))

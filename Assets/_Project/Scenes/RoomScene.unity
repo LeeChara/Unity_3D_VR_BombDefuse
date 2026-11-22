@@ -915,7 +915,7 @@ MonoBehaviour:
   m_UrgeInterval: 7
   m_ShotResultDelay: 1
   m_HostReactionDuration: 1.5
-  m_PenaltyDuration: 2.5
+  m_PenaltyDuration: 8
   m_RestartDelay: 3
   m_StartOnPlay: 0
 --- !u!4 &294580880
@@ -1129,6 +1129,9 @@ MonoBehaviour:
   m_HeartRate: 70
   m_ClearAngle: 15
   m_FullAngle: 48
+  m_TargetColor: {r: 0, g: 0, b: 0, a: 1}
+  m_TargetStrength: 0.7
+  m_TargetHeartRate: 100
   m_DeathColor: {r: 0.08, g: 0, b: 0, a: 1}
   m_DeathStrength: 0.9
   m_DeathFadeDuration: 1.2
@@ -1183,16 +1186,16 @@ MonoBehaviour:
     WallDistance: 2.35
     Music: {fileID: 8300000, guid: 0f4ecb31a8746ef47a8034a0d709e3d3, type: 3}
   m_TransitionTime: 2
-  m_BlackoutTime: 0.8
+  m_BlackoutTime: 2
   m_ShakeRoot: {fileID: 1514741897}
   m_ShakeAmplitude: 0.02
-  m_ShakeDuration: 0.7
+  m_ShakeDuration: 1.5
   m_Walls:
   - {fileID: 227999040}
   - {fileID: 755799719}
   - {fileID: 650452371}
   - {fileID: 2113097802}
-  m_WallSpeed: 0.15
+  m_WallMoveTime: 4
   m_TargetLight: {fileID: 184343280}
   m_TargetLightIntensity: 6
   m_TargetLightHeight: 1.4
@@ -1206,6 +1209,7 @@ MonoBehaviour:
   m_HeartbeatStartVolume: 0.15
   m_HeartbeatMaxVolume: 0.9
   m_HeartbeatMaxPitch: 1.6
+  m_ShooterHeartbeatScale: 0.4
   m_ShooterFade: 0.8
   m_TriggerSilence: 1.2
   m_DeathSilence: 4
@@ -4722,6 +4726,7 @@ MonoBehaviour:
     ShapeHandGap: 0.1
     LimpLength: 0.6
   m_ShapeMaterial: {fileID: 2100000, guid: 8a4161f6362945d4b9248c5398fde798, type: 2}
+  m_FacePressOffset: {x: 0, y: -0.08, z: 0.1}
 --- !u!1 &1737920634
 GameObject:
   m_ObjectHideFlags: 0

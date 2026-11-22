@@ -5,7 +5,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// 쏜 것을 알 수 있게 하는 임시 이펙트. 리볼버 모델과 효과음이 오면 바꾼다.
 /// 방아쇠: 공이치기 소리 + 약한 진동.
 /// 실탄: 발사음 + 강한 진동 + 큰 반동 + 총구 섬광(빛) + 궤적(선) + 맞은 지점 표시(작은 구).
-/// 공포탄: 딸깍 소리 + 중간 진동 + 작은 반동 + 총구에서 퍼지는 회색 연기 표시.
+/// 공포탄(빈 약실): 따로 소리 없음(공이치기 소리만) + 중간 진동 + 작은 반동 + 총구에서 퍼지는 회색 연기 표시.
 /// 소리 클립을 비워 두면 코드로 만든 임시 소리를 쓴다.
 /// </summary>
 [RequireComponent(typeof(Gun))]
@@ -44,7 +44,6 @@ public class GunEffects : MonoBehaviour
 
     [Header("Sound (비워 두면 임시 소리)")]
     [SerializeField] AudioClip m_HammerClip;
-    [SerializeField] AudioClip m_BlankClip;
     [SerializeField] AudioClip m_LiveClip;
     [SerializeField, Range(0f, 1f)] float m_Volume = 0.9f;
 
@@ -96,8 +95,6 @@ public class GunEffects : MonoBehaviour
         m_Audio.maxDistance = 15f;
         if (m_HammerClip == null)
             m_HammerClip = TempSounds.Hammer();
-        if (m_BlankClip == null)
-            m_BlankClip = TempSounds.Blank();
         if (m_LiveClip == null)
             m_LiveClip = TempSounds.Gunshot();
 
@@ -145,7 +142,7 @@ public class GunEffects : MonoBehaviour
     {
         if (!result.IsLive)
         {
-            m_Audio.PlayOneShot(m_BlankClip, m_Volume);
+            // 빈 약실: 탄이 없으니 공이치기 소리 말고는 소리가 없다
             Haptic(m_BlankHaptic);
             Kick(m_BlankKickAngle, m_BlankKickBack, m_BlankKickDuration);
             ShowMarker(result.Origin, m_BlankSize, m_BlankColor, m_BlankDuration);
@@ -256,10 +253,6 @@ public class GunEffects : MonoBehaviour
 
         public static AudioClip Hammer() => Make("TempHammer", 0.08f, 1, (t, rnd) =>
             Click(t, 0f, 0.012f, 3200f, rnd) * 0.7f + Click(t, 0.035f, 0.01f, 2600f, rnd) * 0.5f);
-
-        // 딸깍: 날카로운 금속음 두 번
-        public static AudioClip Blank() => Make("TempBlank", 0.15f, 2, (t, rnd) =>
-            Click(t, 0f, 0.02f, 2400f, rnd) + Click(t, 0.05f, 0.015f, 1800f, rnd) * 0.6f);
 
         // 탕: 짧은 저음 충격 + 길게 사라지는 잡음
         public static AudioClip Gunshot() => Make("TempGunshot", 0.6f, 3, (t, rnd) =>
