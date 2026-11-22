@@ -1,5 +1,52 @@
 # 변경 기록
 
+## 보이스챗 작업
+
+> `feature/core-loop` (조장 커밋 `583e50c`) 위에서 한 작업입니다.
+
+### 추가·변경한 것
+
+| 파일 | 변경 |
+|---|---|
+| `Net/LanVoiceChat` (New) | Vivox 보이스챗. Unity 서비스 초기화·익명 로그인·Vivox 초기화 → LAN 접속 시 로그인·그룹 채널 `bombdefuse-room` 참가 → 나가면 퇴장. 실패해도 게임은 진행. Android 마이크 권한 요청. 에디터 가상 플레이어는 다른 인증 프로필 사용. 참가자 목소리 크기(AudioEnergy) 제공 |
+| `Presentation/VoiceIndicator`, `VoiceIndicatorController` (New) | 상대가 말하는 동안 상대 머리 위에 선으로 그린 스피커 아이콘. 소리 줄은 목소리 크기에 따라 0·1·2개. 내 표시는 없음 |
+| `Net/LanSessionPanelFollower` (New) | 접속 패널을 이 기기 플레이어 옆, 진행자(`Host`) 반대쪽에 두고 좌석 배정 때 따라 옮김. 방향은 카메라(머리) 기준 |
+| `Net/LanSession` | 게임 포트가 막혀 있으면 7778~7786을 차례로 시도. 알림에 실제 포트를 실음 |
+| `Net/LanSessionButton` | `ToggleMute` 명령 추가. 글자가 `MIC OFF`/`MIC ON`으로 바뀜 (채널에 있을 때만 활성) |
+| `Net/LanSessionStatusText` | 보이스 상태를 둘째 줄에 표시 |
+| `Net/NetworkPlayer` | `Head` 접근자 (머리 위 표시용) |
+| `Editor/RoomNetworkSetup` | NetworkManager에 `LanVoiceChat`·`VoiceIndicatorController`, 패널에 MIC 버튼과 `LanSessionPanelFollower`(Host 연결) 추가 |
+| `RoomScene` | 위 구성 반영 |
+| 문서 | CHANGELOG만. 03·05·06은 원래 파일이라 손대지 않았습니다. 보이스챗 설정·확인 절차는 아래 "보이스챗 확인 방법"에 적었습니다 |
+
+### 확인한 것 / 못 한 것
+
+| 항목 | 상태 |
+|---|---|
+| 에디터 2인: 양쪽 서비스 초기화·익명 로그인(서로 다른 계정), 채널 참가, 상대 참가 로그, 음소거, 나가기 | 확인 |
+| 스피커 아이콘: 목소리 크기 0 / 0.15 / 0.6에서 줄 0 / 1 / 2개, 말이 끝나면 사라짐 | 확인 (목소리 크기를 흉내 내서) |
+| 접속 패널: 호스트·접속자 모두 자기 옆 진행자 반대쪽, 호스트가 고개를 돌린 채 열어도 같음 | 확인 |
+| 7777이 막힌 상태에서 7778로 호스트 열고 접속 | 확인 |
+| 기기 두 대 양방향 통화, 에코, 실제 목소리로 스피커 줄이 움직이는지 | **미확인** |
+| 인터넷 없을 때 게임이 그대로 진행되는지 | **미확인** (코드상 예외는 전부 잡음) |
+
+### 보이스챗 확인 방법
+
+1. 에디터에 로그인한 Unity 계정이 Unity Cloud 조직의 멤버여야 서비스 키를 받습니다. 아니면 콘솔에 `403 Forbidden`이 뜨고 Vivox 로그인이 실패합니다. 조직 소유자가 대시보드 Organization → Members에서 초대합니다
+2. 양쪽 기기 모두 **인터넷**이 되어야 합니다 (게임은 LAN이지만 Vivox는 Unity 서버를 씁니다). 발표장에서는 핫스팟을 준비합니다
+3. 접속 패널 상태 문구 둘째 줄이 Play 직후 `Voice: ready`, HOST/JOIN 뒤 `Voice: on`이 되면 채널에 들어간 것입니다. `Voice: unavailable`/`failed`면 인터넷이나 Unity Cloud 권한 문제입니다
+4. 에디터 2인 모드는 마이크가 하나라 두 창을 다 켜면 하울링이 납니다. 채널 참가까지만 보고, 소리는 한쪽을 **MIC OFF**한 채 확인합니다
+5. 상대가 말하면 상대 머리 위에 스피커 아이콘이 뜨고 소리 줄이 목소리 크기에 따라 0~2개로 바뀝니다. 줄이 너무 쉽게/어렵게 늘면 `VoiceIndicator`의 Level1·Level2를 조정합니다
+6. 기기 두 대로 양방향 대화와 에코 유무를 확인합니다 (QA 기준)
+
+### 확인할 것 (푸시 전)
+
+1. **Unity Cloud 조직:** 작업 계정이 조장 조직 `radiorarian`의 멤버가 아니라서 개발 중에는 작업자 조직(`dddong1`)의 프로젝트에 임시로 연결했습니다. `ProjectSettings/ProjectSettings.asset`, `ProjectSettings/Packages/com.unity.services.vivox/Settings.json`, `ProjectSettings/Packages/com.unity.services.core/`는 **커밋하지 않았습니다.** 조장이 작업 계정을 `radiorarian`에 초대하면 이 파일들을 되돌려 원래 연결로 복귀합니다. 어느 조직을 쓸지는 조장과 정합니다
+2. 보이스챗은 인터넷이 필요합니다. 발표장 네트워크 대책(핫스팟)은 03 문서 위험 요소와 같습니다
+3. 에디터에서 Play가 비정상으로 끝나면 UDP 7777 소켓이 남아 다음 호스트가 7778로 열립니다. 에디터를 재시작하면 풀립니다
+
+---
+
 ## 멀티플레이 작업
 
 > GitHub의 `feature/vr-multiplayer-base` (마지막 커밋 `667cbdc`) 이후 로컬에서 한 작업을 정리한 문서입니다.

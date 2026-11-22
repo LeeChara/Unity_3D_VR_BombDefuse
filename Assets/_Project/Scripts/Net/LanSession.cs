@@ -15,7 +15,8 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkManager), typeof(UnityTransport))]
 public class LanSession : MonoBehaviour
 {
-    [SerializeField, Tooltip("게임 포트")] ushort m_Port = 7777;
+    [SerializeField, Tooltip("게임 포트. 막혀 있으면 이 다음 번호들을 차례로 써 본다")] ushort m_Port = 7777;
+    [SerializeField, Min(1), Tooltip("호스트를 열 때 시도할 포트 개수 (게임 포트부터 차례로)")] int m_PortTries = 10;
     [SerializeField, Tooltip("호스트 알림을 주고받는 UDP 포트")] ushort m_DiscoveryPort = 47777;
     [SerializeField, Min(0.1f), Tooltip("호스트 알림 간격(초)")] float m_AnnounceInterval = 1f;
     [SerializeField, Min(0f), Tooltip("호스트 알림을 기다리는 시간(초). 지나면 아래 주소로 붙는다")] float m_DiscoveryTimeout = 3f;
@@ -35,6 +36,8 @@ public class LanSession : MonoBehaviour
     bool m_IsDiscovering;
     float m_DiscoveryEndTime;
     float m_NextAnnounceTime;
+    // 실제로 연 포트 (기본 포트가 막혀 있으면 다음 번호)
+    ushort m_ActivePort;
 
     public static LanSession Instance => s_Instance;
 
@@ -99,17 +102,28 @@ public class LanSession : MonoBehaviour
             return;
 
         var address = LanDiscovery.GetLocalAddress();
-        // 모든 어댑터에서 받는다. 표시용 주소는 LAN 주소
-        m_Transport.SetConnectionData(address, m_Port, "0.0.0.0");
-        if (!m_NetworkManager.StartHost())
+        // 기본 포트가 막혀 있으면(이전 Play가 비정상으로 끝나 소켓이 남았거나 다른 프로그램이 쓰는 중) 다음 포트로 넘어간다.
+        // 접속하는 쪽은 알림(UDP 47777)에서 실제 포트를 받으므로 어느 포트든 붙을 수 있다
+        var opened = false;
+        for (var i = 0; i < m_PortTries && !opened; i++)
         {
-            SetStatus("Failed to host. Is the port already in use?");
+            m_ActivePort = (ushort)(m_Port + i);
+            // 모든 어댑터에서 받는다. 표시용 주소는 LAN 주소
+            m_Transport.SetConnectionData(address, m_ActivePort, "0.0.0.0");
+            opened = m_NetworkManager.StartHost();
+            if (!opened)
+                Debug.LogWarning($"[LanSession] Port {m_ActivePort} is busy, trying the next one");
+        }
+
+        if (!opened)
+        {
+            SetStatus($"Failed to host. Ports {m_Port}-{m_Port + m_PortTries - 1} are all in use");
             return;
         }
 
         m_Discovery.StartAnnouncing(m_DiscoveryPort);
         m_NextAnnounceTime = 0f;
-        SetStatus($"Hosting at {address}:{m_Port}\nWaiting for player 2");
+        SetStatus($"Hosting at {address}:{m_ActivePort}\nWaiting for player 2");
     }
 
     public void Join()
@@ -189,7 +203,7 @@ public class LanSession : MonoBehaviour
         else if (m_NetworkManager.IsServer && Time.unscaledTime >= m_NextAnnounceTime)
         {
             m_NextAnnounceTime = Time.unscaledTime + m_AnnounceInterval;
-            m_Discovery.Broadcast(m_Port);
+            m_Discovery.Broadcast(m_ActivePort);
         }
     }
 

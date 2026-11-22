@@ -179,6 +179,16 @@ public static class RoomNetworkSetup
             managerObject.AddComponent<LanSession>();
             log.Add("Added LanSession");
         }
+        if (managerObject.GetComponent<LanVoiceChat>() == null)
+        {
+            managerObject.AddComponent<LanVoiceChat>();
+            log.Add("Added LanVoiceChat");
+        }
+        if (managerObject.GetComponent<VoiceIndicatorController>() == null)
+        {
+            managerObject.AddComponent<VoiceIndicatorController>();
+            log.Add("Added VoiceIndicatorController");
+        }
 
         networkManager.NetworkConfig ??= new NetworkConfig();
         var config = networkManager.NetworkConfig;
@@ -233,6 +243,30 @@ public static class RoomNetworkSetup
         var panelObject = GameObject.Find("LanSessionPanel");
         var panel = panelObject != null ? panelObject.transform : CreateSessionPanel(log);
 
+        // 패널은 Play 중에 이 기기 플레이어 옆(진행자 반대쪽)을 따라간다 (좌석이 배정되면 그 자리 옆으로)
+        var follower = panel.GetComponent<LanSessionPanelFollower>();
+        if (follower == null)
+        {
+            follower = Undo.AddComponent<LanSessionPanelFollower>(panel.gameObject);
+            log.Add("Added LanSessionPanelFollower");
+        }
+        var followerSerialized = new SerializedObject(follower);
+        var hostProperty = followerSerialized.FindProperty("m_Host");
+        if (hostProperty.objectReferenceValue == null)
+        {
+            var host = GameObject.Find("Host");
+            if (host != null)
+            {
+                hostProperty.objectReferenceValue = host.transform;
+                followerSerialized.ApplyModifiedProperties();
+                log.Add("Panel will stay on the side away from Host");
+            }
+            else
+            {
+                log.Add("WARNING: No 'Host' object. Panel will stay on the player's right.");
+            }
+        }
+
         var hasStartButton = panel.GetComponentsInChildren<LanSessionButton>(true)
             .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.StartGame);
         if (!hasStartButton)
@@ -246,6 +280,36 @@ public static class RoomNetworkSetup
             }
             CreateButton(panel, LanSessionButton.Command.StartGame, "START", "Press Trigger to start the game", new Vector2(0f, -0.3f), 0.5f);
             log.Add("Added START button to LanSessionPanel");
+        }
+
+        // 예전 이름(MUTE)으로 만든 버튼은 이름만 바꾼다. 글자는 LanSessionButton이 상태에 맞춰 바꾼다
+        var oldMute = panel.Find("Button_MUTE");
+        if (oldMute != null)
+        {
+            oldMute.name = "Button_MIC";
+            var oldLabel = panel.Find("Label_MUTE");
+            if (oldLabel != null)
+            {
+                oldLabel.name = "Label_MIC";
+                oldLabel.GetComponent<TextMeshPro>().text = "MIC OFF";
+            }
+            log.Add("Renamed MUTE button to MIC");
+        }
+
+        var hasMicButton = panel.GetComponentsInChildren<LanSessionButton>(true)
+            .Any(b => new SerializedObject(b).FindProperty("m_Command").enumValueIndex == (int)LanSessionButton.Command.ToggleMute);
+        if (!hasMicButton)
+        {
+            // START 오른쪽에 작은 마이크 버튼. START는 가운데 0.5 너비라 그 옆 빈자리에 둔다
+            var start = panel.Find("Button_START");
+            if (start != null)
+                start.localPosition = new Vector3(-0.08f, -0.3f, 0f);
+            var startLabel = panel.Find("Label_START");
+            if (startLabel != null)
+                startLabel.localPosition = new Vector3(-0.08f, -0.3f, -0.025f);
+            CreateButton(panel, LanSessionButton.Command.ToggleMute, "MIC", "Press Trigger to turn the mic off", new Vector2(0.3f, -0.3f), 0.2f);
+            panel.Find("Label_MIC").GetComponent<TextMeshPro>().text = "MIC OFF";
+            log.Add("Added MIC button to LanSessionPanel");
         }
 
         LinkButtonLabels(panel);
