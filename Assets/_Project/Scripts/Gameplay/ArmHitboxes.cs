@@ -3,8 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// 양팔 히트박스. 어깨(머리 위치와 고개 방향으로 어림한 곳)에서 손까지 캡슐을 매 프레임 맞춘다.
-/// 팔을 맞으면 그 팔을 쓸 수 없다 (<see cref="BodyPart.LeftArm"/>, <see cref="BodyPart.RightArm"/>, docs/01_rules_essential.md 6절).
-/// 못 쓰는 팔(<see cref="SetLimp"/>)은 손을 따라가지 않고 어깨에서 아래로 늘어진다.
+/// 팔을 맞으면 그 팔이 절단된다 (<see cref="BodyPart.LeftArm"/>, <see cref="BodyPart.RightArm"/>, docs/01_rules_essential.md 6절, 확장 E1).
+/// 절단된 팔(<see cref="SetSevered"/>)은 손을 따라가지 않고 어깨에서 짧게 아래로 처지고, 끝의 절단면에서 피가 떨어진다(<see cref="BloodDrip"/>).
 /// <see cref="PlayerBody"/>와 <see cref="AvatarBody"/>가 같이 쓴다. 손 위치를 모르면 그 팔은 끈다.
 /// </summary>
 [Serializable]
@@ -16,15 +16,48 @@ public class ArmHitboxes
     [Tooltip("팔 캡슐 반지름(m)")] public float Radius = 0.05f;
     [Tooltip("보이는 팔 캡슐을 손보다 이만큼 짧게(m). 히트박스 길이는 그대로다. 내 몸은 손 모델을 가리지 않게 띄운다")] public float ShapeHandGap;
 
-    [Tooltip("못 쓰는 팔이 늘어진 길이(m)")] public float LimpLength = 0.6f;
+    [Tooltip("절단된 팔이 어깨에서 남는 길이(m)")] public float StumpLength = 0.22f;
 
     Transform m_Head;
     readonly Transform[] m_Arms = new Transform[2];
     readonly CapsuleCollider[] m_Colliders = new CapsuleCollider[2];
-    readonly bool[] m_Limp = new bool[2];
+    readonly bool[] m_Severed = new bool[2];
+    readonly Transform[] m_Stumps = new Transform[2];
 
-    /// <summary>못 쓰는 팔로 만든다(true). 손을 따라가지 않고 어깨에서 아래로 늘어진다. 0 = 왼팔, 1 = 오른팔.</summary>
-    public void SetLimp(int index, bool limp) => m_Limp[index] = limp;
+    /// <summary>절단된 팔로 만든다(true). 손을 따라가지 않고 어깨에서 짧게 처지고 절단면이 보인다. 0 = 왼팔, 1 = 오른팔.</summary>
+    public void SetSevered(int index, bool severed)
+    {
+        m_Severed[index] = severed;
+        if (m_Stumps[index] != null)
+            m_Stumps[index].gameObject.SetActive(severed);
+    }
+
+    /// <summary>
+    /// 팔 끝에 절단면(붉은 구)과 핏방울을 만든다. 처음에는 꺼져 있고 <see cref="SetSevered"/>로 켠다.
+    /// 팔 모양(<see cref="AvatarBody.CreateShape"/>)을 붙인 뒤에 부른다. 재질은 팔 모양과 같은 것을 쓰고 색만 바꾼다.
+    /// </summary>
+    public void CreateStumps(Material material)
+    {
+        var block = new MaterialPropertyBlock();
+        for (var i = 0; i < 2; i++)
+        {
+            if (m_Arms[i] == null || m_Stumps[i] != null)
+                continue;
+
+            var stump = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            stump.name = "Stump";
+            UnityEngine.Object.Destroy(stump.GetComponent<Collider>());
+            stump.transform.SetParent(m_Arms[i], false);
+            stump.transform.localScale = Vector3.one * Radius * 2.3f;
+            var stumpRenderer = stump.GetComponent<MeshRenderer>();
+            if (material != null)
+                stumpRenderer.sharedMaterial = material;
+            BloodDrip.Tint(stumpRenderer, block);
+            stump.AddComponent<BloodDrip>().Init(stumpRenderer, material);
+            stump.SetActive(m_Severed[i]);
+            m_Stumps[i] = stump.transform;
+        }
+    }
 
     public Collider[] Colliders => m_Colliders;
 
@@ -71,15 +104,15 @@ public class ArmHitboxes
         if (arm == null)
             return;
 
-        var limp = m_Limp[index];
-        var active = limp || hand != null && hand.gameObject.activeInHierarchy;
+        var severed = m_Severed[index];
+        var active = severed || hand != null && hand.gameObject.activeInHierarchy;
         if (arm.gameObject.activeSelf != active)
             arm.gameObject.SetActive(active);
         if (!active)
             return;
 
-        // 못 쓰는 팔은 어깨에서 조금 앞으로 처져 아래로 늘어진다
-        var handPosition = limp ? shoulder + (Vector3.down * 0.95f + ProjectedForward() * 0.3f).normalized * LimpLength : hand.position;
+        // 절단된 팔은 어깨에서 조금 앞으로 처져 아래로 짧게 남는다
+        var handPosition = severed ? shoulder + (Vector3.down * 0.95f + ProjectedForward() * 0.3f).normalized * StumpLength : hand.position;
         var toHand = handPosition - shoulder;
         var length = toHand.magnitude;
         if (length < 0.001f)
@@ -90,12 +123,16 @@ public class ArmHitboxes
         m_Colliders[index].height = length + Radius * 2f;
         if (arm.childCount > 0)
         {
-            // 손 쪽 끝만 줄이고 어깨 쪽 끝은 그대로 둔다
-            var gap = Mathf.Min(ShapeHandGap, length);
+            // 손 쪽 끝만 줄이고 어깨 쪽 끝은 그대로 둔다. 절단된 팔은 끝까지 그린다
+            var gap = severed ? 0f : Mathf.Min(ShapeHandGap, length);
             var shape = arm.GetChild(0);
             shape.localPosition = Vector3.down * (gap * 0.5f);
             shape.localScale = new Vector3(Radius * 2f, (length - gap + Radius * 2f) * 0.5f, Radius * 2f);
         }
+
+        // 절단면은 팔 끝(손 쪽)에 둔다
+        if (severed && m_Stumps[index] != null)
+            m_Stumps[index].localPosition = Vector3.up * (length * 0.5f);
     }
 
     Vector3 ProjectedForward()

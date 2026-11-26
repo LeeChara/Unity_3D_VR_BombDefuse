@@ -98,7 +98,7 @@ public class LanVoiceChat : MonoBehaviour
     {
         try
         {
-            SetStatus("Voice: starting");
+            SetStatus("보이스챗: 준비 중");
             if (UnityServices.State != ServicesInitializationState.Initialized)
                 await UnityServices.InitializeAsync();
 
@@ -115,7 +115,7 @@ public class LanVoiceChat : MonoBehaviour
             VivoxService.Instance.ParticipantAddedToChannel += OnParticipantAdded;
             VivoxService.Instance.ParticipantRemovedFromChannel += OnParticipantRemoved;
             m_ServicesReady = true;
-            SetStatus("Voice: ready");
+            SetStatus("보이스챗: 대기");
 
             // 서비스가 늦게 준비됐는데 이미 LAN에 붙어 있으면 바로 들어간다
             if (m_WantConnected)
@@ -124,7 +124,7 @@ public class LanVoiceChat : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogWarning($"[LanVoiceChat] Voice unavailable: {e.Message}", this);
-            SetStatus("Voice: unavailable");
+            SetStatus("보이스챗: 사용할 수 없음");
         }
     }
 
@@ -182,7 +182,7 @@ public class LanVoiceChat : MonoBehaviour
             var vivox = VivoxService.Instance;
             if (!vivox.IsLoggedIn)
             {
-                SetStatus("Voice: logging in");
+                SetStatus("보이스챗: 로그인 중");
                 // 목소리 크기(AudioEnergy)는 기본값(StateChange)이면 말을 시작·끝낼 때만 갱신된다. 소리 줄 표시용으로 초당 5번 받는다
                 await vivox.LoginAsync(new LoginOptions
                 {
@@ -197,17 +197,17 @@ public class LanVoiceChat : MonoBehaviour
 
             if (vivox.ActiveChannels.Count == 0)
             {
-                SetStatus("Voice: joining");
+                SetStatus("보이스챗: 연결 중");
                 await vivox.JoinGroupChannelAsync(m_ChannelName, ChatCapability.AudioOnly);
             }
 
-            SetStatus(vivox.IsInputDeviceMuted ? "Voice: on (muted)" : "Voice: on");
+            SetStatus(vivox.IsInputDeviceMuted ? "보이스챗: 켜짐 (마이크 꺼짐)" : "보이스챗: 켜짐");
             Debug.Log($"[LanVoiceChat] Joined '{m_ChannelName}' as {displayName}", this);
         }
         catch (Exception e)
         {
             Debug.LogWarning($"[LanVoiceChat] Could not join voice: {e.Message}", this);
-            SetStatus("Voice: failed");
+            SetStatus("보이스챗: 실패");
         }
     }
 
@@ -220,7 +220,7 @@ public class LanVoiceChat : MonoBehaviour
                 await vivox.LeaveAllChannelsAsync();
             if (vivox.IsLoggedIn)
                 await vivox.LogoutAsync();
-            SetStatus("Voice: ready");
+            SetStatus("보이스챗: 대기");
         }
         catch (Exception e)
         {
@@ -243,7 +243,7 @@ public class LanVoiceChat : MonoBehaviour
             vivox.MuteInputDevice();
 
         if (IsInChannel)
-            SetStatus(vivox.IsInputDeviceMuted ? "Voice: on (muted)" : "Voice: on");
+            SetStatus(vivox.IsInputDeviceMuted ? "보이스챗: 켜짐 (마이크 꺼짐)" : "보이스챗: 켜짐");
         Debug.Log($"[LanVoiceChat] Microphone {(vivox.IsInputDeviceMuted ? "muted" : "unmuted")}", this);
     }
 

@@ -10,7 +10,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 /// 팔(캡슐)은 어깨에서 손(손 추적 중이면 손, 아니면 컨트롤러)까지 이어진다 (<see cref="ArmHitboxes"/>).
 /// 자신 쏘기 판정과 피해에 쓴다. 상대 기기에서는 아바타의 <see cref="AvatarBody"/>가 같은 모양으로 맞는다.
 /// 몸통과 팔은 히트박스와 같은 크기의 캡슐로 그려서, 내려다보면 내 몸이 보인다 (머리는 시야를 가리므로 그리지 않는다).
-/// 팔을 맞으면 그 팔은 늘어지고, 그쪽 손(컨트롤러·손 추적)의 상호작용(잡기, 레이, 직접 누르기)과 손 모양이 새 게임까지 꺼진다.
+/// 팔을 맞으면 그 팔이 절단되어(짧게 남고 절단면에서 피가 떨어짐), 그쪽 손(컨트롤러·손 추적)의 상호작용(잡기, 레이, 직접 누르기)과 손 모양이 새 게임까지 꺼진다.
 /// 양팔을 다 못 쓰면 고개를 숙여 얼굴로 단말기 버튼을 누를 수 있다.
 /// </summary>
 [RequireComponent(typeof(XROrigin), typeof(Damageable))]
@@ -69,6 +69,7 @@ public class PlayerBody : MonoBehaviour
         m_Arms.Create(camera, transform);
         AvatarBody.CreateShape(m_Arms.GetArm(0), Vector3.one * m_Arms.Radius * 2f, m_ShapeMaterial);
         AvatarBody.CreateShape(m_Arms.GetArm(1), Vector3.one * m_Arms.Radius * 2f, m_ShapeMaterial);
+        m_Arms.CreateStumps(m_ShapeMaterial);
         m_InputModality = GetComponentInChildren<XRInputModalityManager>(true);
 
         // 리그의 이동용 캡슐(CharacterController)이 자기 히트박스에 걸리지 않게 한다
@@ -109,7 +110,7 @@ public class PlayerBody : MonoBehaviour
     void SetArmOff(int index, bool off)
     {
         m_ArmOff[index] = off;
-        m_Arms.SetLimp(index, off);
+        m_Arms.SetSevered(index, off);
         UpdateFacePress();
         if (off)
             return;

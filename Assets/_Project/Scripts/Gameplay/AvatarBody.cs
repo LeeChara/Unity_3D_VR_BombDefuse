@@ -5,6 +5,7 @@ using UnityEngine;
 /// 머리(구)는 아바타 머리를 따라가고, 몸통(캡슐)은 머리 아래에 붙어 고개 방향(수평)만 따라 돈다.
 /// 팔(캡슐)은 어깨에서 아바타 손까지 이어진다 (<see cref="ArmHitboxes"/>).
 /// 몸통과 팔은 히트박스와 같은 크기의 캡슐로 그려서, 보이는 곳과 맞는 곳이 같다.
+/// 팔을 맞으면 그 팔이 절단된 모습(짧은 팔, 절단면의 피)이 되고 그쪽 손 모양이 사라진다. 새 게임(Revive)에서 되돌린다.
 /// 자기 아바타(그 기기의 플레이어 본인)에서는 <see cref="SetHitboxesEnabled"/>로 끈다. 본인의 몸은 XR Origin의 PlayerBody가 맡는다.
 /// </summary>
 [RequireComponent(typeof(Damageable))]
@@ -23,6 +24,8 @@ public class AvatarBody : MonoBehaviour
 
     Transform m_Torso;
     Collider[] m_Colliders;
+    readonly System.Collections.Generic.List<Renderer>[] m_HiddenHandRenderers = { new System.Collections.Generic.List<Renderer>(), new System.Collections.Generic.List<Renderer>() };
+    readonly System.Collections.Generic.List<Renderer> m_RendererBuffer = new System.Collections.Generic.List<Renderer>();
 
     public Damageable Damageable { get; private set; }
 
@@ -49,8 +52,56 @@ public class AvatarBody : MonoBehaviour
         m_Arms.Create(m_Head, transform);
         CreateShape(m_Arms.GetArm(0), Vector3.one * m_Arms.Radius * 2f, m_TorsoMaterial);
         CreateShape(m_Arms.GetArm(1), Vector3.one * m_Arms.Radius * 2f, m_TorsoMaterial);
+        m_Arms.CreateStumps(m_TorsoMaterial);
 
         m_Colliders = new Collider[] { headCollider, torsoCollider, m_Arms.Colliders[0], m_Arms.Colliders[1] };
+    }
+
+    void OnEnable()
+    {
+        Damageable.Damaged += OnDamaged;
+        Damageable.Revived += OnRevived;
+    }
+
+    void OnDisable()
+    {
+        Damageable.Damaged -= OnDamaged;
+        Damageable.Revived -= OnRevived;
+    }
+
+    // 팔을 맞으면 그 팔이 절단된다: 팔은 짧게 남고, 그쪽 손 모양은 사라진다 (상대 화면에서 보이는 모습)
+    void OnDamaged(BodyPart part, DamageOutcome outcome)
+    {
+        if (outcome != DamageOutcome.ArmDisabled)
+            return;
+
+        var index = part == BodyPart.LeftArm ? 0 : 1;
+        m_Arms.SetSevered(index, true);
+        var hand = index == 0 ? m_LeftHand : m_RightHand;
+        if (hand == null)
+            return;
+
+        // 자기 아바타는 원래 렌더러가 꺼져 있다. 켜져 있던 것만 끄고 기억했다가 새 게임에서 되돌린다
+        hand.GetComponentsInChildren(true, m_RendererBuffer);
+        foreach (var shown in m_RendererBuffer)
+        {
+            if (!shown.enabled)
+                continue;
+            shown.enabled = false;
+            m_HiddenHandRenderers[index].Add(shown);
+        }
+    }
+
+    void OnRevived()
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            m_Arms.SetSevered(i, false);
+            foreach (var hidden in m_HiddenHandRenderers[i])
+                if (hidden != null)
+                    hidden.enabled = true;
+            m_HiddenHandRenderers[i].Clear();
+        }
     }
 
     /// <summary>

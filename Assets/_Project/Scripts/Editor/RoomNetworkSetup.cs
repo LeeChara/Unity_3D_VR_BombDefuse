@@ -43,6 +43,7 @@ public static class RoomNetworkSetup
         SetUpSeatRegistry(log);
         SetUpSessionPanel(log);
         SetUpGameStart(log);
+        SetUpMainMenu(log);
         AddSceneToBuildSettings(log);
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -400,6 +401,93 @@ public static class RoomNetworkSetup
 
             labelProperty.objectReferenceValue = label.GetComponent<TMP_Text>();
             serialized.ApplyModifiedProperties();
+        }
+    }
+
+    // 접속 패널을 메인 메뉴로 키운다: 게임 이름, 상태, 한글 버튼, 음량, 게임 종료. Title이 이미 있으면 연결만 확인한다
+    static void SetUpMainMenu(List<string> log)
+    {
+        var panelObject = GameObject.Find("LanSessionPanel");
+        if (panelObject == null)
+            return;
+        var panel = panelObject.transform;
+
+        if (panel.Find("Title") == null)
+        {
+            Undo.RegisterFullObjectHierarchyUndo(panelObject, "Set Up Main Menu");
+            var board = panel.Find("Board");
+            if (board != null)
+            {
+                board.localPosition = new Vector3(0f, 0f, 0.03f);
+                board.localScale = new Vector3(0.9f, 0.95f, 0.02f);
+            }
+
+            var title = CreateText(panel, "Title", new Vector3(0f, 0.36f, -0.01f), new Vector2(0.8f, 0.14f), "LastRound");
+            title.color = new Color(0.88f, 0.34f, 0.29f);
+            title.fontStyle = FontStyles.Bold;
+
+            var status = panel.Find("Status");
+            if (status != null)
+            {
+                status.localPosition = new Vector3(0f, 0.2f, -0.01f);
+                status.GetComponent<TextMeshPro>().rectTransform.sizeDelta = new Vector2(0.8f, 0.16f);
+            }
+
+            PlaceButton(panel, "HOST", "방 만들기", "트리거를 눌러 방 만들기", new Vector2(-0.28f, 0.02f), 0.24f);
+            PlaceButton(panel, "JOIN", "참가하기", "트리거를 눌러 같은 와이파이의 방에 참가", new Vector2(0f, 0.02f), 0.24f);
+            PlaceButton(panel, "LEAVE", "나가기", "트리거를 눌러 방에서 나가기", new Vector2(0.28f, 0.02f), 0.24f);
+            PlaceButton(panel, "START", "시작", "트리거를 눌러 게임 시작", new Vector2(-0.14f, -0.16f), 0.52f);
+            PlaceButton(panel, "MIC", "마이크 끄기", "트리거를 눌러 마이크 끄기", new Vector2(0.28f, -0.16f), 0.24f);
+
+            CreateButton(panel, LanSessionButton.Command.VolumeDown, "VOLDOWN", "트리거를 눌러 음량 내리기", new Vector2(-0.31f, -0.34f), 0.18f);
+            CreateButton(panel, LanSessionButton.Command.VolumeUp, "VOLUP", "트리거를 눌러 음량 올리기", new Vector2(0.07f, -0.34f), 0.18f);
+            CreateButton(panel, LanSessionButton.Command.Quit, "QUIT", "트리거를 눌러 게임 끄기", new Vector2(0.29f, -0.34f), 0.24f);
+            panel.Find("Label_VOLDOWN").GetComponent<TextMeshPro>().text = "음량 -";
+            panel.Find("Label_VOLUP").GetComponent<TextMeshPro>().text = "음량 +";
+            panel.Find("Label_QUIT").GetComponent<TextMeshPro>().text = "게임 종료";
+            CreateText(panel, "Volume", new Vector3(-0.12f, -0.34f, -0.01f), new Vector2(0.18f, 0.1f), "음량 100%");
+            LinkButtonLabels(panel);
+            log.Add("Turned LanSessionPanel into the main menu (title, Korean buttons, volume, quit)");
+        }
+
+        var menu = panel.GetComponent<MainMenu>();
+        if (menu == null)
+        {
+            menu = Undo.AddComponent<MainMenu>(panelObject);
+            log.Add("Added MainMenu to LanSessionPanel");
+        }
+
+        var menuSerialized = new SerializedObject(menu);
+        var flowProperty = menuSerialized.FindProperty("m_Flow");
+        if (flowProperty.objectReferenceValue == null)
+            flowProperty.objectReferenceValue = Object.FindAnyObjectByType<GameFlowController>();
+        var volumeProperty = menuSerialized.FindProperty("m_VolumeLabel");
+        var volume = panel.Find("Volume");
+        if (volumeProperty.objectReferenceValue == null && volume != null)
+            volumeProperty.objectReferenceValue = volume.GetComponent<TMP_Text>();
+        menuSerialized.ApplyModifiedProperties();
+    }
+
+    // 이미 있는 버튼(Button_name)과 글자(Label_name)를 옮기고 글자·안내 문구를 바꾼다
+    static void PlaceButton(Transform panel, string name, string text, string prompt, Vector2 position, float width)
+    {
+        var button = panel.Find("Button_" + name);
+        if (button != null)
+        {
+            button.localPosition = new Vector3(position.x, position.y, 0f);
+            button.localScale = new Vector3(width, 0.12f, 0.04f);
+            var serialized = new SerializedObject(button.GetComponent<LanSessionButton>());
+            serialized.FindProperty("m_Prompt").stringValue = prompt;
+            serialized.ApplyModifiedProperties();
+        }
+
+        var label = panel.Find("Label_" + name);
+        if (label != null)
+        {
+            label.localPosition = new Vector3(position.x, position.y, -0.025f);
+            var tmp = label.GetComponent<TextMeshPro>();
+            tmp.rectTransform.sizeDelta = new Vector2(width - 0.02f, 0.1f);
+            tmp.text = text;
         }
     }
 

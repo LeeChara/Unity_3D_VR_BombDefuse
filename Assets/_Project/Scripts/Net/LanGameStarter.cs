@@ -7,6 +7,7 @@ using UnityEngine;
 /// 각 좌석의 몸을 실제 플레이어(이 기기 사람은 XR Origin의 몸, 상대는 아바타의 몸)로 바꾼다.
 /// 클라이언트는 진행을 돌리지 않고 호스트의 상태(<see cref="GameStateSync"/>)와 화면(<see cref="LanQuizSync"/>, <see cref="LanGunSync"/>)을 따른다.
 /// 게임 중에 상대가 나가면(<see cref="LanSession.OpponentLeft"/>) 남은 쪽의 승리로 끝내고, 다시 START를 받을 수 있게 혼자 플레이 상태로 돌린다.
+/// 한 판이 끝나면 자동으로 다시 시작하지 않고 로비(메인 메뉴)로 돌아가, 호스트가 시작을 다시 누르면 새 판을 한다.
 /// GameFlowController의 Start On Play는 꺼 둔다.
 /// </summary>
 public class LanGameStarter : MonoBehaviour
@@ -28,6 +29,10 @@ public class LanGameStarter : MonoBehaviour
 
         m_Session.GameStarted += OnGameStarted;
         m_Session.OpponentLeft += OnOpponentLeft;
+
+        // 한 판이 끝나면 바로 다시 시작하지 않고 메인 메뉴(로비)로 돌아가 호스트의 시작을 기다린다
+        m_Flow.AutoRestart = false;
+        m_Flow.StateMachine.StateChanged += OnFlowStateChanged;
     }
 
     void OnDestroy()
@@ -36,7 +41,15 @@ public class LanGameStarter : MonoBehaviour
         {
             m_Session.GameStarted -= OnGameStarted;
             m_Session.OpponentLeft -= OnOpponentLeft;
+            m_Flow.StateMachine.StateChanged -= OnFlowStateChanged;
         }
+    }
+
+    // 게임이 끝나 로비로 돌아오면(호스트는 직접, 클라이언트는 받은 상태로) 접속은 둔 채 다시 시작할 수 있게 한다
+    void OnFlowStateChanged(GameState previous, GameState next)
+    {
+        if (next == GameState.Lobby && previous == GameState.GameOver)
+            m_Session.ResetForNextGame();
     }
 
     void OnGameStarted()

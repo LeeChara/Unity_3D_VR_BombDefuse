@@ -42,7 +42,7 @@ public class LanSession : MonoBehaviour
     public static LanSession Instance => s_Instance;
 
     /// <summary>지금 상태를 사람이 읽을 수 있게 적은 문구.</summary>
-    public string Status { get; private set; } = "Offline";
+    public string Status { get; private set; } = "오프라인";
 
     public event Action<string> StatusChanged;
 
@@ -117,13 +117,13 @@ public class LanSession : MonoBehaviour
 
         if (!opened)
         {
-            SetStatus($"Failed to host. Ports {m_Port}-{m_Port + m_PortTries - 1} are all in use");
+            SetStatus($"방을 만들지 못했습니다\n포트 {m_Port}-{m_Port + m_PortTries - 1}이 모두 사용 중");
             return;
         }
 
         m_Discovery.StartAnnouncing(m_DiscoveryPort);
         m_NextAnnounceTime = 0f;
-        SetStatus($"Hosting at {address}:{m_ActivePort}\nWaiting for player 2");
+        SetStatus($"방을 만들었습니다 ({address}:{m_ActivePort})\n상대를 기다리는 중");
     }
 
     public void Join()
@@ -144,7 +144,7 @@ public class LanSession : MonoBehaviour
 
         m_IsDiscovering = true;
         m_DiscoveryEndTime = Time.unscaledTime + m_DiscoveryTimeout;
-        SetStatus("Looking for host...");
+        SetStatus("방을 찾는 중...");
     }
 
     public void Leave()
@@ -153,7 +153,29 @@ public class LanSession : MonoBehaviour
         if (m_NetworkManager.IsListening)
             m_NetworkManager.Shutdown();
         IsGameStarted = false;
-        SetStatus("Offline");
+        SetStatus("오프라인");
+    }
+
+    /// <summary>
+    /// 한 판이 끝나 로비(메인 메뉴)로 돌아왔을 때 부른다. 접속은 그대로 두고, 호스트가 다시 시작할 수 있게 한다.
+    /// 호스트와 클라이언트 모두에서 부른다.
+    /// </summary>
+    public void ResetForNextGame()
+    {
+        if (!IsGameStarted)
+            return;
+
+        IsGameStarted = false;
+        if (!m_NetworkManager.IsListening)
+        {
+            SetStatus("오프라인");
+            return;
+        }
+
+        if (m_NetworkManager.IsServer)
+            SetStatus(CanStartGame ? "다시 하려면 시작을 누르세요" : "상대를 기다리는 중");
+        else
+            SetStatus("호스트가 다시 시작하기를 기다리는 중");
     }
 
     /// <summary>호스트만 쓴다. 클라이언트에게 시작을 알리고 자기도 시작한다.</summary>
@@ -181,7 +203,7 @@ public class LanSession : MonoBehaviour
             return;
 
         IsGameStarted = true;
-        SetStatus("Game started");
+        SetStatus("게임 중");
         GameStarted?.Invoke();
     }
 
@@ -214,11 +236,11 @@ public class LanSession : MonoBehaviour
         {
             // 메시지 관리자는 접속할 때마다 새로 만들어지므로 매번 등록한다
             m_NetworkManager.CustomMessagingManager.RegisterNamedMessageHandler(k_StartGameMessage, OnStartGameMessage);
-            SetStatus($"Connecting to {address}:{port}...");
+            SetStatus($"접속하는 중 ({address}:{port})...");
         }
         else
         {
-            SetStatus($"Failed to connect to {address}:{port}");
+            SetStatus($"접속하지 못했습니다 ({address}:{port})");
         }
     }
 
@@ -234,7 +256,7 @@ public class LanSession : MonoBehaviour
         var isFull = m_NetworkManager.ConnectedClientsIds.Count >= m_MaxPlayers;
         response.Approved = !isFull;
         response.CreatePlayerObject = !isFull;
-        response.Reason = isFull ? "Room is full" : null;
+        response.Reason = isFull ? "방이 가득 찼습니다" : null;
     }
 
     void OnClientConnected(ulong clientId)
@@ -246,12 +268,12 @@ public class LanSession : MonoBehaviour
             {
                 // 정원이 찼으니 더 알리지 않는다
                 m_Discovery.Dispose();
-                SetStatus($"Players {count}/{m_MaxPlayers}\nPress START");
+                SetStatus($"플레이어 {count}/{m_MaxPlayers}\n시작을 누르세요");
             }
         }
         else if (clientId == m_NetworkManager.LocalClientId)
         {
-            SetStatus("Connected\nWaiting for host to start");
+            SetStatus("접속했습니다\n호스트가 시작하기를 기다리는 중");
         }
     }
 
@@ -267,7 +289,7 @@ public class LanSession : MonoBehaviour
             if (IsGameStarted)
                 OpponentLeft?.Invoke();
             IsGameStarted = false;
-            SetStatus("Player 2 left\nWaiting for player 2");
+            SetStatus("상대가 나갔습니다\n상대를 기다리는 중");
             return;
         }
 
@@ -276,13 +298,13 @@ public class LanSession : MonoBehaviour
             OpponentLeft?.Invoke();
         IsGameStarted = false;
         var reason = m_NetworkManager.DisconnectReason;
-        SetStatus(string.IsNullOrEmpty(reason) ? "Disconnected" : $"Disconnected: {reason}");
+        SetStatus(string.IsNullOrEmpty(reason) ? "연결이 끊겼습니다" : $"연결이 끊겼습니다: {reason}");
     }
 
     void OnTransportFailure()
     {
         StopDiscovery();
-        SetStatus("Network error");
+        SetStatus("네트워크 오류");
     }
 
     void SetStatus(string status)

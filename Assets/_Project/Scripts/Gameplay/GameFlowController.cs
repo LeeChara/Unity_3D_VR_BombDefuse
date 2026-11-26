@@ -86,8 +86,14 @@ public class GameFlowController : MonoBehaviour
     /// <summary>지금 공포 단계 (진행하는 기기 기준). 바뀌면 <c>dread_changed</c> 이벤트가 난다.</summary>
     public int DreadLevel => m_DreadLevel;
 
-    /// <summary>첫 게임을 시작했는지. 시작한 뒤에는 게임이 끝나도 자동으로 다시 시작한다.</summary>
+    /// <summary>게임을 시작했는지. 자동 재시작(<see cref="AutoRestart"/>)이 꺼져 있으면 게임이 끝나 로비로 돌아올 때 다시 false가 된다.</summary>
     public bool HasStarted { get; private set; }
+
+    /// <summary>
+    /// true면 게임이 끝난 뒤 잠시 뒤 바로 새 게임을 시작한다 (혼자 테스트). false면 로비로 돌아가 다음 <see cref="StartGame"/>을 기다린다
+    /// (멀티: 메인 메뉴에서 호스트가 다시 시작을 누른다). 네트워크 쪽이 정한다.
+    /// </summary>
+    public bool AutoRestart { get; set; } = true;
 
     /// <summary>문제를 띄웠을 때 (문제, 제한시간 초). 네트워크 쪽이 클라이언트 화면에 같은 문제를 띄울 때 쓴다.</summary>
     public event Action<QuizQuestion, float> QuizShown;
@@ -914,12 +920,15 @@ public class GameFlowController : MonoBehaviour
         if (m_Player != null)
             m_Player.UnlockSeat();
         var winner = 3 - deadSeat;
-        Debug.Log($"[Flow] 좌석 {deadSeat} 사망 → 좌석 {winner} 승리. 잠시 뒤 다시 시작", this);
+        Debug.Log($"[Flow] 좌석 {deadSeat} 사망 → 좌석 {winner} 승리. 잠시 뒤 {(AutoRestart ? "다시 시작" : "로비(메인 메뉴)로")}", this);
         GameEvents.Raise("player_won", winner);
         yield return new WaitForSeconds(Mathf.Max(m_RestartDelay, Say("player_won", audienceSeat: winner)));
 
         GoTo(GameState.Lobby);
-        BeginGame();
+        if (AutoRestart)
+            BeginGame();
+        else
+            HasStarted = false;
     }
 
     // 사격 결과 이벤트. 대사는 결과 브리핑에서 나오지만 소리는 바로 난다
