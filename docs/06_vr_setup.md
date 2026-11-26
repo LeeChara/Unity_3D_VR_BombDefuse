@@ -22,7 +22,7 @@
 | Multiplayer Services (Lobby, Relay) | 2.3.0 |
 | Vivox (보이스챗) | 16.11.0 |
 | Multiplayer Play Mode | 2.0.2 |
-| Unity Cloud | 조직 `radiorarian`에 연결됨. 로비·릴레이·Vivox가 이 연결을 쓴다 |
+| Unity Cloud | 조직 `sku_team2`의 프로젝트 `VR`(Project ID `9682880f-…`)에 연결됨. 로비·릴레이·Vivox가 이 연결을 쓴다 |
 | 샘플 씬 | `Assets/Scenes/SampleScene.unity` (멀티플레이 예제), `Assets/Scenes/BasicScene.unity` |
 | 메인 씬 | `Assets/_Project/Scenes/RoomScene.unity` |
 | Unity Pipeline | 0.10.0-exp.1 (템플릿 이후 추가). 열린 에디터를 명령줄·MCP로 조작하는 에디터 전용 패키지. 빌드에는 들어가지 않는다 |
@@ -72,5 +72,5 @@
 
 ## 남은 정리 (급하지 않음)
 
-- 빌드 이름(`productName`)과 Unity Cloud 프로젝트 이름이 `VR`로 되어 있다. 게임 이름이 정해지면 바꾼다
+- 빌드 이름(`productName`)과 Unity Cloud 프로젝트 이름이 `VR`로 되어 있다. 게임 이름 `Take Your Shot`으로 바꾼다
 - 템플릿에만 필요한 요소(AR Foundation, Android XR 패키지, 에디터 튜토리얼, `Readme.asset`)는 쓰지 않으면 나중에 제거한다

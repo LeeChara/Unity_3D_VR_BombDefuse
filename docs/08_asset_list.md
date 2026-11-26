@@ -58,7 +58,7 @@
 | 로비 대기 음악 | `Lobby` | 필요 |
 | 사격 배경음 (반복) | 총 지급·사수 턴 동안 단계 배경음 대신 나오고 점점 빨라진다. GameFlow의 `DreadAtmosphere` → `Shooter Music` 칸 (`Audio/Temp/ShooterMusic.wav`) | 임시 |
 | 심장박동 (반복, 한 번 뛰는 길이) | 사수 턴 동안 점점 커지고 빨라진다. `DreadAtmosphere` → `Heartbeat` 칸 (`Audio/Temp/Heartbeat.wav`) | 임시 |
-| 공포 단계별 배경음 (단계 0~3, 반복) | 공포 단계가 바뀔 때 겹쳐 넘어감. `DreadAtmosphere` → Levels의 `Music` 칸 (`Audio/Temp/Ambient_0~3.wav`) | 임시 |
+| 공포 단계별 배경음 (단계 0~3, 반복) | 공포 단계가 바뀔 때 겹쳐 넘어감. `DreadAtmosphere` → Levels의 `Music` 칸. 비어 있으면 조용하다 | 필요 |
 | 엔딩 음악 | `player_won` | 필요 |
 
 ### 진행자 목소리
