@@ -12,4 +12,158 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 660887b5025261a4189d9eac2c523ca6, type: 3}
   m_Name: VoiceBank
   m_EditorClassIdentifier: Assembly-CSharp::VoiceBank
-  m_Entries: []
+  m_Entries:
+  - Key: ac01
+    Clip: {fileID: 8300000, guid: eaffa27e7c1225041bcdcb11ad2d8400, type: 3}
+  - Key: cs01_1
+    Clip: {fileID: 8300000, guid: 7ab06513f9e3c66468d2862d4a04ab2d, type: 3}
+  - Key: cs01_2
+    Clip: {fileID: 8300000, guid: 51e48a9abc70c5e44a96fb8fb99a5d88, type: 3}
+  - Key: cs01_3
+    Clip: {fileID: 8300000, guid: c39f36d5cc3a38a448fd94cd9fd20704, type: 3}
+  - Key: cs01_4
+    Clip: {fileID: 8300000, guid: 22368fc467ac84a49b3cc989af41ab5e, type: 3}
+  - Key: cs01_5
+    Clip: {fileID: 8300000, guid: 23fc0feb5cbddd7478e0d3fc6868ae6f, type: 3}
+  - Key: cs01_6
+    Clip: {fileID: 8300000, guid: ac65f1cfbcdfaf34ca9a037e2839e2c6, type: 3}
+  - Key: cs02_1
+    Clip: {fileID: 8300000, guid: a067cd31657e9c944be07b4d25dca8f2, type: 3}
+  - Key: cs02_2
+    Clip: {fileID: 8300000, guid: fb3fc1e13baa8a34d8e3bac6ce819ca3, type: 3}
+  - Key: cs02_3
+    Clip: {fileID: 8300000, guid: f747660231890234b95026aa7b79e0cf, type: 3}
+  - Key: cs02_4
+    Clip: {fileID: 8300000, guid: a82880d3b1714a34886e4e47a7f056bc, type: 3}
+  - Key: cs02_5
+    Clip: {fileID: 8300000, guid: ee6ee6cd722c15c4c87e1b7b6b93fa83, type: 3}
+  - Key: cs02_6
+    Clip: {fileID: 8300000, guid: 20c16febe8177144fbe540c8f6668e4d, type: 3}
+  - Key: gh01_1
+    Clip: {fileID: 8300000, guid: 45188d824bd0683418a82edfef81e34a, type: 3}
+  - Key: gh01_2
+    Clip: {fileID: 8300000, guid: c0bba176ff603794589fb4d7a091b544, type: 3}
+  - Key: gh01_3
+    Clip: {fileID: 8300000, guid: 5c659bd4eccdb834da70a87701af4d34, type: 3}
+  - Key: gh01_4
+    Clip: {fileID: 8300000, guid: 0bfa36e4d2bbd7f46bba83c1f6637d9b, type: 3}
+  - Key: gh01_5
+    Clip: {fileID: 8300000, guid: 8e2acfc0340f3c746818fdfd52068ad7, type: 3}
+  - Key: gh01_6
+    Clip: {fileID: 8300000, guid: f5bb4d14516fa164bb3b59ff0a240686, type: 3}
+  - Key: gh02_1
+    Clip: {fileID: 8300000, guid: da2d5190c91c65245bc425a4beb1842e, type: 3}
+  - Key: gh02_2
+    Clip: {fileID: 8300000, guid: cd279df9bb3577e4e9cb533e8ad20585, type: 3}
+  - Key: gh02_3
+    Clip: {fileID: 8300000, guid: 3fbfd34bc19558c4ea9ece5a8d0df761, type: 3}
+  - Key: gh02_4
+    Clip: {fileID: 8300000, guid: 38a08f6293e5cc54c9513b6a13d82fe8, type: 3}
+  - Key: gh02_5
+    Clip: {fileID: 8300000, guid: 3b0d841ca7a65984b9b84af810f610c6, type: 3}
+  - Key: gh02_6
+    Clip: {fileID: 8300000, guid: c081e40c5f0f5fa4487e49279e53753d, type: 3}
+  - Key: go01
+    Clip: {fileID: 8300000, guid: c07b409f0143fbc47a46d79a02977a01, type: 3}
+  - Key: ha01
+    Clip: {fileID: 8300000, guid: 55adcf9fa906e34428eecf940cdfdbc3, type: 3}
+  - Key: hb01
+    Clip: {fileID: 8300000, guid: 928a0a552ba6bdb4abbe25d158b13716, type: 3}
+  - Key: ht01
+    Clip: {fileID: 8300000, guid: 9c7350a3f644e9a4eb0ae8e185b85489, type: 3}
+  - Key: nh01
+    Clip: {fileID: 8300000, guid: 7838e388d5e3e174eafbf8b187bc1813, type: 3}
+  - Key: pa01
+    Clip: {fileID: 8300000, guid: 751ce569825576641a63e438d861036a, type: 3}
+  - Key: pd01
+    Clip: {fileID: 8300000, guid: 1808904751347fc47a78d06304984517, type: 3}
+  - Key: pds01
+    Clip: {fileID: 8300000, guid: 74ac6fbd03c0e8f48815dfb654275541, type: 3}
+  - Key: pw01
+    Clip: {fileID: 8300000, guid: c6afc134264c907409745858a3e7fe09, type: 3}
+  - Key: qi01_1
+    Clip: {fileID: 8300000, guid: 25ca2ba9f4b2d234c8916a96b196e987, type: 3}
+  - Key: qi01_10
+    Clip: {fileID: 8300000, guid: addc34a47086c994e878e149188e814a, type: 3}
+  - Key: qi01_2
+    Clip: {fileID: 8300000, guid: 7e60b204aea6a464081d1121dc7a97ff, type: 3}
+  - Key: qi01_3
+    Clip: {fileID: 8300000, guid: 9095774525e4bab4689776a7916b3b24, type: 3}
+  - Key: qi01_4
+    Clip: {fileID: 8300000, guid: 2936d7e0388f7e64d98cbcf06a5e4c92, type: 3}
+  - Key: qi01_5
+    Clip: {fileID: 8300000, guid: 59cbeb59a12f4fc4f90633bb59e90ac6, type: 3}
+  - Key: qi01_6
+    Clip: {fileID: 8300000, guid: 7a34effff6123434eaa19e40ec3c2703, type: 3}
+  - Key: qi01_7
+    Clip: {fileID: 8300000, guid: 785d496e4f148e444b70a0d3eb24f030, type: 3}
+  - Key: qi01_8
+    Clip: {fileID: 8300000, guid: 494f04e45d194134f866687add47cb60, type: 3}
+  - Key: qi01_9
+    Clip: {fileID: 8300000, guid: cb8348acd84242a4ab24fcb30e3ed5ae, type: 3}
+  - Key: qp01
+    Clip: {fileID: 8300000, guid: 56a51f3c8585b3a46a8507e847ff9118, type: 3}
+  - Key: qp02
+    Clip: {fileID: 8300000, guid: 54fa76be6e7ae0c48bc56b707e8c743a, type: 3}
+  - Key: qp03
+    Clip: {fileID: 8300000, guid: f3dc3441936bc5f458bf5e44ab359550, type: 3}
+  - Key: qt01
+    Clip: {fileID: 8300000, guid: 515c746f33dd82f4ea854d5d86b1289d, type: 3}
+  - Key: qw01
+    Clip: {fileID: 8300000, guid: def8001202beaa24f83b5857e88c7132, type: 3}
+  - Key: ri01
+    Clip: {fileID: 8300000, guid: 8e9a8530db4cd6840a410d9f21f0afbf, type: 3}
+  - Key: ri02
+    Clip: {fileID: 8300000, guid: 1bcc7b833e705f34399a08dab5af013c, type: 3}
+  - Key: ri03
+    Clip: {fileID: 8300000, guid: 533c9c81aaa523a45afdbfbfb321fcf5, type: 3}
+  - Key: rl01_1
+    Clip: {fileID: 8300000, guid: 1a3ec371d4f097b4fa6e8d1f929e947b, type: 3}
+  - Key: rl01_2
+    Clip: {fileID: 8300000, guid: e56af622c0fb1f241bab105c73478bd0, type: 3}
+  - Key: rl01_3
+    Clip: {fileID: 8300000, guid: 10bb553e82c4a664c9c9c2c23dcb2b72, type: 3}
+  - Key: rl01_4
+    Clip: {fileID: 8300000, guid: bd465ca740c26204abe1193e618d0e63, type: 3}
+  - Key: rl01_5
+    Clip: {fileID: 8300000, guid: db6fc32404aa51a4db7bd2febee2f268, type: 3}
+  - Key: rl01_6
+    Clip: {fileID: 8300000, guid: 91e6a297df552fd49b6705eb5add1950, type: 3}
+  - Key: rl02_1
+    Clip: {fileID: 8300000, guid: 1a309528bab6f9648af6a9c5ae18760e, type: 3}
+  - Key: rl02_2
+    Clip: {fileID: 8300000, guid: 433a8047e3ca1d141b8ee115a5118637, type: 3}
+  - Key: rl02_3
+    Clip: {fileID: 8300000, guid: 0c3e74591fa6d56409e82e37f766a156, type: 3}
+  - Key: rl02_4
+    Clip: {fileID: 8300000, guid: a65c20801501e8243bd932cf37bf8656, type: 3}
+  - Key: rl02_5
+    Clip: {fileID: 8300000, guid: 756d4eb5769b72446aee9ab9d9aef6a3, type: 3}
+  - Key: rl02_6
+    Clip: {fileID: 8300000, guid: bbda078852715c84386088735d40e060, type: 3}
+  - Key: sbo01
+    Clip: {fileID: 8300000, guid: ba7285b1118fd5d48b283cf80ba64583, type: 3}
+  - Key: sbo02
+    Clip: {fileID: 8300000, guid: c03683b316ac7e940b1eb3506dec3bf6, type: 3}
+  - Key: sbo03
+    Clip: {fileID: 8300000, guid: f11fea8d2cb0ec64896e55753751fb13, type: 3}
+  - Key: sbs01
+    Clip: {fileID: 8300000, guid: 2e199dc2fedae4d4981629f8ee7114d0, type: 3}
+  - Key: sbs02
+    Clip: {fileID: 8300000, guid: 3c949994d0413dc49b5e347995d5a067, type: 3}
+  - Key: sf01
+    Clip: {fileID: 8300000, guid: 143c8633abab39e41a00c8346d26b8a5, type: 3}
+  - Key: sho01
+    Clip: {fileID: 8300000, guid: 9ffeb6d11eb396648b3f1672cc76f530, type: 3}
+  - Key: shs01
+    Clip: {fileID: 8300000, guid: 5532dc518f69edf44b45529d7bebd2c8, type: 3}
+  - Key: sm01
+    Clip: {fileID: 8300000, guid: 770775676ea1b5142bf6f4f14da5e296, type: 3}
+  - Key: sp01
+    Clip: {fileID: 8300000, guid: 8778314223d6a4a4b8cd5c30df047844, type: 3}
+  - Key: st01
+    Clip: {fileID: 8300000, guid: ccb34126e0db2a648bf56bafacf78bb2, type: 3}
+  - Key: su01
+    Clip: {fileID: 8300000, guid: cb4a51168804d5548be4733c70ff3fe1, type: 3}
+  - Key: sw01
+    Clip: {fileID: 8300000, guid: 691ca625f045f6c4dbb81eabcbfe5815, type: 3}

@@ -11,7 +11,7 @@ using UnityEngine;
 /// 효과음과 진행자 목소리를 연결하는 창 (메뉴 BombDefuse > Sound Hookup).
 /// 파일 이름 규칙대로 폴더에 넣고 "폴더에서 자동 연결"을 누르면 이름으로 찾아 연결하고, 빠진 소리를 목록으로 보여 준다.
 /// - 효과음: Audio/SFX/이벤트이름.wav (여러 개면 이벤트이름_1.wav, 이벤트이름_2.wav). 총 소리는 gun_hammer, gun_fire.
-/// - 목소리: Audio/Voice/대사id.wav ({bullets} 대사의 숫자별 녹음은 대사id_숫자.wav)
+/// - 목소리: Audio/Voice/대사id.wav ({bullets} 대사의 숫자별, {order} 대사의 순서별 녹음은 대사id_숫자.wav)
 /// Play 중에는 ▶ 버튼으로 그 이벤트를 이 기기에서 내서 소리를 들어볼 수 있다.
 /// </summary>
 public class SoundHookupWindow : EditorWindow
@@ -363,7 +363,7 @@ public class SoundHookupWindow : EditorWindow
 
         m_Lines ??= LoadLines();
         EditorGUILayout.HelpBox(
-            $"녹음을 {k_VoiceFolder}에 대사 id 이름으로 넣는다 (예: gh01.wav). {{bullets}} 대사는 숫자마다 gh01_1.wav ~ gh01_6.wav로 넣을 수 있다.\n" +
+            $"녹음을 {k_VoiceFolder}에 대사 id 이름으로 넣는다 (예: gh01.wav). {{bullets}} 대사는 숫자마다 gh01_1.wav ~ gh01_6.wav, {{order}} 대사는 순서마다 qi01_1.wav(첫 번째) ~ qi01_10.wav로 넣을 수 있다.\n" +
             "\"녹음 목록 내보내기\"는 녹음할 대사와 파일 이름을 CSV로 만든다 (사운드 담당에게 전달).", MessageType.None);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -399,6 +399,8 @@ public class SoundHookupWindow : EditorWindow
                 GUILayout.Label(line.Text, EditorStyles.wordWrappedLabel);
                 if (line.Text.Contains("{bullets}"))
                     GUILayout.Label($"숫자별 {NumberedCount(line.Id)}/6", EditorStyles.miniLabel, GUILayout.Width(70));
+                else if (line.Text.Contains("{order}"))
+                    GUILayout.Label($"순서별 {NumberedCount(line.Id)}개", EditorStyles.miniLabel, GUILayout.Width(70));
                 var clip = m_VoiceBank.Find(line.Id) ?? m_VoiceBank.Find(line.Id, 1);
                 using (new EditorGUI.DisabledScope(true))
                     EditorGUILayout.ObjectField(clip, typeof(AudioClip), false, GUILayout.Width(150));
@@ -468,6 +470,12 @@ public class SoundHookupWindow : EditorWindow
                 for (var bullets = 1; bullets <= 6; bullets++)
                     AppendRow(csv, $"{line.Id}_{bullets}", line, line.Text.Replace("{bullets}", bullets.ToString()),
                         m_VoiceBank.Find($"{line.Id}_{bullets}") != null);
+            }
+            else if (line.Text.Contains("{order}"))
+            {
+                for (var order = 1; order <= 10; order++)
+                    AppendRow(csv, $"{line.Id}_{order}", line, line.Text.Replace("{order}", $"{order}번째"),
+                        m_VoiceBank.Find($"{line.Id}_{order}") != null);
             }
             else
             {

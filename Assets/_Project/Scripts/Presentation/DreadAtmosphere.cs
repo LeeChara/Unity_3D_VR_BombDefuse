@@ -82,6 +82,8 @@ public class DreadAtmosphere : MonoBehaviour
     Vector3 m_ShakeBase;
     float m_ShakeUntil;
     Vector3[] m_WallBase;
+    // 벽에 Rigidbody(Is Kinematic)가 있으면 물리로 옮겨 소품(RoomProps)을 밀어낸다. 위치만 바꾸면 소품이 벽을 뚫거나 튕겨 나간다
+    Rigidbody[] m_WallBodies;
     float m_WallDistance;
     float m_WallFrom;
     float m_WallMoveStart;
@@ -125,9 +127,13 @@ public class DreadAtmosphere : MonoBehaviour
         if (m_Walls != null)
         {
             m_WallBase = new Vector3[m_Walls.Length];
+            m_WallBodies = new Rigidbody[m_Walls.Length];
             for (var i = 0; i < m_Walls.Length; i++)
                 if (m_Walls[i] != null)
+                {
                     m_WallBase[i] = m_Walls[i].localPosition;
+                    m_WallBodies[i] = m_Walls[i].GetComponent<Rigidbody>();
+                }
         }
 
         m_FlickerSeed = UnityEngine.Random.value * 100f;
@@ -224,7 +230,7 @@ public class DreadAtmosphere : MonoBehaviour
         if (changed || immediately)
             PlayMusic(target.Music, immediately);
         Apply();
-        ApplyWalls();
+        ApplyWalls(immediately);
     }
 
     void Update()
@@ -249,7 +255,7 @@ public class DreadAtmosphere : MonoBehaviour
         m_WallDistance = Mathf.Lerp(m_WallFrom, target.WallDistance, Mathf.SmoothStep(0f, 1f, wallProgress));
 
         Apply();
-        ApplyWalls();
+        ApplyWalls(false);
         UpdateShake();
         UpdateTargetLight();
         UpdateMusic();
@@ -274,8 +280,9 @@ public class DreadAtmosphere : MonoBehaviour
         }
     }
 
-    // 벽을 방 가운데(방 오브젝트의 원점)에서 지금 거리만큼 떨어진 곳에 둔다. 높이와 벽 방향은 그대로
-    void ApplyWalls()
+    // 벽을 방 가운데(방 오브젝트의 원점)에서 지금 거리만큼 떨어진 곳에 둔다. 높이와 벽 방향은 그대로.
+    // snap이면 물리 이동 없이 바로 옮긴다 (새 게임에서 제자리로)
+    void ApplyWalls(bool snap)
     {
         if (m_Walls == null || m_WallBase == null)
             return;
@@ -290,7 +297,19 @@ public class DreadAtmosphere : MonoBehaviour
             if (flat.sqrMagnitude < 0.0001f)
                 continue;
             var position = flat.normalized * m_WallDistance;
-            wall.localPosition = new Vector3(position.x, start.y, position.z);
+            var local = new Vector3(position.x, start.y, position.z);
+            var body = m_WallBodies != null ? m_WallBodies[i] : null;
+            if (body == null || snap || !Application.isPlaying)
+            {
+                wall.localPosition = local;
+                if (body != null)
+                    body.position = wall.position;
+            }
+            else
+            {
+                var world = wall.parent != null ? wall.parent.TransformPoint(local) : local;
+                body.MovePosition(world);
+            }
         }
     }
 

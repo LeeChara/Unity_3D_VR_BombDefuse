@@ -813,6 +813,9 @@ public class Gun : MonoBehaviour
             var hitTransform = hit.collider.transform;
             if (hitTransform.IsChildOf(transform) || hit.collider.GetComponentInParent<SpareBullet>() != null)
                 continue;
+            // 방 소품은 기기마다 위치가 달라서 판정에 넣지 않는다
+            if (RoomProps.IsProp(hit.collider))
+                continue;
             var hitbox = hit.collider.GetComponent<Hitbox>();
             if (shooterRig != null && hitTransform.IsChildOf(shooterRig.transform) && hitbox == null)
                 continue;

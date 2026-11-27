@@ -37,7 +37,7 @@ penalty_announce,pa01,"자, 벌을 내릴 시간이다.",cold
 # ===== 총 지급과 사수 턴 =====
 # gun_handover: 정답자 앞에 총이 나타날 때. {bullets} = 총에 든 총알 수
 gun_handover,gh01,총알은 {bullets}발. 더 넣고 싶으면 넣어도 좋다.,calm
-gun_handover,gh02,총이다. 들어 있는 건 {bullets}발.,calm
+gun_handover,gh02,들어 있는 건 {bullets}발.,calm
 # shooter_urge: 총이 나오고 5초 동안 쏘지 않으면, 그 뒤로 7초마다 (임시 대사)
 shooter_urge,su01,뭘 망설이지?,mocking
 shooter_urge,su02,쏴라.,cold
@@ -51,6 +51,7 @@ shot_hit_opponent,sho01,나쁘지 않은 솜씨군.,delighted
 # shot_blank_opponent: 상대를 쐈는데 공포탄일 때 (벽이나 허공을 쏜 공포탄도 여기)
 shot_blank_opponent,sbo01,"빈 약실이다. 운이 좋았군, 상대가.",mocking
 shot_blank_opponent,sbo02,딸깍. 아무 일도 없었다.,cold
+shot_blank_opponent,sbo03,아무 일도 없었다.,cold
 # shot_miss: 실탄이 아무 몸에도 맞지 않았을 때
 shot_miss,sm01,허공을 쐈군.,mocking
 # shot_hit_self: 자신을 쐈는데 실탄일 때

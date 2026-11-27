@@ -539,8 +539,8 @@ public class GameFlowController : MonoBehaviour
     }
 
     /// <summary>진행자가 이 이벤트의 대사를 말한다. 다 읽는 데 걸리는 시간(초)을 돌려준다 (대사가 없으면 0).</summary>
-    float Say(string eventName, int bullets = -1, string order = null, int audienceSeat = 0) =>
-        m_Host != null ? m_Host.Say(eventName, bullets, order, audienceSeat) : 0f;
+    float Say(string eventName, int bullets = -1, string order = null, int audienceSeat = 0, int orderNumber = -1) =>
+        m_Host != null ? m_Host.Say(eventName, bullets, order, audienceSeat, orderNumber) : 0f;
 
     // 대사가 끝나고 다음 대사 전에 조금 쉰다
     WaitForSeconds Wait(float lineDuration) => new WaitForSeconds(lineDuration > 0f ? lineDuration + m_LineGap : 0f);
@@ -566,7 +566,7 @@ public class GameFlowController : MonoBehaviour
     IEnumerator StartQuiz()
     {
         m_QuestionNumber++;
-        yield return new WaitForSeconds(Say("quiz_intro", order: Ordinal(m_QuestionNumber)));
+        yield return new WaitForSeconds(Say("quiz_intro", order: Ordinal(m_QuestionNumber), orderNumber: m_QuestionNumber));
         yield return new WaitForSeconds(m_QuestionDelay);
         if (m_StateMachine.Current != GameState.QuizActive)
             yield break;

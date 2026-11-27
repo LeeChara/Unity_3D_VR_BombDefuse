@@ -69,8 +69,9 @@ public class HostDialogue : MonoBehaviour
     /// <param name="bullets">대사의 {bullets}를 바꿀 총알 개수. 음수면 바꾸지 않는다</param>
     /// <param name="order">대사의 {order}를 바꿀 글 (예: "첫 번째")</param>
     /// <param name="audienceSeat">이 좌석의 기기에서만 띄운다. 0이면 모두. 다른 기기도 같은 시간을 기다린다</param>
-    public float Say(string eventName, int bullets = -1, string order = null, int audienceSeat = 0) =>
-        SayLine(eventName, m_Pool?.Pick(eventName), bullets, order, audienceSeat);
+    /// <param name="orderNumber">{order} 대사의 순서별 녹음을 고를 번호 (예: 1이면 qi01_1). 없으면 -1</param>
+    public float Say(string eventName, int bullets = -1, string order = null, int audienceSeat = 0, int orderNumber = -1) =>
+        SayLine(eventName, m_Pool?.Pick(eventName), bullets, order, audienceSeat, orderNumber);
 
     /// <summary>이 이벤트의 대사 수 (차례로 이어 말할 때 쓴다).</summary>
     public int LineCount(string eventName) => m_Pool != null ? m_Pool.Count(eventName) : 0;
@@ -78,7 +79,7 @@ public class HostDialogue : MonoBehaviour
     /// <summary>이 이벤트의 index번째 대사(CSV 순서)를 띄운다. 다 읽는 데 걸리는 시간(초)을 돌려준다.</summary>
     public float SayAt(string eventName, int index) => SayLine(eventName, m_Pool?.At(eventName, index), -1, null, 0);
 
-    float SayLine(string eventName, HostLine line, int bullets, string order, int audienceSeat)
+    float SayLine(string eventName, HostLine line, int bullets, string order, int audienceSeat, int orderNumber = -1)
     {
         if (line == null)
         {
@@ -92,17 +93,19 @@ public class HostDialogue : MonoBehaviour
         if (order != null)
             text = text.Replace("{order}", order);
 
+        // 숫자별 녹음 번호: 총알 수, 없으면 순서 번호 (한 대사에 둘이 같이 들어가지는 않는다)
+        var number = bullets >= 0 ? bullets : orderNumber;
         var duration = Mathf.Max(m_MinDuration, m_BaseDuration + text.Length * m_SecondsPerCharacter);
-        var voice = m_Voice != null ? m_Voice.Find(line.Id, bullets) : null;
+        var voice = m_Voice != null ? m_Voice.Find(line.Id, number) : null;
         if (voice != null)
             duration = Mathf.Max(duration, voice.length + m_VoiceTail);
         Debug.Log($"[Host] {text} ({eventName}/{line.Id}{(voice != null ? ", 음성 " + voice.name : "")})", this);
-        ShowLine(line.Id, text, duration, bullets, audienceSeat);
+        ShowLine(line.Id, text, duration, number, audienceSeat);
         return duration;
     }
 
     /// <summary>고른 대사를 띄우고 녹음이 있으면 재생한다. 멀티의 클라이언트는 호스트가 고른 대사를 이것으로 받는다.</summary>
-    /// <param name="bullets">숫자별 녹음을 고를 총알 개수. 없으면 -1</param>
+    /// <param name="bullets">숫자별 녹음을 고를 번호 (총알 개수, 또는 {order} 대사의 순서 번호). 없으면 -1</param>
     /// <param name="audienceSeat">이 좌석의 기기에서만 띄운다. 0이면 모두</param>
     public void ShowLine(string lineId, string text, float duration, int bullets = -1, int audienceSeat = 0)
     {

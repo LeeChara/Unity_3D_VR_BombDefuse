@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Entries:
   - EventName: player_seated
     Clips:
-    - {fileID: 8300000, guid: 267aac571bec29a4ab98b5e1d1e94253, type: 3}
+    - {fileID: 8300000, guid: 98459f6b2d0ec8646a30d0fe987a17ac, type: 3}
     Location: 1
     Audience: 0
     Volume: 1
@@ -25,7 +25,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: quiz_start
     Clips:
-    - {fileID: 8300000, guid: c5b39893be0e50b4a8daeab91d3b079e, type: 3}
+    - {fileID: 8300000, guid: 39af6a3fc7b3dd747b3f4e360ca7beb8, type: 3}
     Location: 4
     Audience: 0
     Volume: 1
@@ -35,7 +35,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: answer_wrong
     Clips:
-    - {fileID: 8300000, guid: 29d8868076639ab4ba1641cafefbfa94, type: 3}
+    - {fileID: 8300000, guid: fa2218afe48336a409e4c426bdbe52dd, type: 3}
     Location: 3
     Audience: 0
     Volume: 1
@@ -45,7 +45,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: answer_correct
     Clips:
-    - {fileID: 8300000, guid: 26ddec78554e7d24289c96136f15b935, type: 3}
+    - {fileID: 8300000, guid: f0ecc8dfc25761949b64152e3a8c6bd4, type: 3}
     Location: 4
     Audience: 0
     Volume: 1
@@ -55,7 +55,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: quiz_timeout
     Clips:
-    - {fileID: 8300000, guid: b6a122d744914a84eb6308680a768120, type: 3}
+    - {fileID: 8300000, guid: 21761a89e693f2541b3c615bab0cad60, type: 3}
     Location: 4
     Audience: 0
     Volume: 1
@@ -65,7 +65,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: dread_changed
     Clips:
-    - {fileID: 8300000, guid: c4e257339934ca84391ad66bb5f60339, type: 3}
+    - {fileID: 8300000, guid: 8a2bed17817916246bd0128095c9b7df, type: 3}
     Location: 0
     Audience: 0
     Volume: 0.9
@@ -75,7 +75,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: button_pressed
     Clips:
-    - {fileID: 8300000, guid: 9ed24d136e869cb489ac736b15689e10, type: 3}
+    - {fileID: 8300000, guid: 878cc06792e5ded4788fe16d5aa08a26, type: 3}
     Location: 3
     Audience: 0
     Volume: 0.7
@@ -85,7 +85,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: gun_handover
     Clips:
-    - {fileID: 8300000, guid: 222e1619d7b14734b971deb3e46f0da9, type: 3}
+    - {fileID: 8300000, guid: 59bec566aa545b5478677a8fb6a56da9, type: 3}
     Location: 5
     Audience: 0
     Volume: 1
@@ -125,7 +125,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: cylinder_spun
     Clips:
-    - {fileID: 8300000, guid: d0cfdcb022cb7b04688c26866db47509, type: 3}
+    - {fileID: 8300000, guid: b9955fd1d1dff50469b2b8aa0a35fe8b, type: 3}
     Location: 5
     Audience: 0
     Volume: 0.8
@@ -135,7 +135,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: gun_dropped
     Clips:
-    - {fileID: 8300000, guid: 55ad7015fb95df748a2e88361c11e132, type: 3}
+    - {fileID: 8300000, guid: a9136e2271457a9458028b467193e0f8, type: 3}
     Location: 5
     Audience: 0
     Volume: 1
@@ -155,7 +155,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: shot_miss
     Clips:
-    - {fileID: 8300000, guid: 47757944ec3ab3e4491b5f78088ace40, type: 3}
+    - {fileID: 8300000, guid: c53b292a25a22dc419701647a6668bd6, type: 3}
     Location: 7
     Audience: 0
     Volume: 1
@@ -175,7 +175,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: player_hurt
     Clips:
-    - {fileID: 8300000, guid: 032b31670636b8943b6c0784f3b64d88, type: 3}
+    - {fileID: 8300000, guid: fcb6424f1d5df6841907893cb31156da, type: 3}
     Location: 2
     Audience: 0
     Volume: 0.8
@@ -185,7 +185,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: player_wounded
     Clips:
-    - {fileID: 8300000, guid: 649ac5faf5134b94788638c1a1c62631, type: 3}
+    - {fileID: 8300000, guid: fcc2466f0635a6a4184508ae8981c2fc, type: 3}
     Location: 0
     Audience: 1
     Volume: 1
@@ -195,7 +195,7 @@ MonoBehaviour:
     MaxDistance: 15
   - EventName: reload
     Clips:
-    - {fileID: 8300000, guid: 0557da553dce2f94983f725d0838b353, type: 3}
+    - {fileID: 8300000, guid: 7cd81a2b080449b4eb2bd4b4d3840d25, type: 3}
     Location: 6
     Audience: 0
     Volume: 1
