@@ -2260,6 +2260,7 @@ MonoBehaviour:
   m_VoiceTail: 0.3
   m_TalkCue: {fileID: 8300000, guid: 7d23d485d882ec747b31353ec2e5e28c, type: 3}
   m_TalkCueVolume: 0.6
+  m_VoiceEffects: {fileID: 11400000, guid: 40541a171e59f9f4d8fbe4466572e643, type: 2}
   m_BaseDuration: 0.8
   m_SecondsPerCharacter: 0.08
   m_MinDuration: 1.5
@@ -2355,6 +2356,16 @@ MonoBehaviour:
   m_TargetColor: {r: 0, g: 0, b: 0, a: 1}
   m_TargetStrength: 0.7
   m_TargetHeartRate: 100
+  m_Gun: {fileID: 0}
+  m_SquintCloseTime: 2
+  m_SquintOpenTime: 0.8
+  m_SquintColor: {r: 0, g: 0, b: 0, a: 1}
+  m_SquintStrength: 0.97
+  m_SquintClearAngle: 9
+  m_SquintSoftAngle: 14
+  m_Muffle: 1
+  m_MuffleCutoff: 700
+  m_MuffleResonance: 1.2
   m_DeathColor: {r: 0.08, g: 0, b: 0, a: 1}
   m_DeathStrength: 0.9
   m_DeathFadeDuration: 1.2

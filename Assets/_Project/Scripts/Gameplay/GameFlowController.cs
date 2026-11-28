@@ -576,7 +576,7 @@ public class GameFlowController : MonoBehaviour
         if (reshuffled && question != null)
             Debug.Log($"[Flow] 난이도 {question.Difficulty} 문제를 다 써서 그 난이도를 처음부터 다시 낸다", this);
 
-        var timeLimit = m_Config.GetQuizTimeLimit(m_DreadLevel);
+        var timeLimit = m_Config.GetQuizTimeLimit(m_DreadLevel, question.Difficulty);
         m_Round = new QuizRound(question, Now, timeLimit);
         m_Round.AnswerWrong += OnAnswerWrong;
         m_Round.Resolved += OnQuizResolved;
@@ -663,25 +663,34 @@ public class GameFlowController : MonoBehaviour
         }
         else
         {
-            // "모두 오답이다." 또는 "답을 고르지 못했군." → "자, 벌을 내릴 시간이다." → 공포 단계 상승
+            // "모두 오답이다." 또는 "답을 고르지 못했군." → "자, 벌을 내릴 시간이다." → 공포 단계 상승.
+            // 공포 단계가 이미 최대면 벌이 없으므로 벌 대사 없이 바로 다음 문제로 간다
             yield return SayAndWait(result.Outcome == QuizOutcome.AllWrong ? "quiz_all_wrong" : "quiz_timeout");
-            yield return SayAndWait("penalty_announce");
-            yield return BothFailPenalty();
+            if (m_DreadLevel < m_Config.MaxDreadLevel)
+            {
+                yield return SayAndWait("penalty_announce");
+                yield return BothFailPenalty();
+            }
+            else
+            {
+                // 상태 순서는 그대로 지나가되 (QuizResolve → BothFailPenalty → DeathCheck) 벌은 없다
+                Debug.Log($"[Flow] 아무도 못 맞힘 (공포 단계 {m_DreadLevel}, 최대라 벌 없음) → 다음 문제", this);
+                GoTo(GameState.BothFailPenalty);
+                GoTo(GameState.DeathCheck);
+                GoTo(GameState.QuizActive);
+            }
         }
     }
 
-    // 양측 패널티: 아무도 못 맞히면 공포 단계가 하나 오른다(최대에서는 그대로).
+    // 양측 패널티: 아무도 못 맞히면 공포 단계가 하나 오른다 (최대 단계에서는 부르지 않는다).
     // 조명·벽·배경음(DreadAtmosphere)과 제한시간·난이도가 이 단계를 따른다
     IEnumerator BothFailPenalty()
     {
         GoTo(GameState.BothFailPenalty);
-        if (m_DreadLevel < m_Config.MaxDreadLevel)
-        {
-            m_DreadLevel++;
-            Debug.Log($"[Flow] 아무도 못 맞힘 → 공포 단계 {m_DreadLevel}", this);
-            GameEvents.Raise("dread_changed", count: m_DreadLevel);
-            yield return new WaitForSeconds(m_PenaltyDuration);
-        }
+        m_DreadLevel++;
+        Debug.Log($"[Flow] 아무도 못 맞힘 → 공포 단계 {m_DreadLevel}", this);
+        GameEvents.Raise("dread_changed", count: m_DreadLevel);
+        yield return new WaitForSeconds(m_PenaltyDuration);
 
         GoTo(GameState.DeathCheck);
         GoTo(GameState.QuizActive);

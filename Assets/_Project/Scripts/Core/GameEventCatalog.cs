@@ -46,6 +46,7 @@ public static class GameEventCatalog
         New("answer_correct", "정답자가 정해졌을 때", "Player", SoundLocation.QuizScreen),
         New("quiz_timeout", "아무도 못 맞히고 시간이 끝났을 때", "–", SoundLocation.QuizScreen),
         New("dread_changed", "아무도 못 맞혀 공포 단계가 올랐을 때 (양측 패널티)", "Count = 새 공포 단계 (1~3)", SoundLocation.Listener),
+        New("walls_closing", "공포 단계가 올라 벽이 다가오기 시작할 때 (암전이 끝난 순간, 기기마다)", "Count = 새 공포 단계 (1~3)", SoundLocation.Listener, local: true),
         New("button_pressed", "단말기 버튼을 누른 순간 (누른 기기에서만)", "Player, Count = 고른 번호", SoundLocation.Terminal, local: true),
 
         // 총 지급과 사수 턴

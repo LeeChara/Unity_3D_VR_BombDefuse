@@ -87,6 +87,7 @@ public class DreadAtmosphere : MonoBehaviour
     float m_WallDistance;
     float m_WallFrom;
     float m_WallMoveStart;
+    bool m_WallSoundPending;
 
     float m_TargetLightLevel;
     bool m_ShooterPhase;
@@ -210,6 +211,7 @@ public class DreadAtmosphere : MonoBehaviour
             // 벽은 조명이 다시 켜질 때부터 움직인다
             m_WallFrom = m_WallDistance;
             m_WallMoveStart = m_BlackoutUntil;
+            m_WallSoundPending = true;
         }
         m_Level = level;
 
@@ -225,6 +227,7 @@ public class DreadAtmosphere : MonoBehaviour
             m_WallFrom = target.WallDistance;
             m_BlackoutUntil = 0f;
             m_ShakeUntil = 0f;
+            m_WallSoundPending = false;
         }
 
         if (changed || immediately)
@@ -251,6 +254,13 @@ public class DreadAtmosphere : MonoBehaviour
         }
 
         // 벽은 조명이 다시 켜지면 정해진 시간 동안 천천히 출발해 천천히 멈춘다
+        // 벽이 출발하는 순간 소리를 낸다 (기기마다 직접 낸다. 소리는 SoundBank의 walls_closing)
+        if (m_WallSoundPending && Time.time >= m_WallMoveStart)
+        {
+            m_WallSoundPending = false;
+            GameEvents.Raise(new GameEvent("walls_closing", count: m_Level) { LocalOnly = true });
+        }
+
         var wallProgress = Mathf.Clamp01((Time.time - m_WallMoveStart) / m_WallMoveTime);
         m_WallDistance = Mathf.Lerp(m_WallFrom, target.WallDistance, Mathf.SmoothStep(0f, 1f, wallProgress));
 

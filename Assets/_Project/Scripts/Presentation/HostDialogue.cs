@@ -16,6 +16,7 @@ public class HostDialogue : MonoBehaviour
     [SerializeField, Min(0f), Tooltip("녹음이 끝나고 다음으로 넘어가기 전 쉬는 시간(초)")] float m_VoiceTail = 0.3f;
     [SerializeField, Tooltip("녹음이 없는 대사를 띄울 때 대신 낼 임시 소리 (비워 두면 소리 없음)")] AudioClip m_TalkCue;
     [SerializeField, Range(0f, 1f)] float m_TalkCueVolume = 0.6f;
+    [SerializeField, Tooltip("목소리 효과 (Data/HostVoiceSettings). 메뉴 BombDefuse > Host Voice에서 고친다. 비우면 원래 목소리")] HostVoiceSettings m_VoiceEffects;
 
     [Header("표시 시간 = 기본 + 글자 수 × 글자당 시간 (최소값 이상)")]
     [SerializeField, Min(0f)] float m_BaseDuration = 0.8f;
@@ -61,7 +62,22 @@ public class HostDialogue : MonoBehaviour
             m_VoiceSource.minDistance = 1.5f;
             m_VoiceSource.maxDistance = 20f;
         }
+
+        if (m_VoiceEffects != null)
+            m_VoiceEffects.Apply(m_VoiceSource);
     }
+
+#if UNITY_EDITOR
+    // 에디터에서는 Play 중에 Host Voice 창으로 고친 값을 바로 듣게 한다
+    void Update()
+    {
+        if (m_VoiceEffects != null)
+            m_VoiceEffects.Apply(m_VoiceSource);
+    }
+#endif
+
+    // 목소리 높이를 낮추면 녹음이 느리게 재생되어 그만큼 길어진다
+    float VoiceLength(AudioClip clip) => clip.length / Mathf.Max(0.1f, m_VoiceSource != null ? Mathf.Abs(m_VoiceSource.pitch) : 1f);
 
     /// <summary>
     /// 이 이벤트의 대사를 하나 골라 띄우고, 다 읽는 데 걸리는 시간(초)을 돌려준다. 대사가 없으면 0.
@@ -98,7 +114,7 @@ public class HostDialogue : MonoBehaviour
         var duration = Mathf.Max(m_MinDuration, m_BaseDuration + text.Length * m_SecondsPerCharacter);
         var voice = m_Voice != null ? m_Voice.Find(line.Id, number) : null;
         if (voice != null)
-            duration = Mathf.Max(duration, voice.length + m_VoiceTail);
+            duration = Mathf.Max(duration, VoiceLength(voice) + m_VoiceTail);
         Debug.Log($"[Host] {text} ({eventName}/{line.Id}{(voice != null ? ", 음성 " + voice.name : "")})", this);
         ShowLine(line.Id, text, duration, number, audienceSeat);
         return duration;
